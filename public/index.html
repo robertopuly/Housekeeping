@@ -1,0 +1,793 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="theme-color" content="#0f172a">
+  <meta name="description" content="Système interne de communication et gestion des ordres et checklist Housekeeping">
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+  <title>Gouvernante Hôtel - Gestion & Communication</title>
+  <link rel="stylesheet" href="css/styles.css?v=32">
+  <script>
+    function getTodayIsoStr() {
+      var d = new Date();
+      var y = d.getFullYear();
+      var m = String(d.getMonth() + 1).padStart(2, '0');
+      var day = String(d.getDate()).padStart(2, '0');
+      return y + '-' + m + '-' + day;
+    }
+
+    function normalizeIsoDate(val) {
+      if (!val) return getTodayIsoStr();
+      val = String(val).trim();
+      if (/^\d{4}-\d{2}-\d{2}$/.test(val)) return val;
+      var m = val.match(/^(\d{1,2})[./-](\d{1,2})[./-](\d{4})$/);
+      if (m) {
+        var day = m[1].padStart(2, '0');
+        var month = m[2].padStart(2, '0');
+        var year = m[3];
+        return year + '-' + month + '-' + day;
+      }
+      return val;
+    }
+
+    function setDeadlinesFilter(filter) {
+      if (window.setDeadlinesFilterDirect) {
+        window.setDeadlinesFilterDirect(filter);
+      } else if (window.DeadlinesModule && typeof window.DeadlinesModule.setFilter === 'function') {
+        window.DeadlinesModule.setFilter(filter);
+      }
+    }
+
+    function setOrdersFilter(filter) {
+      if (window.setOrdersFilterDirect) {
+        window.setOrdersFilterDirect(filter);
+      } else if (window.OrdersModule && typeof window.OrdersModule.setFilter === 'function') {
+        window.OrdersModule.setFilter(filter);
+      }
+    }
+
+    function openNewDeadlineModal() {
+      var m = document.getElementById('modal-deadline');
+      var f = document.getElementById('form-deadline');
+      if (f) f.reset();
+      var dInput = document.getElementById('deadline-date');
+      if (dInput) {
+        dInput.value = getTodayIsoStr();
+      }
+      if (m) {
+        m.style.setProperty('display', 'flex', 'important');
+        m.classList.add('modal-active');
+      }
+      var t = document.getElementById('deadline-title');
+      if (t) setTimeout(function() { t.focus(); }, 100);
+    }
+
+    function closeNewDeadlineModal() {
+      var m = document.getElementById('modal-deadline');
+      if (m) {
+        m.style.setProperty('display', 'none', 'important');
+        m.classList.remove('modal-active');
+      }
+    }
+
+    async function submitNewDeadline(event) {
+      if (event) {
+        if (event.preventDefault) event.preventDefault();
+        if (event.stopPropagation) event.stopPropagation();
+      }
+
+      var titleEl = document.getElementById('deadline-title');
+      var catEl = document.getElementById('deadline-category');
+      var dateEl = document.getElementById('deadline-date');
+      var recEl = document.getElementById('deadline-recurrence');
+      var prioEl = document.getElementById('deadline-priority');
+      var notesEl = document.getElementById('deadline-notes');
+      var btnSubmit = document.getElementById('btn-submit-deadline');
+
+      var title = titleEl ? titleEl.value.trim() : '';
+      var category = catEl ? catEl.value : 'Nettoyage';
+      var rawDate = dateEl ? dateEl.value : '';
+      var dueDate = normalizeIsoDate(rawDate);
+      var recurrence = recEl ? recEl.value : 'nessuna';
+      var priority = prioEl ? prioEl.value : 'normale';
+      var notes = notesEl ? notesEl.value.trim() : '';
+      var user = (window.App && typeof window.App.getCurrentUser === 'function') ? window.App.getCurrentUser() : (localStorage.getItem('hk_user') || 'Roberto');
+
+      if (!title) {
+        if (titleEl) {
+          titleEl.focus();
+          titleEl.style.borderColor = '#dc2626';
+          setTimeout(function() { titleEl.style.borderColor = ''; }, 2000);
+        }
+        return false;
+      }
+
+      if (btnSubmit) {
+        btnSubmit.disabled = true;
+        btnSubmit.textContent = '⏳ Enregistrement...';
+      }
+
+      try {
+        var res = await fetch('/api/deadlines', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: title,
+            category: category,
+            due_date: dueDate,
+            recurrence: recurrence,
+            priority: priority,
+            notes: notes,
+            created_by: user
+          })
+        });
+
+        if (res.ok) {
+          var item = await res.json();
+          closeNewDeadlineModal();
+          var form = document.getElementById('form-deadline');
+          if (form) form.reset();
+          if (window.DeadlinesModule && typeof window.DeadlinesModule.loadDeadlines === 'function') {
+            window.DeadlinesModule.loadDeadlines();
+          }
+          if (window.SoundEngine && typeof window.SoundEngine.playSentSound === 'function') {
+            window.SoundEngine.playSentSound();
+          }
+        } else {
+          var errData = await res.json().catch(function() { return {}; });
+          alert(errData.error || 'Erreur lors de l\'enregistrement de la tâche.');
+        }
+      } catch (err) {
+        console.error('Erreur création tâche:', err);
+        alert('Erreur réseau. Veuillez réessayer.');
+      } finally {
+        if (btnSubmit) {
+          btnSubmit.disabled = false;
+          btnSubmit.textContent = '✅ Enregistrer la Tâche';
+        }
+      }
+      return false;
+    }
+
+    function openNewOrderModal() {
+      var m = document.getElementById('modal-order');
+      var f = document.getElementById('form-order');
+      if (f) f.reset();
+      if (m) {
+        m.style.setProperty('display', 'flex', 'important');
+        m.classList.add('modal-active');
+      }
+      var r = document.getElementById('order-room');
+      if (r) setTimeout(function() { r.focus(); }, 100);
+    }
+
+    function closeNewOrderModal() {
+      var m = document.getElementById('modal-order');
+      if (m) {
+        m.style.setProperty('display', 'none', 'important');
+        m.classList.remove('modal-active');
+      }
+    }
+
+    async function submitNewOrder(event) {
+      if (event) {
+        if (event.preventDefault) event.preventDefault();
+        if (event.stopPropagation) event.stopPropagation();
+      }
+
+      var roomEl = document.getElementById('order-room');
+      var titleEl = document.getElementById('order-title');
+      var prioEl = document.getElementById('order-priority');
+      var descEl = document.getElementById('order-desc');
+      var btnSubmit = document.getElementById('btn-submit-order');
+
+      var room = roomEl ? roomEl.value.trim() : '';
+      var title = titleEl ? titleEl.value.trim() : '';
+      var priority = prioEl ? prioEl.value : 'normale';
+      var desc = descEl ? descEl.value.trim() : '';
+      var user = (window.App && typeof window.App.getCurrentUser === 'function') ? window.App.getCurrentUser() : (localStorage.getItem('hk_user') || 'Roberto');
+
+      if (!room) {
+        if (roomEl) {
+          roomEl.focus();
+          roomEl.style.borderColor = '#dc2626';
+          setTimeout(function() { roomEl.style.borderColor = ''; }, 2000);
+        }
+        return false;
+      }
+      if (!title) {
+        if (titleEl) {
+          titleEl.focus();
+          titleEl.style.borderColor = '#dc2626';
+          setTimeout(function() { titleEl.style.borderColor = ''; }, 2000);
+        }
+        return false;
+      }
+
+      if (btnSubmit) {
+        btnSubmit.disabled = true;
+        btnSubmit.textContent = '⏳ Envoi...';
+      }
+
+      try {
+        var res = await fetch('/api/orders', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            room_or_area: room,
+            title: title,
+            description: desc,
+            priority: priority,
+            created_by: user
+          })
+        });
+
+        if (res.ok) {
+          closeNewOrderModal();
+          var form = document.getElementById('form-order');
+          if (form) form.reset();
+          if (window.OrdersModule && typeof window.OrdersModule.loadOrders === 'function') {
+            window.OrdersModule.loadOrders();
+          }
+          if (window.SoundEngine && typeof window.SoundEngine.playSentSound === 'function') {
+            window.SoundEngine.playSentSound();
+          }
+        } else {
+          var errData = await res.json().catch(function() { return {}; });
+          alert(errData.error || 'Erreur lors de la création de l\'ordre.');
+        }
+      } catch (err) {
+        console.error('Erreur création ordre:', err);
+        alert('Erreur réseau. Veuillez réessayer.');
+      } finally {
+        if (btnSubmit) {
+          btnSubmit.disabled = false;
+          btnSubmit.textContent = '✅ Envoyer l\'Ordre';
+        }
+      }
+      return false;
+    }
+
+    function closeEditOrderModal() {
+      var m = document.getElementById('modal-edit-order');
+      if (m) {
+        m.style.setProperty('display', 'none', 'important');
+        m.classList.remove('modal-active');
+      }
+    }
+
+    async function submitEditOrder(event) {
+      if (event) {
+        if (event.preventDefault) event.preventDefault();
+        if (event.stopPropagation) event.stopPropagation();
+      }
+
+      var idEl = document.getElementById('edit-order-id');
+      var roomEl = document.getElementById('edit-order-room');
+      var titleEl = document.getElementById('edit-order-title');
+      var prioEl = document.getElementById('edit-order-priority');
+      var descEl = document.getElementById('edit-order-desc');
+      var btnSubmit = document.getElementById('btn-submit-edit-order');
+
+      var id = idEl ? idEl.value : '';
+      var room = roomEl ? roomEl.value.trim() : '';
+      var title = titleEl ? titleEl.value.trim() : '';
+      var priority = prioEl ? prioEl.value : 'normale';
+      var desc = descEl ? descEl.value.trim() : '';
+
+      if (!id || !room || !title) return false;
+
+      if (btnSubmit) {
+        btnSubmit.disabled = true;
+        btnSubmit.textContent = '⏳ Enregistrement...';
+      }
+
+      try {
+        var res = await fetch('/api/orders/' + id, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            room_or_area: room,
+            title: title,
+            description: desc,
+            priority: priority
+          })
+        });
+
+        if (res.ok) {
+          closeEditOrderModal();
+          if (window.OrdersModule && typeof window.OrdersModule.loadOrders === 'function') {
+            window.OrdersModule.loadOrders();
+          }
+          if (window.SoundEngine && typeof window.SoundEngine.playSuccessSound === 'function') {
+            window.SoundEngine.playSuccessSound();
+          }
+        } else {
+          var errData = await res.json().catch(function() { return {}; });
+          alert(errData.error || 'Erreur lors de la modification de l\'ordre.');
+        }
+      } catch (err) {
+        console.error('Erreur mise à jour ordre:', err);
+        alert('Erreur réseau. Veuillez réessayer.');
+      } finally {
+        if (btnSubmit) {
+          btnSubmit.disabled = false;
+          btnSubmit.textContent = '💾 Enregistrer';
+        }
+      }
+      return false;
+    }
+
+    function closeMessageActionsModal() {
+      var m = document.getElementById('modal-message-actions');
+      if (m) {
+        m.style.setProperty('display', 'none', 'important');
+        m.classList.remove('modal-active');
+      }
+    }
+  </script>
+</head>
+<body>
+  <!-- HEADER -->
+  <header class="app-header">
+    <div class="header-brand">
+      <div class="header-logo">
+        <img src="icons/icon.svg" alt="Logo" />
+      </div>
+      <div class="header-title-box">
+        <h1>HOUSEKEEPING</h1>
+        <div class="header-subtitle">
+          <span id="connection-dot" class="status-dot dot-offline"></span>
+          <span id="connection-text">Connexion en cours...</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <!-- Badge Opérateur Actif (Non cliquable) -->
+      <div class="user-chip-badge" title="Opérateur Actif">
+        <span id="current-user-avatar" class="user-avatar-badge">R</span>
+        <span id="current-user-name">Roberto</span>
+      </div>
+
+      <!-- Sound Toggle -->
+      <button type="button" id="btn-sound-toggle" class="btn-header-action" aria-label="Activer ou désactiver l'audio">
+        🔔 <span class="hide-mobile">Audio</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- NAVIGATION TABS -->
+  <nav class="app-nav" role="tablist">
+    <button type="button" class="nav-tab-btn active" data-tab="tab-chat" role="tab" aria-selected="true">
+      <span class="tab-icon">💬</span>
+      <span>Discussion</span>
+      <span id="chat-badge" class="badge" style="display: none;">0</span>
+    </button>
+
+    <button type="button" class="nav-tab-btn" data-tab="tab-orders" role="tab" aria-selected="false" id="nav-btn-orders">
+      <span class="tab-icon">📋</span>
+      <span>Ordres</span>
+      <span id="orders-badge" class="badge" style="display: none;">0</span>
+    </button>
+
+    <button type="button" class="nav-tab-btn" data-tab="tab-rooms" role="tab" aria-selected="false" id="nav-btn-rooms">
+      <span class="tab-icon">🛏️</span>
+      <span>Chambres</span>
+    </button>
+
+    <button type="button" class="nav-tab-btn" data-tab="tab-deadlines" role="tab" aria-selected="false">
+      <span class="tab-icon">⏰</span>
+      <span>Échéances & Liste</span>
+      <span id="deadlines-badge" class="badge badge-pulse" style="display: none;">0</span>
+    </button>
+
+    <button type="button" class="nav-tab-btn" data-tab="tab-shopping" role="tab" aria-selected="false">
+      <span class="tab-icon">🛒</span>
+      <span>Achats & Courses</span>
+      <span id="shopping-badge" class="badge badge-pulse" style="display: none;">0</span>
+    </button>
+  </nav>
+
+  <!-- MAIN CONTENT -->
+  <main class="app-main">
+    
+    <!-- TAB 1: CHAT DIRETTA -->
+    <section id="tab-chat" class="tab-panel active" role="tabpanel">
+      <div class="chat-container">
+        <div id="chat-messages" class="chat-messages"></div>
+        
+        <!-- Réponses Rapides -->
+        <div id="quick-replies-container" class="quick-replies-bar"></div>
+
+        <!-- Barre de Réponse -->
+        <div id="chat-reply-bar" class="chat-reply-bar" style="display: none;">
+          <div class="reply-bar-left">
+            <span class="reply-icon">↩</span>
+            <div class="reply-bar-info">
+              <span class="reply-bar-sender" id="reply-sender-name">Adélcia</span>
+              <span class="reply-bar-text" id="reply-text-preview">Message...</span>
+            </div>
+          </div>
+          <button type="button" id="btn-cancel-reply" class="btn-cancel-reply" title="Annuler la réponse">&times;</button>
+        </div>
+
+        <!-- Panneau Sélecteur d'Émoticônes -->
+        <div id="emoji-picker-panel" class="emoji-picker-panel" style="display: none;">
+          <div class="emoji-picker-header">
+            <div class="emoji-picker-tabs">
+              <button type="button" class="emoji-tab-btn active" data-cat="hotel">🏨 Hôtel</button>
+              <button type="button" class="emoji-tab-btn" data-cat="faces">😊 Visages</button>
+              <button type="button" class="emoji-tab-btn" data-cat="gestures">👍 Gestes</button>
+              <button type="button" class="emoji-tab-btn" data-cat="status">⚡ Statuts</button>
+            </div>
+            <button type="button" id="btn-close-emoji" class="btn-close-emoji" title="Fermer">&times;</button>
+          </div>
+          <div id="emoji-grid" class="emoji-grid"></div>
+        </div>
+
+        <!-- Input Chat -->
+        <form id="chat-form" class="chat-input-bar">
+          <button type="button" id="btn-emoji-toggle" class="btn-emoji" title="Insérer un émoji" aria-label="Émoticônes">😊</button>
+          <input type="text" id="chat-input" class="chat-input" placeholder="Écrire un message..." autocomplete="off" />
+          <button type="submit" class="btn-send" aria-label="Envoyer">➤</button>
+        </form>
+      </div>
+    </section>
+
+    <!-- TAB 2: ORDRES DE SERVICE -->
+    <section id="tab-orders" class="tab-panel" role="tabpanel">
+      <div class="tab-content-scroll">
+        <!-- SECTION ORDRES DE SERVICE -->
+        <div class="orders-section-header">
+          <div class="orders-section-title">
+            <h2>📋 Ordres de Service</h2>
+          </div>
+          <button type="button" id="btn-new-order" class="btn-action-primary" onclick="openNewOrderModal()">
+            + Nouvel Ordre
+          </button>
+        </div>
+
+        <div class="tab-toolbar" style="border-radius: var(--border-radius-sm); margin-bottom: 12px;">
+          <div id="orders-filter-bar" class="filter-bar">
+            <button type="button" class="filter-btn active" data-filter="attivi" onclick="setOrdersFilter('attivi')">⚡ Actifs</button>
+            <button type="button" class="filter-btn" data-filter="in_attesa" onclick="setOrdersFilter('in_attesa')">⏳ En Attente</button>
+            <button type="button" class="filter-btn" data-filter="in_carico" onclick="setOrdersFilter('in_carico')">🏃 En Cours</button>
+            <button type="button" class="filter-btn" data-filter="ultimato" onclick="setOrdersFilter('ultimato')">✅ Terminés</button>
+            <button type="button" class="filter-btn" data-filter="archivio" onclick="setOrdersFilter('archivio')">📁 Archives</button>
+          </div>
+        </div>
+
+        <div id="orders-list" class="cards-grid"></div>
+      </div>
+    </section>
+
+    <!-- TAB 3: PLANNING QUOTIDIEN DES CHAMBRES -->
+    <section id="tab-rooms" class="tab-panel" role="tabpanel">
+      <div class="tab-content-scroll">
+        <!-- PLANNING QUOTIDIEN CHAMBRES -->
+        <div class="daily-board-wrapper">
+          <div class="daily-board-header">
+            <div class="daily-board-title-group">
+              <div class="daily-board-dayname" id="daily-day-name">Aujourd'hui</div>
+              <div class="daily-board-datesub" id="daily-date-full">Chargement du planning...</div>
+            </div>
+
+            <div class="daily-board-nav">
+              <button type="button" id="btn-daily-prev" class="btn-daily-nav" title="Jour précédent">◀ Hier</button>
+              <button type="button" id="btn-daily-today" class="btn-daily-nav active" title="Aujourd'hui">Aujourd'hui</button>
+              <button type="button" id="btn-daily-next" class="btn-daily-nav" title="Jour suivant">Demain ▶</button>
+              <input type="date" id="daily-date-input" class="daily-date-picker" title="Sélectionner une date" />
+            </div>
+          </div>
+
+          <!-- GRILLE DES CHAMBRES 1..5 -->
+          <div id="daily-rooms-grid" class="daily-rooms-grid">
+            <!-- Chambres générées dynamiquement par orders.js -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- TAB 3: ÉCHÉANCES / CHECKLIST TÂCHES -->
+    <section id="tab-deadlines" class="tab-panel" role="tabpanel">
+      <div class="tab-content-scroll">
+        <div class="tab-toolbar" style="border-radius: var(--border-radius-sm); margin-bottom: 12px;">
+          <div id="deadlines-filter-bar" class="filter-bar">
+            <button type="button" class="filter-btn active" data-filter="tutte" onclick="setDeadlinesFilter('tutte')">📋 Toutes</button>
+            <button type="button" class="filter-btn" data-filter="oggi_scadute" onclick="setDeadlinesFilter('oggi_scadute')">🚨 Aujourd'hui & En Retard</button>
+            <button type="button" class="filter-btn" data-filter="giornaliere" onclick="setDeadlinesFilter('giornaliere')">🔄 Quotidiennes</button>
+            <button type="button" class="filter-btn" data-filter="settimanale" onclick="setDeadlinesFilter('settimanale')">🔄 Hebdomadaires</button>
+            <button type="button" class="filter-btn" data-filter="completate" onclick="setDeadlinesFilter('completate')">✓ Terminées</button>
+          </div>
+          <button type="button" id="btn-new-deadline" class="btn-action-primary" onclick="openNewDeadlineModal()">
+            + Nouvelle Tâche
+          </button>
+        </div>
+
+        <div id="deadlines-list" class="cards-grid"></div>
+      </div>
+    </section>
+
+    <!-- TAB 4: ACHATS & COURSES -->
+    <section id="tab-shopping" class="tab-panel" role="tabpanel">
+      <div class="tab-content-scroll">
+        <!-- Boîte de notes / commentaires en tête de liste -->
+        <div class="shopping-notes-card">
+          <div class="shopping-notes-header">
+            <label for="shopping-notes-input" class="shopping-notes-label">
+              📝 <strong>Notes & Instructions pour les courses :</strong>
+            </label>
+            <span class="shopping-notes-hint">Ajoutez des précisions (quantités spécifiques, marques, urgences...)</span>
+          </div>
+          <textarea id="shopping-notes-input" class="form-control shopping-notes-textarea" placeholder="Ex: Prendre 2 packs d'eau de Javel et vérifier la lessive hypoallergénique..."></textarea>
+        </div>
+
+        <!-- Barre d'actions & Filtres -->
+        <div class="tab-toolbar shopping-toolbar">
+          <div id="shopping-filter-bar" class="filter-bar">
+            <button type="button" class="filter-btn active" data-cat="tous" onclick="setShoppingFilter('tous')">🛒 Tous</button>
+            <button type="button" class="filter-btn" data-cat="cochés" onclick="setShoppingFilter('cochés')">✅ À acheter</button>
+            <button type="button" class="filter-btn" data-cat="Nettoyage & Entretien" onclick="setShoppingFilter('Nettoyage & Entretien')">🧹 Nettoyage</button>
+            <button type="button" class="filter-btn" data-cat="Sanitaires & Accueil" onclick="setShoppingFilter('Sanitaires & Accueil')">🧴 Sanitaires</button>
+            <button type="button" class="filter-btn" data-cat="Linge & Buanderie" onclick="setShoppingFilter('Linge & Buanderie')">🧺 Linge</button>
+            <button type="button" class="filter-btn" data-cat="Cuisine & Petit-déjeuner" onclick="setShoppingFilter('Cuisine & Petit-déjeuner')">☕ Cuisine</button>
+          </div>
+          <div class="shopping-actions-group">
+            <button type="button" id="btn-send-shopping" class="btn-action-send" onclick="submitShoppingList()">
+              📤 Envoyer la commande (<span id="shopping-checked-count">0</span>)
+            </button>
+            <button type="button" id="btn-new-shopping-item" class="btn-action-primary" onclick="openNewShoppingModal()">
+              + Nouveau Produit
+            </button>
+            <button type="button" id="btn-reset-shopping" class="btn-action-secondary" onclick="resetShoppingList()" title="Décocher tous les articles">
+              🔄 Tout décocher
+            </button>
+          </div>
+        </div>
+
+        <!-- Grille des produits -->
+        <div id="shopping-list" class="cards-grid shopping-grid"></div>
+      </div>
+    </section>
+  </main>
+
+  <!-- MODAL NOUVEL ORDRE -->
+  <div id="modal-order" class="modal-backdrop" onclick="if(event.target===this)closeNewOrderModal()">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2>📋 Nouvel Ordre de Service</h2>
+        <button type="button" id="btn-close-modal-order" class="btn-close-modal" onclick="closeNewOrderModal()">&times;</button>
+      </div>
+      <form id="form-order" onsubmit="submitNewOrder(event); return false;">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="order-room">Chambre / Lieu *</label>
+            <input type="text" id="order-room" class="form-control" placeholder="ex. Chambre 1, Chambre 2, Buanderie" required />
+            <div class="room-suggestions">
+              <span class="room-suggestion-chip" data-room="Chambre 1">Chambre 1</span>
+              <span class="room-suggestion-chip" data-room="Chambre 2">Chambre 2</span>
+              <span class="room-suggestion-chip" data-room="Chambre 3">Chambre 3</span>
+              <span class="room-suggestion-chip" data-room="Chambre 4">Chambre 4</span>
+              <span class="room-suggestion-chip" data-room="Chambre 5">Chambre 5</span>
+              <span class="room-suggestion-chip" data-room="Espaces Communs">Espaces Communs</span>
+              <span class="room-suggestion-chip" data-room="Buanderie">Buanderie</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="order-title">Titre de la tâche *</label>
+            <input type="text" id="order-title" class="form-control" placeholder="ex. Nettoyage et réassort du linge" required />
+          </div>
+
+          <div class="form-group">
+            <label for="order-priority">Priorité</label>
+            <select id="order-priority" class="form-control">
+              <option value="normale" selected>ℹ️ Normale</option>
+              <option value="urgente">⚠️ Urgente</option>
+              <option value="emergenza">🚨 Urgence</option>
+              <option value="bassa">◾ Basse</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="order-desc">Notes / Détails (Optionnel)</label>
+            <textarea id="order-desc" class="form-control" placeholder="Consignes supplémentaires, heure d'arrivée des clients..."></textarea>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" id="btn-cancel-order" class="btn btn-secondary" onclick="closeNewOrderModal()">Annuler</button>
+          <button type="button" id="btn-submit-order" class="btn btn-primary" onclick="submitNewOrder(event)">✅ Envoyer l'Ordre</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL MODIFIER ORDRE -->
+  <div id="modal-edit-order" class="modal-backdrop" onclick="if(event.target===this)closeEditOrderModal()">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2>✏️ Modifier l'Ordre de Service</h2>
+        <button type="button" id="btn-close-modal-edit-order" class="btn-close-modal" onclick="closeEditOrderModal()">&times;</button>
+      </div>
+      <form id="form-edit-order" onsubmit="submitEditOrder(event); return false;">
+        <input type="hidden" id="edit-order-id" />
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="edit-order-room">Chambre / Lieu *</label>
+            <input type="text" id="edit-order-room" class="form-control" required />
+            <div class="room-suggestions">
+              <span class="room-suggestion-chip-edit" data-room="Chambre 1">Ch. 1</span>
+              <span class="room-suggestion-chip-edit" data-room="Chambre 2">Ch. 2</span>
+              <span class="room-suggestion-chip-edit" data-room="Chambre 3">Ch. 3</span>
+              <span class="room-suggestion-chip-edit" data-room="Chambre 4">Ch. 4</span>
+              <span class="room-suggestion-chip-edit" data-room="Chambre 5">Ch. 5</span>
+              <span class="room-suggestion-chip-edit" data-room="Réception">Réception</span>
+              <span class="room-suggestion-chip-edit" data-room="Salle Petit-déjeuner">Pt-Déj</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-order-title">Titre de la tâche *</label>
+            <input type="text" id="edit-order-title" class="form-control" required />
+          </div>
+
+          <div class="form-group">
+            <label for="edit-order-priority">Priorité</label>
+            <select id="edit-order-priority" class="form-control">
+              <option value="normale">ℹ️ Normale</option>
+              <option value="urgente">⚠️ Urgente</option>
+              <option value="emergenza">🚨 Urgence</option>
+              <option value="bassa">◾ Basse</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-order-desc">Notes / Détails</label>
+            <textarea id="edit-order-desc" class="form-control" placeholder="Ajouter ou modifier des notes..."></textarea>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" id="btn-cancel-edit-order" class="btn btn-secondary" onclick="closeEditOrderModal()">Annuler</button>
+          <button type="button" id="btn-submit-edit-order" class="btn btn-primary" onclick="submitEditOrder(event)">💾 Enregistrer</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL NOUVELLE ÉCHÉANCE / TÂCHE -->
+  <div id="modal-deadline" class="modal-backdrop" onclick="if(event.target===this)closeNewDeadlineModal()">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2>⏰ Nouvelle Tâche / Échéance</h2>
+        <button type="button" id="btn-close-modal-deadline" class="btn-close-modal" onclick="closeNewDeadlineModal()">&times;</button>
+      </div>
+      <form id="form-deadline" onsubmit="submitNewDeadline(event); return false;">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="deadline-title">Titre de la tâche *</label>
+            <input type="text" id="deadline-title" class="form-control" placeholder="ex. Nettoyage filtres climatisation, Contrôle des stocks" required />
+          </div>
+
+          <div class="form-group">
+            <label for="deadline-category">Catégorie</label>
+            <select id="deadline-category" class="form-control">
+              <option value="Nettoyage" selected>🧹 Nettoyage</option>
+              <option value="Inventaire">📦 Inventaire</option>
+              <option value="Maintenance">🔧 Maintenance</option>
+              <option value="Contrôles">🔎 Contrôles</option>
+              <option value="Général">📋 Général</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="deadline-date">Date d'échéance *</label>
+            <input type="date" id="deadline-date" class="form-control" required />
+          </div>
+
+          <div class="form-group">
+            <label for="deadline-recurrence">Récurrence</label>
+            <select id="deadline-recurrence" class="form-control">
+              <option value="nessuna" selected>📌 Ponctuelle (Aucune)</option>
+              <option value="giornaliera">🔄 Quotidienne</option>
+              <option value="settimanale">🔄 Hebdomadaire</option>
+              <option value="mensile">🔄 Mensuelle</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="deadline-priority">Priorité</label>
+            <select id="deadline-priority" class="form-control">
+              <option value="normale" selected>ℹ️ Normale</option>
+              <option value="urgente">⚠️ Urgente</option>
+              <option value="emergenza">🚨 Urgence</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="deadline-notes">Notes / Détails</label>
+            <textarea id="deadline-notes" class="form-control" placeholder="Consignes et détails pour l'opérateur..."></textarea>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" id="btn-cancel-deadline" class="btn btn-secondary" onclick="closeNewDeadlineModal()">Annuler</button>
+          <button type="button" id="btn-submit-deadline" class="btn btn-primary" onclick="submitNewDeadline(event)">✅ Enregistrer la Tâche</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL ACTIONS MESSAGE (RÉPONDRE / SUPPRIMER) -->
+  <div id="modal-message-actions" class="modal-backdrop" onclick="if(event.target===this)closeMessageActionsModal()">
+    <div class="modal-box modal-box-sm">
+      <div class="modal-header">
+        <h2>💬 Options du Message</h2>
+        <button type="button" id="btn-close-msg-actions" class="btn-close-modal" onclick="closeMessageActionsModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="msg-action-preview-bubble" id="msg-action-preview-text">...</div>
+        <div class="msg-action-buttons">
+          <button type="button" id="btn-action-reply" class="btn btn-primary msg-action-btn">
+            <span style="font-size:18px;">↩</span>
+            <span>Répondre</span>
+          </button>
+          <button type="button" id="btn-action-delete" class="btn btn-danger msg-action-btn">
+            <span style="font-size:18px;">🗑️</span>
+            <span>Supprimer</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL PRODUIT SHOPPING (AJOUT / MODIFICATION) -->
+  <div id="modal-shopping-product" class="modal-backdrop" onclick="if(event.target===this)closeShoppingModal()">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2 id="modal-shopping-title">🛒 Nouveau Produit</h2>
+        <button type="button" class="btn-close-modal" onclick="closeShoppingModal()">&times;</button>
+      </div>
+      <form id="form-shopping-product" onsubmit="submitShoppingProduct(event); return false;">
+        <input type="hidden" id="shopping-prod-id" />
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="shopping-prod-name">Nom du produit *</label>
+            <input type="text" id="shopping-prod-name" class="form-control" placeholder="ex. Éponges microfibres, Sacs 100L..." required />
+          </div>
+
+          <div class="form-group">
+            <label for="shopping-prod-category">Catégorie</label>
+            <select id="shopping-prod-category" class="form-control">
+              <option value="Nettoyage & Entretien" selected>🧹 Nettoyage & Entretien</option>
+              <option value="Sanitaires & Accueil">🧴 Sanitaires & Produits d'accueil</option>
+              <option value="Linge & Buanderie">🧺 Linge & Buanderie</option>
+              <option value="Cuisine & Petit-déjeuner">☕ Cuisine & Petit-déjeuner</option>
+              <option value="Autre">📦 Autre matériel</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeShoppingModal()">Annuler</button>
+          <button type="submit" id="btn-submit-shopping-product" class="btn btn-primary">💾 Enregistrer le Produit</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- SCRIPTS -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="js/audio.js?v=32"></script>
+  <script src="js/socket.js?v=32"></script>
+  <script src="js/chat.js?v=32"></script>
+  <script src="js/orders.js?v=32"></script>
+  <script src="js/deadlines.js?v=32"></script>
+  <script src="js/shopping.js?v=32"></script>
+  <script src="js/app.js?v=32"></script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+
+# SQLite Database & WAL files (local operational data)
+data.db
+data.db-wal
+data.db-shm
+*.db
+*.sqlite
+
+# Logs & Temporary files
+*.log
+npm-debug.log*
+test.txt
+.DS_Store
+Thumbs.db
