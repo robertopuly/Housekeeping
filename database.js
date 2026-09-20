@@ -99,11 +99,25 @@ function initSchema() {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
+    CREATE TABLE IF NOT EXISTS expenses (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      request_date TEXT NOT NULL,
+      product_name TEXT NOT NULL,
+      category TEXT DEFAULT '',
+      quantity INTEGER DEFAULT 1,
+      purchase_date TEXT DEFAULT '',
+      price_ttc REAL DEFAULT NULL,
+      requested_by TEXT DEFAULT '',
+      notes TEXT DEFAULT '',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp);
     CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status, is_archived);
     CREATE INDEX IF NOT EXISTS idx_deadlines_date ON deadlines(due_date, is_completed);
     CREATE INDEX IF NOT EXISTS idx_daily_rooms_date ON daily_room_status(date);
     CREATE INDEX IF NOT EXISTS idx_shopping_checked ON shopping_items(is_checked);
+    CREATE INDEX IF NOT EXISTS idx_expenses_request_date ON expenses(request_date);
   `);
 
   try {
@@ -509,6 +523,59 @@ function deleteShoppingItem(id) {
   return { success: true, id };
 }
 
+// EXPENSES (SUIVI DES ACHATS & DÉPENSES)
+function getExpenses() {
+  return db.prepare('SELECT * FROM expenses ORDER BY id DESC').all();
+}
+
+function addExpense({ request_date, product_name, category, quantity, purchase_date, price_ttc, requested_by, notes }) {
+  const q = quantity !== undefined && quantity !== null && !isNaN(quantity) ? Number(quantity) : 1;
+  const p = price_ttc !== undefined && price_ttc !== null && price_ttc !== '' && !isNaN(price_ttc) ? Number(price_ttc) : null;
+  const reqDate = request_date || new Date().toISOString().slice(0, 10);
+
+  const result = db.prepare(`
+    INSERT INTO expenses (request_date, product_name, category, quantity, purchase_date, price_ttc, requested_by, notes)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(
+    reqDate,
+    product_name || 'Article',
+    category || '',
+    q,
+    purchase_date || '',
+    p,
+    requested_by || '',
+    notes || ''
+  );
+
+  return db.prepare('SELECT * FROM expenses WHERE id = ?').get(result.lastInsertRowid);
+}
+
+function updateExpense(id, updates) {
+  const current = db.prepare('SELECT * FROM expenses WHERE id = ?').get(id);
+  if (!current) return null;
+
+  const product_name = updates.product_name !== undefined ? updates.product_name : current.product_name;
+  const category = updates.category !== undefined ? updates.category : current.category;
+  const quantity = updates.quantity !== undefined && !isNaN(updates.quantity) ? Number(updates.quantity) : current.quantity;
+  const purchase_date = updates.purchase_date !== undefined ? updates.purchase_date : current.purchase_date;
+  const price_ttc = updates.price_ttc !== undefined ? (updates.price_ttc === null || updates.price_ttc === '' || isNaN(updates.price_ttc) ? null : Number(updates.price_ttc)) : current.price_ttc;
+  const notes = updates.notes !== undefined ? updates.notes : current.notes;
+  const request_date = updates.request_date !== undefined ? updates.request_date : current.request_date;
+
+  db.prepare(`
+    UPDATE expenses
+    SET product_name = ?, category = ?, quantity = ?, purchase_date = ?, price_ttc = ?, notes = ?, request_date = ?
+    WHERE id = ?
+  `).run(product_name, category, quantity, purchase_date, price_ttc, notes, request_date, id);
+
+  return db.prepare('SELECT * FROM expenses WHERE id = ?').get(id);
+}
+
+function deleteExpense(id) {
+  db.prepare('DELETE FROM expenses WHERE id = ?').run(id);
+  return { success: true, id };
+}
+
 module.exports = {
   db,
   getMessages,
@@ -534,6 +601,10 @@ module.exports = {
   updateShoppingItem,
   toggleShoppingItem,
   resetShoppingChecklist,
-  deleteShoppingItem
+  deleteShoppingItem,
+  getExpenses,
+  addExpense,
+  updateExpense,
+  deleteExpense
 };
 

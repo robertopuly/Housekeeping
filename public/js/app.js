@@ -13,12 +13,14 @@ function initApp() {
   if (window.OrdersModule) window.OrdersModule.initOrders();
   if (window.DeadlinesModule) window.DeadlinesModule.initDeadlines();
   if (window.ShoppingModule) window.ShoppingModule.initShopping();
+  if (window.ExpensesModule) window.ExpensesModule.initExpenses();
 
   const hash = window.location.hash.replace('#', '');
   if (hash === 'orders') switchTab('tab-orders');
   else if (hash === 'rooms') switchTab('tab-rooms');
   else if (hash === 'deadlines') switchTab('tab-deadlines');
   else if (hash === 'shopping') switchTab('tab-shopping');
+  else if (hash === 'expenses' && getPlatform() === 'PC') switchTab('tab-expenses');
   else switchTab('tab-chat');
 }
 
@@ -50,6 +52,12 @@ function initUser() {
       currentUser = isMobileOrTablet ? 'Adélcia' : 'Roberto';
       localStorage.setItem('hk_user', currentUser);
     }
+  }
+
+  if (getPlatform() === 'PC') {
+    document.body.classList.add('is-pc');
+  } else {
+    document.body.classList.remove('is-pc');
   }
 
   updateUserUI();
@@ -124,6 +132,11 @@ function switchTab(tabId) {
     window.location.hash = 'shopping';
     if (window.ShoppingModule && typeof window.ShoppingModule.loadShoppingItems === 'function') {
       window.ShoppingModule.loadShoppingItems();
+    }
+  } else if (tabId === 'tab-expenses') {
+    window.location.hash = 'expenses';
+    if (window.ExpensesModule && typeof window.ExpensesModule.loadExpenses === 'function') {
+      window.ExpensesModule.loadExpenses();
     }
   }
 }

@@ -382,14 +382,74 @@ app.post('/api/shopping/send', (req, res) => {
     // Insérer le message dans le chat
     const msg = db.addMessage(author, messageText, 'text');
 
+    // Enregistrer chaque article dans le registre des dépenses (expenses)
+    items.forEach((item) => {
+      db.addExpense({
+        request_date: dateFormatted,
+        product_name: item.name,
+        category: item.category || '',
+        quantity: 1,
+        purchase_date: '',
+        price_ttc: null,
+        requested_by: author,
+        notes: notes || ''
+      });
+    });
+
     // Réinitialiser la liste à cocher des courses
     db.resetShoppingChecklist();
 
     // Diffuser les événements temps réel
     io.emit('chat:message', msg);
     io.emit('shopping:reset');
+    io.emit('expenses:updated');
 
     res.json({ success: true, message: msg, recipient });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ==========================================================================
+// EXPENSES (SUIVI DES ACHATS & DÉPENSES - PC ONLY)
+// ==========================================================================
+app.get('/api/expenses', (req, res) => {
+  try {
+    const list = db.getExpenses();
+    res.json(list);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/expenses', (req, res) => {
+  try {
+    const item = db.addExpense(req.body);
+    io.emit('expenses:updated');
+    res.status(201).json(item);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.patch('/api/expenses/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const updated = db.updateExpense(Number(id), req.body);
+    if (!updated) return res.status(404).json({ error: 'Dépense non trouvée' });
+    io.emit('expenses:updated');
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/expenses/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = db.deleteExpense(Number(id));
+    io.emit('expenses:updated');
+    res.json(result);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

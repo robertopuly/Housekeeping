@@ -8,7 +8,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <title>Gouvernante Hôtel - Gestion & Communication</title>
-  <link rel="stylesheet" href="css/styles.css?v=32">
+  <link rel="stylesheet" href="css/styles.css?v=33">
   <script>
     function getTodayIsoStr() {
       var d = new Date();
@@ -389,6 +389,11 @@
       <span>Achats & Courses</span>
       <span id="shopping-badge" class="badge badge-pulse" style="display: none;">0</span>
     </button>
+
+    <button type="button" class="nav-tab-btn pc-only" data-tab="tab-expenses" role="tab" aria-selected="false" id="nav-btn-expenses">
+      <span class="tab-icon">📊</span>
+      <span>Dépenses & Achats</span>
+    </button>
   </nav>
 
   <!-- MAIN CONTENT -->
@@ -550,6 +555,77 @@
 
         <!-- Grille des produits -->
         <div id="shopping-list" class="cards-grid shopping-grid"></div>
+      </div>
+    </section>
+
+    <!-- TAB 5: DÉPENSES & ACHATS (FEUILLE DE CALCUL PC ONLY) -->
+    <section id="tab-expenses" class="tab-panel pc-only" role="tabpanel">
+      <div class="expenses-container">
+        
+        <!-- BARRE DE STATISTIQUES -->
+        <div class="expenses-stats-bar">
+          <div class="expense-stat-card">
+            <span class="expense-stat-label">Total Dépenses TTC</span>
+            <span id="stat-expenses-total" class="expense-stat-value total-highlight">0.00 CHF</span>
+          </div>
+          <div class="expense-stat-card">
+            <span class="expense-stat-label">Articles en Attente</span>
+            <span id="stat-expenses-pending" class="expense-stat-value">0</span>
+          </div>
+          <div class="expense-stat-card">
+            <span class="expense-stat-label">Articles Achetés</span>
+            <span id="stat-expenses-completed" class="expense-stat-value">0</span>
+          </div>
+          <div class="expense-stat-card">
+            <span class="expense-stat-label">Total Articles</span>
+            <span id="stat-expenses-count" class="expense-stat-value">0</span>
+          </div>
+        </div>
+
+        <!-- BARRE D'ACTIONS & RECHERCHE -->
+        <div class="expenses-toolbar">
+          <div class="expenses-search-box">
+            <input type="text" id="expenses-search-input" class="expenses-search-input" placeholder="🔍 Rechercher un produit, notes..." />
+          </div>
+
+          <div id="expenses-filter-bar" class="filter-bar">
+            <button type="button" class="filter-btn active" data-filter="all">🛒 Tous</button>
+            <button type="button" class="filter-btn" data-filter="pending">⏳ En attente</button>
+            <button type="button" class="filter-btn" data-filter="completed">✅ Achetés</button>
+          </div>
+
+          <button type="button" id="btn-new-expense" class="btn-action-primary">
+            + Ajouter une Dépense
+          </button>
+        </div>
+
+        <!-- TABLEAU FEUILLE DE CALCUL (EXCEL STYLE) -->
+        <div class="spreadsheet-wrapper">
+          <table class="spreadsheet-table">
+            <thead>
+              <tr>
+                <th style="width: 16%;">📅 Date Demande</th>
+                <th style="width: 26%;">📦 Produit</th>
+                <th style="width: 10%;">🔢 Quantité</th>
+                <th style="width: 14%;">🛍️ Date Achat</th>
+                <th style="width: 14%;">💰 Prix TTC (CHF)</th>
+                <th style="width: 10%;">🏷️ Statut</th>
+                <th style="width: 10%; text-align: center;">⚙️ Actions</th>
+              </tr>
+            </thead>
+            <tbody id="expenses-tbody">
+              <!-- Rempli dynamiquement par expenses.js -->
+            </tbody>
+            <tfoot class="spreadsheet-tfoot">
+              <tr>
+                <td colspan="4" style="text-align: right; font-weight: 800; font-size: 14px;">TOTAL GÉNÉRAL DÉPENSES (TTC) :</td>
+                <td id="expenses-table-total-ttc" style="font-weight: 800; font-size: 15px; color: #059669;">0.00 CHF</td>
+                <td colspan="2"></td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+
       </div>
     </section>
   </main>
@@ -782,12 +858,13 @@
 
   <!-- SCRIPTS -->
   <script src="/socket.io/socket.io.js"></script>
-  <script src="js/audio.js?v=32"></script>
-  <script src="js/socket.js?v=32"></script>
-  <script src="js/chat.js?v=32"></script>
-  <script src="js/orders.js?v=32"></script>
-  <script src="js/deadlines.js?v=32"></script>
-  <script src="js/shopping.js?v=32"></script>
-  <script src="js/app.js?v=32"></script>
+  <script src="js/audio.js?v=33"></script>
+  <script src="js/socket.js?v=33"></script>
+  <script src="js/chat.js?v=33"></script>
+  <script src="js/orders.js?v=33"></script>
+  <script src="js/deadlines.js?v=33"></script>
+  <script src="js/shopping.js?v=33"></script>
+  <script src="js/expenses.js?v=33"></script>
+  <script src="js/app.js?v=33"></script>
 </body>
 </html>
