@@ -8,7 +8,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <title>Gouvernante Hôtel - Gestion & Communication</title>
-  <link rel="stylesheet" href="css/styles.css?v=35">
+  <link rel="stylesheet" href="css/styles.css?v=36">
   <script>
     function getTodayIsoStr() {
       var d = new Date();
@@ -390,6 +390,12 @@
       <span id="shopping-badge" class="badge badge-pulse" style="display: none;">0</span>
     </button>
 
+    <button type="button" class="nav-tab-btn" data-tab="tab-leave" role="tab" aria-selected="false" id="nav-btn-leave">
+      <span class="tab-icon">🏖️</span>
+      <span>Congés & Vacances</span>
+      <span id="leave-badge" class="badge badge-pulse" style="display: none;">0</span>
+    </button>
+
     <button type="button" class="nav-tab-btn pc-only" data-tab="tab-expenses" role="tab" aria-selected="false" id="nav-btn-expenses">
       <span class="tab-icon">📊</span>
       <span>Dépenses & Achats</span>
@@ -628,6 +634,150 @@
 
       </div>
     </section>
+
+    <!-- TAB 7: CONGÉS & VACANCES -->
+    <section id="tab-leave" class="tab-panel" role="tabpanel">
+      <div class="leave-container">
+        
+        <!-- HEADER & INTRO -->
+        <div class="leave-header-bar">
+          <div class="leave-header-info">
+            <h2>🏖️ Demande de Congés & Vacances</h2>
+            <p class="leave-header-desc">Sélectionnez vos dates de vacances ou vos jours de congé sur le calendrier, vérifiez votre sélection, puis enregistrez ou envoyez votre demande à Roberto.</p>
+          </div>
+        </div>
+
+        <!-- MAIN LAYOUT GRID (EDITOR ON LEFT, SAVED REQUESTS ON RIGHT) -->
+        <div class="leave-main-grid">
+
+          <!-- COLUMN 1: FORMULAIRE & CALENDRIER INTERACTIF -->
+          <div class="leave-card leave-editor-card">
+            
+            <!-- SÉLECTEUR DE TYPE DE DEMANDE -->
+            <div class="leave-mode-selector">
+              <button type="button" id="leave-mode-vacances" class="leave-mode-btn active">
+                <span class="mode-icon">🏖️</span>
+                <span class="mode-text">
+                  <strong>Vacances</strong>
+                  <small>Période continue (Début & Fin)</small>
+                </span>
+              </button>
+              <button type="button" id="leave-mode-conge" class="leave-mode-btn">
+                <span class="mode-icon">🗓️</span>
+                <span class="mode-text">
+                  <strong>Jours de Congé</strong>
+                  <small>Dates spécifiques au choix</small>
+                </span>
+              </button>
+            </div>
+
+            <!-- VACANCES DIRECT INPUT CONTROLS -->
+            <div id="leave-vacances-controls" class="leave-vac-row">
+              <div class="leave-input-group">
+                <label for="leave-vac-start">📅 Date de début :</label>
+                <input type="date" id="leave-vac-start" class="form-control" />
+              </div>
+              <div class="leave-input-group">
+                <label for="leave-vac-end">📅 Date de fin :</label>
+                <input type="date" id="leave-vac-end" class="form-control" />
+              </div>
+            </div>
+
+            <!-- CONGÉ HINT -->
+            <div id="leave-conge-hint" class="leave-alert-info" style="display: none;">
+              ℹ️ <strong>Sélection multiple :</strong> Cliquez sur n'importe quel jour du calendrier (ex. dimanche, mardi...) pour l'ajouter ou le retirer de votre demande.
+            </div>
+
+            <!-- CALENDRIER MENSUEL INTERACTIF -->
+            <div class="leave-calendar-box">
+              <div class="leave-cal-header">
+                <button type="button" id="btn-leave-cal-prev" class="btn-cal-nav" title="Mois précédent">◀</button>
+                <h3 id="leave-cal-month-title" class="leave-cal-title">Octobre 2026</h3>
+                <div class="leave-cal-header-actions">
+                  <button type="button" id="btn-leave-cal-today" class="btn-cal-today">Aujourd'hui</button>
+                  <button type="button" id="btn-leave-cal-next" class="btn-cal-nav" title="Mois suivant">▶</button>
+                </div>
+              </div>
+
+              <div id="leave-cal-grid" class="leave-cal-grid">
+                <!-- Rempli par renderCalendar() -->
+              </div>
+            </div>
+
+            <!-- SÉLECTION EN COURS (CHIPS & CORRECTION AVANT ENVOI) -->
+            <div class="leave-selection-box">
+              <div class="leave-selection-header">
+                <h4>📌 Jours sélectionnés :</h4>
+                <div class="leave-selection-badges">
+                  <span id="leave-selected-count-badge" class="badge-count">0 jour</span>
+                  <button type="button" id="btn-leave-reset-selection" class="btn-reset-selection" title="Effacer la sélection">Effacer tout</button>
+                </div>
+              </div>
+              
+              <!-- CHIPS LIST -->
+              <div id="leave-selected-chips" class="leave-chips-list">
+                <!-- Rempli dynamiquement -->
+              </div>
+
+              <!-- MOTIF / NOTE OPTIONNELLE -->
+              <div class="leave-notes-group">
+                <label for="leave-notes-input">💬 Remarque ou motif (optionnel) :</label>
+                <input type="text" id="leave-notes-input" class="form-control" placeholder="ex. Déplacement familial, remplacement..." />
+              </div>
+
+              <!-- APERÇU DU MESSAGE DESTINÉ À ROBERTO -->
+              <div class="leave-preview-card">
+                <div class="preview-label">✉️ Aperçu du message qui sera transmis à Roberto :</div>
+                <div id="leave-message-preview-text" class="preview-bubble empty">
+                  Aucun jour sélectionné pour le moment. Cliquez sur le calendrier pour faire votre choix.
+                </div>
+              </div>
+
+              <!-- BOUTON ENREGISTRER LA DEMANDE -->
+              <div class="leave-save-footer">
+                <button type="button" id="btn-leave-save-request" class="btn btn-primary btn-lg" disabled>
+                  💾 Enregistrer la demande
+                </button>
+              </div>
+
+            </div>
+
+          </div>
+
+          <!-- COLUMN 2: LISTE DES DEMANDES EN ORDRE CHRONOLOGIQUE -->
+          <div class="leave-card leave-requests-list-card">
+            <div class="leave-list-header">
+              <div class="leave-list-title-box">
+                <h3>📋 Historique & Liste des Demandes</h3>
+                <p class="leave-list-subtitle">Classées par ordre chronologique avec possibilité de modifier, supprimer ou envoyer par message à Roberto.</p>
+              </div>
+
+              <!-- FILTRES -->
+              <div class="leave-filter-pills">
+                <button type="button" class="leave-filter-btn active" data-filter="all">Toutes</button>
+                <button type="button" class="leave-filter-btn" data-filter="en_attente">⏳ En attente</button>
+                <button type="button" class="leave-filter-btn" data-filter="envoye">📤 Envoyées</button>
+              </div>
+            </div>
+
+            <!-- CONTAINER DES CARTES DE DEMANDES -->
+            <div id="leave-requests-container" class="leave-requests-container">
+              <!-- Rempli par renderRequestsList() -->
+            </div>
+
+            <!-- EMPTY STATE -->
+            <div id="leave-empty-state" class="empty-state" style="display: none;">
+              <div class="empty-icon">🏖️</div>
+              <div class="empty-title">Aucune demande enregistrée</div>
+              <div class="empty-desc">Utilisez le calendrier à gauche pour créer une demande de congés ou de vacances.</div>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+    </section>
   </main>
 
   <!-- MODAL NOUVEL ORDRE -->
@@ -858,13 +1008,14 @@
 
   <!-- SCRIPTS -->
   <script src="/socket.io/socket.io.js"></script>
-  <script src="js/audio.js?v=35"></script>
-  <script src="js/socket.js?v=35"></script>
-  <script src="js/chat.js?v=35"></script>
-  <script src="js/orders.js?v=35"></script>
-  <script src="js/deadlines.js?v=35"></script>
-  <script src="js/shopping.js?v=35"></script>
-  <script src="js/expenses.js?v=35"></script>
-  <script src="js/app.js?v=35"></script>
+  <script src="js/audio.js?v=36"></script>
+  <script src="js/socket.js?v=36"></script>
+  <script src="js/chat.js?v=36"></script>
+  <script src="js/orders.js?v=36"></script>
+  <script src="js/deadlines.js?v=36"></script>
+  <script src="js/shopping.js?v=36"></script>
+  <script src="js/expenses.js?v=36"></script>
+  <script src="js/leave.js?v=36"></script>
+  <script src="js/app.js?v=36"></script>
 </body>
 </html>

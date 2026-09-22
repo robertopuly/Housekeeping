@@ -455,6 +455,112 @@ app.delete('/api/expenses/:id', (req, res) => {
   }
 });
 
+// LEAVE & VACATION REQUESTS
+function formatFrenchDate(isoStr) {
+  if (!isoStr) return '';
+  const d = new Date(isoStr + 'T12:00:00');
+  const days = ['dimanche', 'lundi', 'mardi', 'mercredi', 'jeudi', 'vendredi', 'samedi'];
+  const months = ['janvier', 'février', 'mars', 'avril', 'mai', 'juin', 'juillet', 'août', 'septembre', 'octobre', 'novembre', 'décembre'];
+  return `${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+function formatLeaveMessageText(reqItem) {
+  if (reqItem.type === 'vacances') {
+    const s = formatFrenchDate(reqItem.start_date);
+    const e = formatFrenchDate(reqItem.end_date || reqItem.start_date);
+    let txt = `🏖️ Demande de vacances du ${s} au ${e}`;
+    if (reqItem.notes && reqItem.notes.trim()) {
+      txt += `\n💬 Note : ${reqItem.notes.trim()}`;
+    }
+    return txt;
+  } else {
+    let dates = [];
+    try {
+      dates = JSON.parse(reqItem.dates_json || '[]');
+    } catch (e) {
+      dates = [reqItem.start_date];
+    }
+    if (!dates.length && reqItem.start_date) dates = [reqItem.start_date];
+    dates.sort();
+    const formattedDates = dates.map(formatFrenchDate);
+    let listStr = '';
+    if (formattedDates.length === 1) {
+      listStr = formattedDates[0];
+    } else if (formattedDates.length === 2) {
+      listStr = `${formattedDates[0]} et ${formattedDates[1]}`;
+    } else if (formattedDates.length > 2) {
+      listStr = formattedDates.slice(0, -1).join(', ') + ' et ' + formattedDates[formattedDates.length - 1];
+    }
+    let txt = `🗓️ Demande des jours de congé suivants : ${listStr}`;
+    if (reqItem.notes && reqItem.notes.trim()) {
+      txt += `\n💬 Note : ${reqItem.notes.trim()}`;
+    }
+    return txt;
+  }
+}
+
+app.get('/api/leave-requests', (req, res) => {
+  try {
+    res.json(db.getLeaveRequests());
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/leave-requests', (req, res) => {
+  try {
+    const item = db.addLeaveRequest(req.body);
+    io.emit('leave:created', item);
+    res.status(201).json(item);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/leave-requests/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const updated = db.updateLeaveRequest(Number(id), req.body);
+    if (!updated) return res.status(404).json({ error: 'Demande non trouvée' });
+    io.emit('leave:updated', updated);
+    res.json(updated);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/leave-requests/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const result = db.deleteLeaveRequest(Number(id));
+    io.emit('leave:deleted', { id: Number(id) });
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/leave-requests/:id/send', (req, res) => {
+  try {
+    const { id } = req.params;
+    const item = db.getLeaveRequestById(Number(id));
+    if (!item) return res.status(404).json({ error: 'Demande non trouvée' });
+
+    const text = req.body.text || formatLeaveMessageText(item);
+    const sender = req.body.sender || item.user_name || 'Adélcia';
+
+    const msg = db.addMessage(sender, text, 'leave_request', null);
+    io.emit('chat:message', msg);
+
+    const updated = db.markLeaveRequestAsSent(Number(id));
+    io.emit('leave:updated', updated);
+
+    res.json({ success: true, message: msg, leave: updated });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // USERS PRESENCE
 const onlineUsers = new Map();
 

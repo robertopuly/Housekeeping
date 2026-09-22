@@ -112,12 +112,27 @@ function initSchema() {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
+    CREATE TABLE IF NOT EXISTS leave_requests (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      type TEXT NOT NULL,
+      start_date TEXT NOT NULL,
+      end_date TEXT DEFAULT '',
+      dates_json TEXT DEFAULT '[]',
+      user_name TEXT DEFAULT 'Adélcia',
+      notes TEXT DEFAULT '',
+      status TEXT DEFAULT 'en_attente',
+      sent_at DATETIME DEFAULT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp);
     CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status, is_archived);
     CREATE INDEX IF NOT EXISTS idx_deadlines_date ON deadlines(due_date, is_completed);
     CREATE INDEX IF NOT EXISTS idx_daily_rooms_date ON daily_room_status(date);
     CREATE INDEX IF NOT EXISTS idx_shopping_checked ON shopping_items(is_checked);
     CREATE INDEX IF NOT EXISTS idx_expenses_request_date ON expenses(request_date);
+    CREATE INDEX IF NOT EXISTS idx_leave_start_date ON leave_requests(start_date);
   `);
 
   try {
@@ -576,6 +591,66 @@ function deleteExpense(id) {
   return { success: true, id };
 }
 
+// LEAVE & VACATION REQUESTS
+function getLeaveRequests() {
+  return db.prepare('SELECT * FROM leave_requests ORDER BY start_date ASC, id ASC').all();
+}
+
+function getLeaveRequestById(id) {
+  return db.prepare('SELECT * FROM leave_requests WHERE id = ?').get(id);
+}
+
+function addLeaveRequest({ type, start_date, end_date = '', dates_json = '[]', user_name = 'Adélcia', notes = '' }) {
+  const reqType = type === 'vacances' ? 'vacances' : 'conge';
+  const sDate = start_date || new Date().toISOString().split('T')[0];
+  const eDate = reqType === 'vacances' ? (end_date || sDate) : '';
+  const dJson = typeof dates_json === 'string' ? dates_json : JSON.stringify(dates_json || []);
+
+  const result = db.prepare(`
+    INSERT INTO leave_requests (type, start_date, end_date, dates_json, user_name, notes, status)
+    VALUES (?, ?, ?, ?, ?, ?, 'en_attente')
+  `).run(reqType, sDate, eDate, dJson, user_name || 'Adélcia', notes || '');
+
+  return getLeaveRequestById(result.lastInsertRowid);
+}
+
+function updateLeaveRequest(id, updates) {
+  const current = getLeaveRequestById(id);
+  if (!current) return null;
+
+  const type = updates.type !== undefined ? updates.type : current.type;
+  const start_date = updates.start_date !== undefined ? updates.start_date : current.start_date;
+  const end_date = updates.end_date !== undefined ? updates.end_date : current.end_date;
+  const dates_json = updates.dates_json !== undefined ? (typeof updates.dates_json === 'string' ? updates.dates_json : JSON.stringify(updates.dates_json)) : current.dates_json;
+  const notes = updates.notes !== undefined ? updates.notes : current.notes;
+  const status = updates.status !== undefined ? updates.status : current.status;
+  const nowIso = new Date().toISOString();
+
+  db.prepare(`
+    UPDATE leave_requests
+    SET type = ?, start_date = ?, end_date = ?, dates_json = ?, notes = ?, status = ?, updated_at = ?
+    WHERE id = ?
+  `).run(type, start_date, end_date, dates_json, notes, status, nowIso, id);
+
+  return getLeaveRequestById(id);
+}
+
+function deleteLeaveRequest(id) {
+  db.prepare('DELETE FROM leave_requests WHERE id = ?').run(id);
+  return { success: true, id };
+}
+
+function markLeaveRequestAsSent(id) {
+  const nowIso = new Date().toISOString();
+  db.prepare(`
+    UPDATE leave_requests
+    SET status = 'envoye', sent_at = ?, updated_at = ?
+    WHERE id = ?
+  `).run(nowIso, nowIso, id);
+
+  return getLeaveRequestById(id);
+}
+
 module.exports = {
   db,
   getMessages,
@@ -605,6 +680,12 @@ module.exports = {
   getExpenses,
   addExpense,
   updateExpense,
-  deleteExpense
+  deleteExpense,
+  getLeaveRequests,
+  getLeaveRequestById,
+  addLeaveRequest,
+  updateLeaveRequest,
+  deleteLeaveRequest,
+  markLeaveRequestAsSent
 };
 

@@ -14,12 +14,14 @@ function initApp() {
   if (window.DeadlinesModule) window.DeadlinesModule.initDeadlines();
   if (window.ShoppingModule) window.ShoppingModule.initShopping();
   if (window.ExpensesModule) window.ExpensesModule.initExpenses();
+  if (window.LeaveModule) window.LeaveModule.initLeave();
 
   const hash = window.location.hash.replace('#', '');
   if (hash === 'orders') switchTab('tab-orders');
   else if (hash === 'rooms') switchTab('tab-rooms');
   else if (hash === 'deadlines') switchTab('tab-deadlines');
   else if (hash === 'shopping') switchTab('tab-shopping');
+  else if (hash === 'leave' || hash === 'conges' || hash === 'vacances') switchTab('tab-leave');
   else if (hash === 'expenses' && getPlatform() === 'PC') switchTab('tab-expenses');
   else switchTab('tab-chat');
 }
