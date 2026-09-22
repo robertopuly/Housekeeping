@@ -96,13 +96,15 @@ function updateRoomCardDOM(card, room) {
   const isRoom5 = roomNum === 5;
   const needsExtraBed = isRoom5 && guests === 3;
 
-  card.className = `daily-room-card status-card-${status}`;
+  card.className = `daily-room-card status-card-${status} clean-${cleanliness}`;
 
   // Top badges
   const topBadges = card.querySelector('.daily-room-top-badges');
   if (topBadges) {
     topBadges.innerHTML = `
       ${cleanliness === 'deja_propre' ? '<span class="status-pill pill-propre">✨ Déjà Propre</span>' : ''}
+      ${cleanliness === 'a_faire' ? '<span class="status-pill pill-a-faire">⏳ À faire</span>' : ''}
+      ${cleanliness === 'termine' ? '<span class="status-pill pill-termine">✅ Terminé</span>' : ''}
       ${access === 'client_sorti' ? '<span class="status-pill pill-accessible">🟢 Accès Libre</span>' : ''}
       <span class="bed-type-badge ${isSeparati ? 'separati' : 'matrimoniale'}">
         ${isSeparati ? '🛏️🛏️ Lits Séparés' : '🛏️ Grand Lit'}
@@ -195,7 +197,7 @@ function createDailyRoomCardHtml(room) {
   const needsExtraBed = isRoom5 && guests === 3;
   const isControlRequested = room.control_requested === 1;
 
-  const cardStatusClass = `status-card-${status}`;
+  const cardStatusClass = `status-card-${status} clean-${cleanliness}`;
 
   return `
     <div class="daily-room-card ${cardStatusClass}" id="daily-room-card-${roomNum}" data-room="${roomNum}">
@@ -205,6 +207,8 @@ function createDailyRoomCardHtml(room) {
         </div>
         <div class="daily-room-top-badges">
           ${cleanliness === 'deja_propre' ? '<span class="status-pill pill-propre">✨ Déjà Propre</span>' : ''}
+          ${cleanliness === 'a_faire' ? '<span class="status-pill pill-a-faire">⏳ À faire</span>' : ''}
+          ${cleanliness === 'termine' ? '<span class="status-pill pill-termine">✅ Terminé</span>' : ''}
           ${access === 'client_sorti' ? '<span class="status-pill pill-accessible">🟢 Accès Libre</span>' : ''}
           <span class="bed-type-badge ${isSeparati ? 'separati' : 'matrimoniale'}">
             ${isSeparati ? '🛏️🛏️ Lits Séparés' : '🛏️ Grand Lit'}
@@ -307,6 +311,11 @@ function attachDailyRoomListeners() {
       const card = btn.closest('.daily-room-card');
       const roomNum = parseInt(card.getAttribute('data-room'), 10);
       const newStatus = btn.getAttribute('data-status');
+      const room = dailyRooms.find(r => r.room_number === roomNum);
+      if (room) {
+        room.status = newStatus;
+        updateRoomCardDOM(card, room);
+      }
       await saveRoomUpdate(roomNum, { status: newStatus, updated_by: currentUser });
     });
   });
@@ -317,6 +326,11 @@ function attachDailyRoomListeners() {
       const card = btn.closest('.daily-room-card');
       const roomNum = parseInt(card.getAttribute('data-room'), 10);
       const newAccess = btn.getAttribute('data-access');
+      const room = dailyRooms.find(r => r.room_number === roomNum);
+      if (room) {
+        room.access_status = newAccess;
+        updateRoomCardDOM(card, room);
+      }
       await saveRoomUpdate(roomNum, { access_status: newAccess, updated_by: currentUser });
     });
   });
@@ -327,6 +341,11 @@ function attachDailyRoomListeners() {
       const card = btn.closest('.daily-room-card');
       const roomNum = parseInt(card.getAttribute('data-room'), 10);
       const newClean = btn.getAttribute('data-clean');
+      const room = dailyRooms.find(r => r.room_number === roomNum);
+      if (room) {
+        room.cleanliness_status = newClean;
+        updateRoomCardDOM(card, room);
+      }
       await saveRoomUpdate(roomNum, { cleanliness_status: newClean, updated_by: currentUser });
     });
   });
