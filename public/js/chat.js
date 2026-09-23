@@ -1306,7 +1306,12 @@ function openPhotoPreviewModal(base64Data) {
   if (img) img.src = base64Data;
   if (captionInput) {
     captionInput.value = '';
-    setTimeout(() => captionInput.focus(), 150);
+    const isPC = (window.App && typeof window.App.getPlatform === 'function')
+      ? (window.App.getPlatform() === 'PC')
+      : document.body.classList.contains('is-pc');
+    if (isPC) {
+      setTimeout(() => captionInput.focus(), 150);
+    }
   }
 
   if (modal) {
