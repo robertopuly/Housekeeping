@@ -8,7 +8,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <title>Gouvernante Hôtel - Gestion & Communication</title>
-  <link rel="stylesheet" href="css/styles.css?v=38">
+  <link rel="stylesheet" href="css/styles.css?v=39">
   <script>
     function getTodayIsoStr() {
       var d = new Date();
@@ -1018,15 +1018,17 @@
       <form id="form-photo-preview" onsubmit="submitPhotoMessage(event); return false;">
         <div class="modal-body">
           <div class="photo-preview-container">
-            <button type="button" class="btn-preview-floating-close" onclick="closePhotoPreviewModal()" title="Fermer et retourner aux messages" aria-label="Fermer">✕</button>
             <img id="photo-preview-img" src="" alt="Aperçu de la photo" />
           </div>
-          <div class="form-group" style="margin-top: 12px;">
+          <div class="photo-preview-actions-center">
+            <button type="button" class="btn-photo-cancel-center" onclick="closePhotoPreviewModal()" title="Fermer et retourner aux messages" aria-label="Fermer">✕ Annuler</button>
+          </div>
+          <div class="form-group" style="margin-top: 10px;">
             <label for="photo-caption-input">💬 Commentaire / Explication de la photo :</label>
             <textarea id="photo-caption-input" class="form-control photo-caption-textarea" placeholder="Ex. Chambre 3 : rideau déchiré, tache sur le matelas..."></textarea>
           </div>
         </div>
-        <div class="modal-footer">
+        <div class="modal-footer modal-footer-photo">
           <button type="button" class="btn btn-secondary" onclick="closePhotoPreviewModal()">✕ Annuler</button>
           <button type="submit" id="btn-submit-photo" class="btn btn-primary">📤 Envoyer la Photo</button>
         </div>
@@ -1053,14 +1055,14 @@
 
   <!-- SCRIPTS -->
   <script src="/socket.io/socket.io.js"></script>
-  <script src="js/audio.js?v=38"></script>
-  <script src="js/socket.js?v=38"></script>
-  <script src="js/chat.js?v=38"></script>
-  <script src="js/orders.js?v=38"></script>
-  <script src="js/deadlines.js?v=38"></script>
-  <script src="js/shopping.js?v=38"></script>
-  <script src="js/expenses.js?v=38"></script>
-  <script src="js/leave.js?v=38"></script>
-  <script src="js/app.js?v=38"></script>
+  <script src="js/audio.js?v=39"></script>
+  <script src="js/socket.js?v=39"></script>
+  <script src="js/chat.js?v=39"></script>
+  <script src="js/orders.js?v=39"></script>
+  <script src="js/deadlines.js?v=39"></script>
+  <script src="js/shopping.js?v=39"></script>
+  <script src="js/expenses.js?v=39"></script>
+  <script src="js/leave.js?v=39"></script>
+  <script src="js/app.js?v=39"></script>
 </body>
 </html>

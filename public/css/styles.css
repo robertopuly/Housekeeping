@@ -3749,6 +3749,49 @@ body.is-pc section.tab-panel.pc-only:not(.active) {
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
 }
 
+.photo-preview-actions-center {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 10px 0 2px 0;
+  width: 100%;
+}
+
+.btn-photo-cancel-center {
+  background-color: #fee2e2;
+  border: 1.5px solid #fca5a5;
+  border-radius: 8px;
+  padding: 9px 24px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #b91c1c;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.15s ease;
+  user-select: none;
+  box-shadow: 0 1px 3px rgba(185, 28, 28, 0.12);
+}
+
+.btn-photo-cancel-center:hover {
+  background-color: #fecaca;
+  border-color: #f87171;
+  color: #991b1b;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 6px rgba(185, 28, 28, 0.2);
+}
+
+.btn-photo-cancel-center:active {
+  transform: translateY(0);
+}
+
+.modal-footer-photo {
+  justify-content: center;
+  gap: 12px;
+}
+
 /* Lightbox Full Screen */
 .lightbox-backdrop {
   position: fixed;
