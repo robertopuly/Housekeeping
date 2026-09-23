@@ -14,3 +14,7 @@ npm-debug.log*
 test.txt
 .DS_Store
 Thumbs.db
+
+# User uploaded photos (operational hotel data)
+public/uploads/*
+!public/uploads/.gitkeep

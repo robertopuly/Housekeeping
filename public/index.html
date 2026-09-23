@@ -8,7 +8,7 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <title>Gouvernante Hôtel - Gestion & Communication</title>
-  <link rel="stylesheet" href="css/styles.css?v=36">
+  <link rel="stylesheet" href="css/styles.css?v=37">
   <script>
     function getTodayIsoStr() {
       var d = new Date();
@@ -442,6 +442,8 @@
         <!-- Input Chat -->
         <form id="chat-form" class="chat-input-bar">
           <button type="button" id="btn-emoji-toggle" class="btn-emoji" title="Insérer un émoji" aria-label="Émoticônes">😊</button>
+          <button type="button" id="btn-chat-photo" class="btn-chat-photo" title="Prendre une photo ou ajouter une image" aria-label="Prendre une photo">📷</button>
+          <input type="file" id="chat-photo-input" accept="image/*" capture="environment" style="display: none;" />
           <input type="text" id="chat-input" class="chat-input" placeholder="Écrire un message..." autocomplete="off" />
           <button type="submit" class="btn-send" aria-label="Envoyer">➤</button>
         </form>
@@ -1006,16 +1008,58 @@
     </div>
   </div>
 
+  <!-- MODAL APERÇU ET COMMENTAIRE PHOTO -->
+  <div id="modal-photo-preview" class="modal-backdrop" onclick="if(event.target===this)closePhotoPreviewModal()">
+    <div class="modal-box modal-box-photo">
+      <div class="modal-header">
+        <h2>📷 Envoyer une Photo</h2>
+        <button type="button" class="btn-close-modal" onclick="closePhotoPreviewModal()">&times;</button>
+      </div>
+      <form id="form-photo-preview" onsubmit="submitPhotoMessage(event); return false;">
+        <div class="modal-body">
+          <div class="photo-preview-container">
+            <img id="photo-preview-img" src="" alt="Aperçu de la photo" />
+          </div>
+          <div class="form-group" style="margin-top: 12px;">
+            <label for="photo-caption-input">💬 Commentaire / Explication de la photo :</label>
+            <textarea id="photo-caption-input" class="form-control photo-caption-textarea" placeholder="Ex. Chambre 3 : rideau déchiré, tache sur le matelas..."></textarea>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closePhotoPreviewModal()">Annuler</button>
+          <button type="submit" id="btn-submit-photo" class="btn btn-primary">📤 Envoyer la Photo</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL LIGHTBOX PLEIN ÉCRAN POUR LES PHOTOS -->
+  <div id="modal-image-lightbox" class="lightbox-backdrop" onclick="closeImageLightbox()">
+    <div class="lightbox-content" onclick="event.stopPropagation()">
+      <button type="button" class="btn-close-lightbox" onclick="closeImageLightbox()" title="Fermer (Échap)">&times;</button>
+      <div class="lightbox-img-wrapper">
+        <img id="lightbox-full-img" src="" alt="Photo agrandie" />
+      </div>
+      <div class="lightbox-info-bar">
+        <div class="lightbox-sender-box">
+          <span id="lightbox-sender-name" class="lightbox-sender">Adélcia</span>
+          <span id="lightbox-time" class="lightbox-time">Aujourd'hui à 14:30</span>
+        </div>
+        <div id="lightbox-caption" class="lightbox-caption">...</div>
+      </div>
+    </div>
+  </div>
+
   <!-- SCRIPTS -->
   <script src="/socket.io/socket.io.js"></script>
-  <script src="js/audio.js?v=36"></script>
-  <script src="js/socket.js?v=36"></script>
-  <script src="js/chat.js?v=36"></script>
-  <script src="js/orders.js?v=36"></script>
-  <script src="js/deadlines.js?v=36"></script>
-  <script src="js/shopping.js?v=36"></script>
-  <script src="js/expenses.js?v=36"></script>
-  <script src="js/leave.js?v=36"></script>
-  <script src="js/app.js?v=36"></script>
+  <script src="js/audio.js?v=37"></script>
+  <script src="js/socket.js?v=37"></script>
+  <script src="js/chat.js?v=37"></script>
+  <script src="js/orders.js?v=37"></script>
+  <script src="js/deadlines.js?v=37"></script>
+  <script src="js/shopping.js?v=37"></script>
+  <script src="js/expenses.js?v=37"></script>
+  <script src="js/leave.js?v=37"></script>
+  <script src="js/app.js?v=37"></script>
 </body>
 </html>

@@ -35,7 +35,8 @@ function initSchema() {
       reply_to_id INTEGER DEFAULT NULL,
       reply_to_sender TEXT DEFAULT '',
       reply_to_text TEXT DEFAULT '',
-      is_deleted INTEGER DEFAULT 0
+      is_deleted INTEGER DEFAULT 0,
+      image_url TEXT DEFAULT ''
     );
 
     CREATE TABLE IF NOT EXISTS orders (
@@ -150,6 +151,10 @@ function initSchema() {
   } catch (e) {}
 
   try {
+    db.exec('ALTER TABLE messages ADD COLUMN image_url TEXT DEFAULT "";');
+  } catch (e) {}
+
+  try {
     db.exec('ALTER TABLE quick_replies ADD COLUMN label TEXT DEFAULT "";');
   } catch (e) {}
 
@@ -229,16 +234,16 @@ function getMessages(limit = 150) {
   return db.prepare('SELECT * FROM messages ORDER BY id ASC LIMIT ?').all(limit);
 }
 
-function addMessage(sender, text, type = 'text', replyTo = null) {
+function addMessage(sender, text, type = 'text', replyTo = null, imageUrl = '') {
   const reply_to_id = replyTo ? replyTo.id : null;
   const reply_to_sender = replyTo ? (replyTo.sender || '') : '';
   const reply_to_text = replyTo ? (replyTo.text || '') : '';
   const nowIso = new Date().toISOString();
 
   const result = db.prepare(`
-    INSERT INTO messages (sender, text, type, reply_to_id, reply_to_sender, reply_to_text, timestamp)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `).run(sender, text, type, reply_to_id, reply_to_sender, reply_to_text, nowIso);
+    INSERT INTO messages (sender, text, type, reply_to_id, reply_to_sender, reply_to_text, timestamp, image_url)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(sender, text, type, reply_to_id, reply_to_sender, reply_to_text, nowIso, imageUrl || '');
   return db.prepare('SELECT * FROM messages WHERE id = ?').get(result.lastInsertRowid);
 }
 

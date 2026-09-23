@@ -253,7 +253,21 @@ function renderMessages() {
       const emojiInfo = getEmojiInfo(msg.text);
       const isOnlyEmoji = emojiInfo.isOnly && emojiInfo.count > 0 && emojiInfo.count <= 10;
       const hasReply = !!replyText;
-      const bubbleEmojiClass = (isOnlyEmoji && !hasReply) ? 'bubble-emoji-only' : '';
+      const hasImage = !!msg.image_url;
+      const bubbleEmojiClass = (isOnlyEmoji && !hasReply && !hasImage) ? 'bubble-emoji-only' : '';
+      const bubblePhotoClass = hasImage ? 'bubble-has-photo' : '';
+
+      let photoHtml = '';
+      if (hasImage) {
+        photoHtml = `
+          <div class="msg-photo-wrapper" data-img-url="${escapeHtml(msg.image_url)}" data-sender="${escapeHtml(msg.sender)}" data-time="${timeStr}" data-caption="${escapeHtml(msg.text || '')}">
+            <img src="${escapeHtml(msg.image_url)}" class="msg-photo-img" loading="lazy" alt="Photo" />
+            <div class="msg-photo-zoom-hint">🔍 Agrandir</div>
+          </div>
+        `;
+      }
+
+      const showText = msg.text && (!hasImage || msg.text !== '📷 Photo');
 
       if (isMe) {
         const isRead = msg.is_read === 1;
@@ -263,9 +277,10 @@ function renderMessages() {
 
         html += `
           <div class="message message-out message-clickable" data-msg-id="${msg.id}">
-            <div class="bubble bubble-out ${bubbleEmojiClass}">
+            <div class="bubble bubble-out ${bubbleEmojiClass} ${bubblePhotoClass}">
               ${replyHtml}
-              <div class="msg-text ${isOnlyEmoji ? 'msg-text-only-emoji' : ''}">${formatChatMessage(msg.text, true, emojiInfo)}</div>
+              ${photoHtml}
+              ${showText ? `<div class="msg-text ${isOnlyEmoji ? 'msg-text-only-emoji' : ''} ${hasImage ? 'msg-text-photo-caption' : ''}">${formatChatMessage(msg.text, true, emojiInfo)}</div>` : ''}
               <div class="msg-meta">
                 <span class="msg-time">${timeStr}</span>
                 <span class="msg-status ${statusClass}" title="${statusTitle}">${statusIcon}</span>
@@ -277,10 +292,11 @@ function renderMessages() {
         html += `
           <div class="message message-in message-clickable" data-msg-id="${msg.id}">
             <div class="msg-avatar">${escapeHtml((msg.sender || 'A').charAt(0).toUpperCase())}</div>
-            <div class="bubble bubble-in ${bubbleEmojiClass}">
+            <div class="bubble bubble-in ${bubbleEmojiClass} ${bubblePhotoClass}">
               <div class="msg-sender">${escapeHtml(msg.sender)}</div>
               ${replyHtml}
-              <div class="msg-text ${isOnlyEmoji ? 'msg-text-only-emoji' : ''}">${formatChatMessage(msg.text, false, emojiInfo)}</div>
+              ${photoHtml}
+              ${showText ? `<div class="msg-text ${isOnlyEmoji ? 'msg-text-only-emoji' : ''} ${hasImage ? 'msg-text-photo-caption' : ''}">${formatChatMessage(msg.text, false, emojiInfo)}</div>` : ''}
               <div class="msg-meta">
                 <span class="msg-time">${timeStr}</span>
               </div>
@@ -293,7 +309,24 @@ function renderMessages() {
 
   container.innerHTML = html;
   attachMessageClickEvents();
+  attachPhotoClickEvents();
   renderTypingIndicator();
+}
+
+function attachPhotoClickEvents() {
+  const container = document.getElementById('chat-messages');
+  if (!container) return;
+
+  container.querySelectorAll('.msg-photo-wrapper').forEach(wrapper => {
+    wrapper.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const imgUrl = wrapper.getAttribute('data-img-url');
+      const sender = wrapper.getAttribute('data-sender');
+      const time = wrapper.getAttribute('data-time');
+      const caption = wrapper.getAttribute('data-caption');
+      openImageLightbox(imgUrl, sender, time, caption);
+    });
+  });
 }
 
 function attachMessageClickEvents() {
@@ -317,7 +350,11 @@ function openMessageActionsModal(msg) {
   const preview = document.getElementById('msg-action-preview-text');
 
   if (preview) {
-    preview.innerHTML = `<strong>${escapeHtml(msg.sender)}:</strong> "${escapeHtml(msg.text)}"`;
+    if (msg.image_url) {
+      preview.innerHTML = `<strong>${escapeHtml(msg.sender)}:</strong> 📷 [Photo] ${msg.text && msg.text !== '📷 Photo' ? `"${escapeHtml(msg.text)}"` : ''}`;
+    } else {
+      preview.innerHTML = `<strong>${escapeHtml(msg.sender)}:</strong> "${escapeHtml(msg.text)}"`;
+    }
   }
 
   if (modal) {
@@ -650,11 +687,219 @@ function setupChatEvents() {
       }
     });
   }
+
+  // Bouton photo & input fichier
+  const btnPhoto = document.getElementById('btn-chat-photo');
+  const fileInput = document.getElementById('chat-photo-input');
+  if (btnPhoto && fileInput) {
+    btnPhoto.addEventListener('click', () => {
+      fileInput.click();
+    });
+
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (file) {
+        handlePhotoSelected(file);
+      }
+    });
+  }
+
+  // Raccourci Entrée dans le commentaire photo
+  const captionInput = document.getElementById('photo-caption-input');
+  if (captionInput) {
+    captionInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        submitPhotoMessage(e);
+      }
+    });
+  }
+
+  // Fermeture des modales avec Échap
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') {
+      closePhotoPreviewModal();
+      closeImageLightbox();
+      closeMessageActionsModal();
+    }
+  });
 }
 
 /* ==========================================================================
-   EMOJI PICKER MODULE
+   PHOTO CAPTURE & LIGHTBOX MODULE
    ========================================================================== */
+let pendingPhotoBase64 = null;
+
+function handlePhotoSelected(file) {
+  if (!file || !file.type.startsWith('image/')) {
+    alert('Veuillez sélectionner un fichier image valide.');
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(evt) {
+    const rawData = evt.target.result;
+    compressImage(rawData, 1600, 1600, 0.85, function(compressedBase64) {
+      pendingPhotoBase64 = compressedBase64;
+      openPhotoPreviewModal(compressedBase64);
+    });
+  };
+  reader.readAsDataURL(file);
+}
+
+function compressImage(base64Src, maxWidth, maxHeight, quality, callback) {
+  const img = new Image();
+  img.onload = function() {
+    let width = img.width;
+    let height = img.height;
+
+    if (width > maxWidth || height > maxHeight) {
+      if (width / height > maxWidth / maxHeight) {
+        height = Math.round((height * maxWidth) / width);
+        width = maxWidth;
+      } else {
+        width = Math.round((width * maxHeight) / height);
+        height = maxHeight;
+      }
+    }
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, width, height);
+
+    const compressed = canvas.toDataURL('image/jpeg', quality);
+    callback(compressed);
+  };
+  img.onerror = function() {
+    callback(base64Src);
+  };
+  img.src = base64Src;
+}
+
+function openPhotoPreviewModal(base64Data) {
+  const modal = document.getElementById('modal-photo-preview');
+  const img = document.getElementById('photo-preview-img');
+  const captionInput = document.getElementById('photo-caption-input');
+
+  if (img) img.src = base64Data;
+  if (captionInput) {
+    captionInput.value = '';
+    setTimeout(() => captionInput.focus(), 150);
+  }
+
+  if (modal) {
+    modal.style.setProperty('display', 'flex', 'important');
+    modal.classList.add('modal-active');
+  }
+}
+
+function closePhotoPreviewModal() {
+  const modal = document.getElementById('modal-photo-preview');
+  const fileInput = document.getElementById('chat-photo-input');
+  const img = document.getElementById('photo-preview-img');
+
+  pendingPhotoBase64 = null;
+  if (fileInput) fileInput.value = '';
+  if (img) img.src = '';
+
+  if (modal) {
+    modal.style.setProperty('display', 'none', 'important');
+    modal.classList.remove('modal-active');
+  }
+}
+
+async function submitPhotoMessage(event) {
+  if (event) event.preventDefault();
+  if (!pendingPhotoBase64) return;
+
+  const captionInput = document.getElementById('photo-caption-input');
+  const btnSubmit = document.getElementById('btn-submit-photo');
+  const text = captionInput ? captionInput.value.trim() : '';
+  const sender = window.App ? window.App.getCurrentUser() : 'Roberto';
+  const replyPayload = currentReply ? { ...currentReply } : null;
+
+  if (btnSubmit) {
+    btnSubmit.disabled = true;
+    btnSubmit.textContent = '⏳ Envoi...';
+  }
+
+  if (window.SoundEngine) {
+    window.SoundEngine.playSentSound();
+  }
+
+  try {
+    const res = await fetch('/api/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sender,
+        text: text || '📷 Photo',
+        type: 'image',
+        image: pendingPhotoBase64,
+        reply_to: replyPayload
+      })
+    });
+
+    if (res.ok) {
+      clearReplyTo();
+      closePhotoPreviewModal();
+      scrollToBottom(true);
+    } else {
+      const err = await res.json().catch(() => ({}));
+      alert(err.error || 'Erreur lors de l\'envoi de la photo.');
+    }
+  } catch (err) {
+    console.error('Erreur envoi photo:', err);
+    alert('Erreur réseau lors de l\'envoi de la photo.');
+  } finally {
+    if (btnSubmit) {
+      btnSubmit.disabled = false;
+      btnSubmit.textContent = '📤 Envoyer la Photo';
+    }
+  }
+}
+
+function openImageLightbox(imgUrl, sender, time, caption) {
+  const modal = document.getElementById('modal-image-lightbox');
+  const fullImg = document.getElementById('lightbox-full-img');
+  const senderEl = document.getElementById('lightbox-sender-name');
+  const timeEl = document.getElementById('lightbox-time');
+  const captionEl = document.getElementById('lightbox-caption');
+
+  if (fullImg) fullImg.src = imgUrl;
+  if (senderEl) senderEl.textContent = sender || '';
+  if (timeEl) timeEl.textContent = time || '';
+  if (captionEl) {
+    if (caption && caption !== '📷 Photo') {
+      captionEl.textContent = caption;
+      captionEl.style.display = 'block';
+    } else {
+      captionEl.textContent = '';
+      captionEl.style.display = 'none';
+    }
+  }
+
+  if (modal) {
+    modal.style.setProperty('display', 'flex', 'important');
+    modal.classList.add('lightbox-active');
+  }
+}
+
+function closeImageLightbox() {
+  const modal = document.getElementById('modal-image-lightbox');
+  const fullImg = document.getElementById('lightbox-full-img');
+  if (fullImg) fullImg.src = '';
+  if (modal) {
+    modal.style.setProperty('display', 'none', 'important');
+    modal.classList.remove('lightbox-active');
+  }
+}
+
+window.closePhotoPreviewModal = closePhotoPreviewModal;
+window.submitPhotoMessage = submitPhotoMessage;
+window.closeImageLightbox = closeImageLightbox;
 const EMOJI_CATEGORIES = {
   hotel: [
     '🏨', '🛏️', '🚪', '🔑', '🧹', '🧽', '🧼', '🧺', '🚿', '🚽',

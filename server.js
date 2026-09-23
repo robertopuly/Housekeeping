@@ -4,6 +4,7 @@ const { Server } = require('socket.io');
 const cors = require('cors');
 const path = require('path');
 const os = require('os');
+const fs = require('fs');
 const db = require('./database');
 
 const app = express();
@@ -17,8 +18,18 @@ const io = new Server(server, {
 
 const PORT = process.env.PORT || 8765;
 
+const uploadsDir = path.join(__dirname, 'public', 'uploads');
+if (!fs.existsSync(uploadsDir)) {
+  try {
+    fs.mkdirSync(uploadsDir, { recursive: true });
+  } catch (err) {
+    console.error('Erreur création dossier uploads:', err);
+  }
+}
+
 app.use(cors());
-app.use(express.json());
+app.use(express.json({ limit: '25mb' }));
+app.use(express.urlencoded({ extended: true, limit: '25mb' }));
 app.use(express.static(path.join(__dirname, 'public'), {
   etag: false,
   lastModified: false,
@@ -63,11 +74,37 @@ app.get('/api/messages', (req, res) => {
 
 app.post('/api/messages', (req, res) => {
   try {
-    const { sender, text, type, reply_to } = req.body;
-    if (!sender || !text) {
-      return res.status(400).json({ error: 'Mittente e testo sono obbligatori' });
+    const { sender, text, type, reply_to, image } = req.body;
+    if (!sender) {
+      return res.status(400).json({ error: 'Mittente obbligatorio' });
     }
-    const msg = db.addMessage(sender, text, type || 'text', reply_to || null);
+    if (!text && !image) {
+      return res.status(400).json({ error: 'Testo o immagine obbligatori' });
+    }
+
+    let imageUrl = '';
+    let msgType = type || 'text';
+
+    if (image && typeof image === 'string') {
+      try {
+        const matches = image.match(/^data:image\/([a-zA-Z0-9+]+);base64,(.+)$/);
+        let ext = 'jpg';
+        let base64Data = image;
+        if (matches && matches.length === 3) {
+          ext = matches[1] === 'jpeg' ? 'jpg' : matches[1];
+          base64Data = matches[2];
+        }
+        const filename = `photo_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
+        const filePath = path.join(uploadsDir, filename);
+        fs.writeFileSync(filePath, Buffer.from(base64Data, 'base64'));
+        imageUrl = `/uploads/${filename}`;
+        msgType = 'image';
+      } catch (imgErr) {
+        console.error('Erreur enregistrement photo:', imgErr);
+      }
+    }
+
+    const msg = db.addMessage(sender, text || '', msgType, reply_to || null, imageUrl);
     io.emit('chat:message', msg);
     res.status(201).json(msg);
   } catch (err) {
