@@ -17,7 +17,7 @@ const io = new Server(server, {
 });
 
 const PORT = process.env.PORT || 8765;
-const CURRENT_APP_VERSION = 40;
+const CURRENT_APP_VERSION = 41;
 
 const uploadsDir = path.join(__dirname, 'public', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
