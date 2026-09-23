@@ -155,6 +155,22 @@ function initSchema() {
   } catch (e) {}
 
   try {
+    db.exec('ALTER TABLE messages ADD COLUMN question_type TEXT DEFAULT "";');
+  } catch (e) {}
+
+  try {
+    db.exec('ALTER TABLE messages ADD COLUMN question_status TEXT DEFAULT "";');
+  } catch (e) {}
+
+  try {
+    db.exec('ALTER TABLE messages ADD COLUMN answered_by TEXT DEFAULT "";');
+  } catch (e) {}
+
+  try {
+    db.exec('ALTER TABLE messages ADD COLUMN answered_at DATETIME DEFAULT NULL;');
+  } catch (e) {}
+
+  try {
     db.exec('ALTER TABLE quick_replies ADD COLUMN label TEXT DEFAULT "";');
   } catch (e) {}
 
@@ -234,17 +250,27 @@ function getMessages(limit = 150) {
   return db.prepare('SELECT * FROM messages ORDER BY id ASC LIMIT ?').all(limit);
 }
 
-function addMessage(sender, text, type = 'text', replyTo = null, imageUrl = '') {
+function addMessage(sender, text, type = 'text', replyTo = null, imageUrl = '', questionType = '', questionStatus = '') {
   const reply_to_id = replyTo ? replyTo.id : null;
   const reply_to_sender = replyTo ? (replyTo.sender || '') : '';
   const reply_to_text = replyTo ? (replyTo.text || '') : '';
   const nowIso = new Date().toISOString();
 
   const result = db.prepare(`
-    INSERT INTO messages (sender, text, type, reply_to_id, reply_to_sender, reply_to_text, timestamp, image_url)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(sender, text, type, reply_to_id, reply_to_sender, reply_to_text, nowIso, imageUrl || '');
+    INSERT INTO messages (sender, text, type, reply_to_id, reply_to_sender, reply_to_text, timestamp, image_url, question_type, question_status)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(sender, text, type, reply_to_id, reply_to_sender, reply_to_text, nowIso, imageUrl || '', questionType || '', questionStatus || '');
   return db.prepare('SELECT * FROM messages WHERE id = ?').get(result.lastInsertRowid);
+}
+
+function answerYesNoQuestion(messageId, answer, answeredBy = 'Adélcia') {
+  const nowIso = new Date().toISOString();
+  db.prepare(`
+    UPDATE messages
+    SET question_status = ?, answered_by = ?, answered_at = ?
+    WHERE id = ?
+  `).run(answer, answeredBy, nowIso, messageId);
+  return db.prepare('SELECT * FROM messages WHERE id = ?').get(messageId);
 }
 
 function deleteMessage(id) {
@@ -660,6 +686,7 @@ module.exports = {
   db,
   getMessages,
   addMessage,
+  answerYesNoQuestion,
   deleteMessage,
   markMessagesAsRead,
   getQuickReplies,

@@ -17,7 +17,7 @@ const io = new Server(server, {
 });
 
 const PORT = process.env.PORT || 8765;
-const CURRENT_APP_VERSION = 41;
+const CURRENT_APP_VERSION = 42;
 
 const uploadsDir = path.join(__dirname, 'public', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -105,9 +105,45 @@ app.post('/api/messages', (req, res) => {
       }
     }
 
-    const msg = db.addMessage(sender, text || '', msgType, reply_to || null, imageUrl);
+    let qType = req.body.question_type || '';
+    let qStatus = qType === 'yes_no' ? 'pending' : '';
+
+    const msg = db.addMessage(sender, text || '', msgType, reply_to || null, imageUrl, qType, qStatus);
     io.emit('chat:message', msg);
     res.status(201).json(msg);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/messages/:id/answer', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { answer, answered_by } = req.body;
+    if (!answer || (answer !== 'yes' && answer !== 'no')) {
+      return res.status(400).json({ error: 'Réponse invalide (yes ou no)' });
+    }
+    const responder = answered_by || 'Adélcia';
+    const updatedQuestion = db.answerYesNoQuestion(Number(id), answer, responder);
+    if (!updatedQuestion) {
+      return res.status(404).json({ error: 'Question non trouvée' });
+    }
+
+    const replyText = answer === 'yes' ? 'OUI' : 'NON';
+    const replyTo = {
+      id: updatedQuestion.id,
+      sender: updatedQuestion.sender,
+      text: updatedQuestion.text
+    };
+    const responseMsg = db.addMessage(responder, replyText, 'yes_no_response', replyTo, '');
+
+    io.emit('chat:question_answered', {
+      question: updatedQuestion,
+      responseMessage: responseMsg
+    });
+    io.emit('chat:message', responseMsg);
+
+    res.json({ success: true, question: updatedQuestion, responseMessage: responseMsg });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

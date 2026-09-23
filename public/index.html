@@ -8,9 +8,9 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <title>Gouvernante Hôtel - Gestion & Communication</title>
-  <link rel="stylesheet" href="css/styles.css?v=41">
+  <link rel="stylesheet" href="css/styles.css?v=42">
   <script>
-    window.APP_VERSION = 41;
+    window.APP_VERSION = 42;
     function getTodayIsoStr() {
       var d = new Date();
       var y = d.getFullYear();
@@ -446,6 +446,10 @@
           <button type="button" id="btn-chat-photo" class="btn-chat-photo" title="Prendre une photo ou ajouter une image" aria-label="Prendre une photo">📷</button>
           <input type="file" id="chat-photo-input" accept="image/*" capture="environment" style="display: none;" />
           <input type="text" id="chat-input" class="chat-input" placeholder="Écrire un message..." autocomplete="off" />
+          <label class="chat-flag-yesno-label pc-only" id="label-flag-yesno" title="Demander une réponse Oui / Non à Adélcia">
+            <input type="checkbox" id="chat-flag-yesno" />
+            <span class="flag-yesno-pill">❓ Oui / Non</span>
+          </label>
           <button type="submit" class="btn-send" aria-label="Envoyer">➤</button>
         </form>
       </div>
@@ -1058,14 +1062,14 @@
 
   <!-- SCRIPTS -->
   <script src="/socket.io/socket.io.js"></script>
-  <script src="js/audio.js?v=41"></script>
-  <script src="js/socket.js?v=41"></script>
-  <script src="js/chat.js?v=41"></script>
-  <script src="js/orders.js?v=41"></script>
-  <script src="js/deadlines.js?v=41"></script>
-  <script src="js/shopping.js?v=41"></script>
-  <script src="js/expenses.js?v=41"></script>
-  <script src="js/leave.js?v=41"></script>
-  <script src="js/app.js?v=41"></script>
+  <script src="js/audio.js?v=42"></script>
+  <script src="js/socket.js?v=42"></script>
+  <script src="js/chat.js?v=42"></script>
+  <script src="js/orders.js?v=42"></script>
+  <script src="js/deadlines.js?v=42"></script>
+  <script src="js/shopping.js?v=42"></script>
+  <script src="js/expenses.js?v=42"></script>
+  <script src="js/leave.js?v=42"></script>
+  <script src="js/app.js?v=42"></script>
 </body>
 </html>

@@ -60,6 +60,12 @@ function initSocket() {
     }
   });
 
+  socket.on('chat:question_answered', (data) => {
+    if (window.ChatModule && window.ChatModule.onQuestionAnswered) {
+      window.ChatModule.onQuestionAnswered(data);
+    }
+  });
+
   socket.on('chat:typing', (data) => {
     if (window.ChatModule && window.ChatModule.onTypingStatus) {
       window.ChatModule.onTypingStatus(data);

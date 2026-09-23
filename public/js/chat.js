@@ -175,6 +175,76 @@ function formatChatMessage(text, isMe, emojiInfo) {
   return escaped;
 }
 
+function renderYesNoQuestionHtml(msg, isMe, currentUser) {
+  const isRoberto = (currentUser && currentUser.toLowerCase() === 'roberto');
+  const status = msg.question_status || 'pending';
+  let bodyHtml = '';
+
+  if (status === 'pending') {
+    if (isRoberto) {
+      bodyHtml = `
+        <div class="msg-yesno-pending">
+          <span class="yesno-pending-icon">⏳</span>
+          <span class="yesno-pending-text">En attente de réponse d’Adélcia...</span>
+        </div>
+      `;
+    } else {
+      bodyHtml = `
+        <div class="msg-yesno-actions-box" onclick="event.stopPropagation()">
+          <div class="yesno-prompt-text">Veuillez choisir une réponse :</div>
+          <div class="yesno-btn-group">
+            <button type="button" class="btn-yesno-choice btn-yesno-oui" onclick="window.ChatModule.submitYesNoAnswer(${msg.id}, 'yes')">
+              ✅ OUI
+            </button>
+            <button type="button" class="btn-yesno-choice btn-yesno-non" onclick="window.ChatModule.submitYesNoAnswer(${msg.id}, 'no')">
+              ❌ NON
+            </button>
+          </div>
+        </div>
+      `;
+    }
+  } else if (status === 'yes') {
+    if (isRoberto) {
+      bodyHtml = `
+        <div class="msg-yesno-result result-accepted">
+          <div class="result-title">✅ Réponse : ACCEPTATION (OUI)</div>
+          <div class="result-sub">Confirmé par ${escapeHtml(msg.answered_by || 'Adélcia')}</div>
+        </div>
+      `;
+    } else {
+      bodyHtml = `
+        <div class="msg-yesno-result result-selected">
+          <div class="result-title">🔘 Choix sélectionné : <strong>OUI ✅</strong></div>
+        </div>
+      `;
+    }
+  } else if (status === 'no') {
+    if (isRoberto) {
+      bodyHtml = `
+        <div class="msg-yesno-result result-refused">
+          <div class="result-title">❌ Réponse : REFUS (NON)</div>
+          <div class="result-sub">Répondu par ${escapeHtml(msg.answered_by || 'Adélcia')}</div>
+        </div>
+      `;
+    } else {
+      bodyHtml = `
+        <div class="msg-yesno-result result-selected">
+          <div class="result-title">🔘 Choix sélectionné : <strong>NON ❌</strong></div>
+        </div>
+      `;
+    }
+  }
+
+  return `
+    <div class="msg-yesno-card ${isMe ? 'card-out' : 'card-in'}" data-question-id="${msg.id}">
+      <div class="msg-yesno-header">
+        <span class="msg-yesno-badge">❓ Demande de confirmation Oui / Non</span>
+      </div>
+      ${bodyHtml}
+    </div>
+  `;
+}
+
 function parseMessageDate(raw) {
   if (!raw) return new Date();
   if (raw instanceof Date) return raw;
@@ -268,6 +338,19 @@ function renderMessages() {
       }
 
       const showText = msg.text && (!hasImage || msg.text !== '📷 Photo');
+      const isYesNoQuestion = (msg.question_type === 'yes_no');
+      const yesNoCardHtml = isYesNoQuestion ? renderYesNoQuestionHtml(msg, isMe, currentUser) : '';
+
+      let textToFormat = msg.text;
+      if (msg.type === 'yes_no_response') {
+        const isYes = String(msg.text).toUpperCase().includes('OUI');
+        const isRoberto = (currentUser && currentUser.toLowerCase() === 'roberto');
+        if (isRoberto) {
+          textToFormat = isYes ? '✅ Acceptation de la demande (OUI)' : '❌ Refus de la demande (NON)';
+        } else {
+          textToFormat = isYes ? '🔘 Choix sélectionné : OUI ✅' : '🔘 Choix sélectionné : NON ❌';
+        }
+      }
 
       if (isMe) {
         const isRead = msg.is_read === 1;
@@ -280,7 +363,8 @@ function renderMessages() {
             <div class="bubble bubble-out ${bubbleEmojiClass} ${bubblePhotoClass}">
               ${replyHtml}
               ${photoHtml}
-              ${showText ? `<div class="msg-text ${isOnlyEmoji ? 'msg-text-only-emoji' : ''} ${hasImage ? 'msg-text-photo-caption' : ''}">${formatChatMessage(msg.text, true, emojiInfo)}</div>` : ''}
+              ${showText ? `<div class="msg-text ${isOnlyEmoji ? 'msg-text-only-emoji' : ''} ${hasImage ? 'msg-text-photo-caption' : ''}">${formatChatMessage(textToFormat, true, emojiInfo)}</div>` : ''}
+              ${yesNoCardHtml}
               <div class="msg-meta">
                 <span class="msg-time">${timeStr}</span>
                 <span class="msg-status ${statusClass}" title="${statusTitle}">${statusIcon}</span>
@@ -296,7 +380,8 @@ function renderMessages() {
               <div class="msg-sender">${escapeHtml(msg.sender)}</div>
               ${replyHtml}
               ${photoHtml}
-              ${showText ? `<div class="msg-text ${isOnlyEmoji ? 'msg-text-only-emoji' : ''} ${hasImage ? 'msg-text-photo-caption' : ''}">${formatChatMessage(msg.text, false, emojiInfo)}</div>` : ''}
+              ${showText ? `<div class="msg-text ${isOnlyEmoji ? 'msg-text-only-emoji' : ''} ${hasImage ? 'msg-text-photo-caption' : ''}">${formatChatMessage(textToFormat, false, emojiInfo)}</div>` : ''}
+              ${yesNoCardHtml}
               <div class="msg-meta">
                 <span class="msg-time">${timeStr}</span>
               </div>
@@ -450,15 +535,21 @@ function scrollToBottom(smooth = false) {
 
 async function sendMessage(customText = null) {
   const input = document.getElementById('chat-input');
+  const flagYesNo = document.getElementById('chat-flag-yesno');
   const text = customText !== null ? customText : (input ? input.value.trim() : '');
   if (!text) return;
 
   const sender = window.App ? window.App.getCurrentUser() : 'Roberto';
   const replyPayload = currentReply ? { ...currentReply } : null;
+  const isYesNo = (sender.toLowerCase() === 'roberto') && flagYesNo && flagYesNo.checked;
 
   if (input && customText === null) {
     input.value = '';
     input.focus();
+  }
+
+  if (flagYesNo) {
+    flagYesNo.checked = false;
   }
 
   if (stopTypingTimeout) clearTimeout(stopTypingTimeout);
@@ -478,7 +569,8 @@ async function sendMessage(customText = null) {
       body: JSON.stringify({
         sender,
         text,
-        reply_to: replyPayload
+        reply_to: replyPayload,
+        question_type: isYesNo ? 'yes_no' : ''
       })
     });
 
@@ -488,6 +580,60 @@ async function sendMessage(customText = null) {
   } catch (err) {
     console.error('Erreur envoi message:', err);
   }
+}
+
+async function submitYesNoAnswer(questionId, answer) {
+  const currentUser = window.App ? window.App.getCurrentUser() : 'Adélcia';
+
+  const card = document.querySelector(`.msg-yesno-card[data-question-id="${questionId}"]`);
+  if (card) {
+    const btns = card.querySelectorAll('.btn-yesno-choice');
+    btns.forEach(b => {
+      b.disabled = true;
+      b.style.pointerEvents = 'none';
+      b.style.opacity = '0.5';
+    });
+  }
+
+  if (window.SoundEngine) {
+    window.SoundEngine.playSentSound();
+  }
+
+  try {
+    const res = await fetch(`/api/messages/${questionId}/answer`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        answer,
+        answered_by: currentUser
+      })
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.question) {
+        onQuestionAnswered(data);
+      }
+    } else {
+      const err = await res.json().catch(() => ({}));
+      alert(err.error || 'Erreur lors de la réponse.');
+    }
+  } catch (err) {
+    console.error('Erreur réponse question Oui/Non:', err);
+    alert('Erreur réseau. Veuillez réessayer.');
+  }
+}
+
+function onQuestionAnswered(data) {
+  if (!data || !data.question) return;
+  const q = data.question;
+  const existing = messages.find(m => m.id === q.id);
+  if (existing) {
+    existing.question_status = q.question_status;
+    existing.answered_by = q.answered_by;
+    existing.answered_at = q.answered_at;
+  }
+  renderMessages();
 }
 
 function sendTypingStatus(isTyping) {
@@ -1040,6 +1186,8 @@ function escapeHtml(str) {
   window.ChatModule = {
     initChat,
     sendMessage,
+    submitYesNoAnswer,
+    onQuestionAnswered,
     onMessageReceived,
     onMessageDeleted,
     onMessagesRead,
