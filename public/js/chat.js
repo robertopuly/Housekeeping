@@ -799,14 +799,21 @@ function closePhotoPreviewModal() {
   const modal = document.getElementById('modal-photo-preview');
   const fileInput = document.getElementById('chat-photo-input');
   const img = document.getElementById('photo-preview-img');
+  const captionInput = document.getElementById('photo-caption-input');
+  const chatInput = document.getElementById('chat-input');
 
   pendingPhotoBase64 = null;
   if (fileInput) fileInput.value = '';
   if (img) img.src = '';
+  if (captionInput) captionInput.value = '';
 
   if (modal) {
     modal.style.setProperty('display', 'none', 'important');
     modal.classList.remove('modal-active');
+  }
+
+  if (chatInput) {
+    setTimeout(() => chatInput.focus(), 100);
   }
 }
 
