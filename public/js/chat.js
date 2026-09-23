@@ -13,6 +13,7 @@
   let stopTypingTimeout = null;
   let remoteTypingTimeout = null;
   let typingUsers = new Set();
+  let activeChoiceSelections = {};
 
 async function initChat() {
   await loadQuickReplies();
@@ -245,6 +246,85 @@ function renderYesNoQuestionHtml(msg, isMe, currentUser) {
   `;
 }
 
+function renderChoiceQuestionHtml(msg, isMe, currentUser) {
+  const isRoberto = (currentUser && currentUser.toLowerCase() === 'roberto');
+  const status = msg.question_status || 'pending';
+  let options = [];
+  try {
+    options = typeof msg.question_options === 'string' ? JSON.parse(msg.question_options) : (msg.question_options || []);
+  } catch (e) {
+    options = [];
+  }
+  const selectedOption = msg.selected_option || '';
+  const answeredBy = msg.answered_by || 'Adélcia';
+
+  let bodyHtml = '';
+
+  if (status === 'pending') {
+    if (isRoberto) {
+      bodyHtml = `
+        <div class="choice-options-preview">
+          ${options.map(opt => `
+            <div class="choice-preview-item">
+              <span class="choice-bullet">🔘</span>
+              <span class="choice-preview-label">${escapeHtml(opt)}</span>
+            </div>
+          `).join('')}
+        </div>
+        <div class="msg-choice-pending">
+          <span class="choice-pending-icon">⏳</span>
+          <span class="choice-pending-text">En attente du choix d’Adélcia...</span>
+        </div>
+      `;
+    } else {
+      const currentSelected = activeChoiceSelections[msg.id];
+      bodyHtml = `
+        <div class="msg-choice-actions-box" onclick="event.stopPropagation()">
+          <div class="choice-prompt-text">Sélectionnez une option :</div>
+          <div class="choice-options-list" data-choice-msg-id="${msg.id}">
+            ${options.map(opt => {
+              const isSel = (currentSelected === opt);
+              return `
+                <div class="choice-option-item ${isSel ? 'selected' : ''}" data-val="${escapeHtml(opt)}" onclick="window.ChatModule.selectChoiceOption(${msg.id}, this)">
+                  <span class="choice-radio-bullet">${isSel ? '🔘' : '⚪'}</span>
+                  <span class="choice-option-label">${escapeHtml(opt)}</span>
+                </div>
+              `;
+            }).join('')}
+          </div>
+          <button type="button" class="btn-choice-submit" id="btn-choice-submit-${msg.id}" ${currentSelected ? '' : 'disabled'} onclick="window.ChatModule.submitChoiceAnswer(${msg.id})">
+            📤 Envoyer la Réponse
+          </button>
+        </div>
+      `;
+    }
+  } else {
+    if (isRoberto) {
+      bodyHtml = `
+        <div class="msg-choice-result result-selected-roberto">
+          <div class="result-title">🎯 Choix : <strong>${escapeHtml(selectedOption)}</strong></div>
+          <div class="result-sub">Sélectionné par ${escapeHtml(answeredBy)}</div>
+        </div>
+      `;
+    } else {
+      bodyHtml = `
+        <div class="msg-choice-result result-selected">
+          <div class="result-title">🔘 Choix sélectionné : <strong>${escapeHtml(selectedOption)} ✅</strong></div>
+        </div>
+      `;
+    }
+  }
+
+  return `
+    <div class="msg-choice-card ${isMe ? 'card-out' : 'card-in'}" data-choice-id="${msg.id}">
+      <div class="msg-choice-header">
+        <span class="msg-choice-badge">📋 Question à choix multiples</span>
+      </div>
+      ${bodyHtml}
+    </div>
+  `;
+}
+
 function parseMessageDate(raw) {
   if (!raw) return new Date();
   if (raw instanceof Date) return raw;
@@ -340,6 +420,8 @@ function renderMessages() {
       const showText = msg.text && (!hasImage || msg.text !== '📷 Photo');
       const isYesNoQuestion = (msg.question_type === 'yes_no');
       const yesNoCardHtml = isYesNoQuestion ? renderYesNoQuestionHtml(msg, isMe, currentUser) : '';
+      const isChoiceQuestion = (msg.question_type === 'choice');
+      const choiceCardHtml = isChoiceQuestion ? renderChoiceQuestionHtml(msg, isMe, currentUser) : '';
 
       let textToFormat = msg.text;
       if (msg.type === 'yes_no_response') {
@@ -349,6 +431,14 @@ function renderMessages() {
           textToFormat = isYes ? '✅ Acceptation de la demande (OUI)' : '❌ Refus de la demande (NON)';
         } else {
           textToFormat = isYes ? '🔘 Choix sélectionné : OUI ✅' : '🔘 Choix sélectionné : NON ❌';
+        }
+      } else if (msg.type === 'choice_response') {
+        const isRoberto = (currentUser && currentUser.toLowerCase() === 'roberto');
+        const optVal = msg.text.replace(/^Choix sélectionné\s*:\s*/i, '');
+        if (isRoberto) {
+          textToFormat = `🎯 Choix d'${msg.sender || 'Adélcia'} : ${optVal}`;
+        } else {
+          textToFormat = `🔘 Choix sélectionné : ${optVal} ✅`;
         }
       }
 
@@ -365,6 +455,7 @@ function renderMessages() {
               ${photoHtml}
               ${showText ? `<div class="msg-text ${isOnlyEmoji ? 'msg-text-only-emoji' : ''} ${hasImage ? 'msg-text-photo-caption' : ''}">${formatChatMessage(textToFormat, true, emojiInfo)}</div>` : ''}
               ${yesNoCardHtml}
+              ${choiceCardHtml}
               <div class="msg-meta">
                 <span class="msg-time">${timeStr}</span>
                 <span class="msg-status ${statusClass}" title="${statusTitle}">${statusIcon}</span>
@@ -382,6 +473,7 @@ function renderMessages() {
               ${photoHtml}
               ${showText ? `<div class="msg-text ${isOnlyEmoji ? 'msg-text-only-emoji' : ''} ${hasImage ? 'msg-text-photo-caption' : ''}">${formatChatMessage(textToFormat, false, emojiInfo)}</div>` : ''}
               ${yesNoCardHtml}
+              ${choiceCardHtml}
               <div class="msg-meta">
                 <span class="msg-time">${timeStr}</span>
               </div>
@@ -630,6 +722,232 @@ function onQuestionAnswered(data) {
   const existing = messages.find(m => m.id === q.id);
   if (existing) {
     existing.question_status = q.question_status;
+    existing.answered_by = q.answered_by;
+    existing.answered_at = q.answered_at;
+  }
+  renderMessages();
+}
+
+function openChoiceModal() {
+  const modal = document.getElementById('modal-chat-choice');
+  const questionInput = document.getElementById('choice-question-text');
+  const container = document.getElementById('choice-options-inputs-container');
+  if (questionInput) questionInput.value = '';
+  if (container) {
+    container.innerHTML = `
+      <div class="choice-opt-input-row">
+        <span class="choice-opt-num">1</span>
+        <input type="text" class="form-control choice-opt-val" placeholder="Option 1" required />
+      </div>
+      <div class="choice-opt-input-row">
+        <span class="choice-opt-num">2</span>
+        <input type="text" class="form-control choice-opt-val" placeholder="Option 2" required />
+      </div>
+    `;
+  }
+  if (modal) {
+    modal.style.setProperty('display', 'flex', 'important');
+    modal.classList.add('modal-active');
+  }
+  if (questionInput) {
+    setTimeout(() => questionInput.focus(), 100);
+  }
+}
+
+function closeChoiceModal() {
+  const modal = document.getElementById('modal-chat-choice');
+  if (modal) {
+    modal.style.setProperty('display', 'none', 'important');
+    modal.classList.remove('modal-active');
+  }
+}
+
+function addChoiceOptionInput() {
+  const container = document.getElementById('choice-options-inputs-container');
+  if (!container) return;
+  const count = container.querySelectorAll('.choice-opt-input-row').length + 1;
+  const row = document.createElement('div');
+  row.className = 'choice-opt-input-row';
+  row.innerHTML = `
+    <span class="choice-opt-num">${count}</span>
+    <input type="text" class="form-control choice-opt-val" placeholder="Option ${count}" required />
+    <button type="button" class="btn-remove-opt" onclick="this.parentElement.remove(); window.ChatModule.renumberChoiceOptions();" title="Supprimer">&times;</button>
+  `;
+  container.appendChild(row);
+  const input = row.querySelector('.choice-opt-val');
+  if (input) input.focus();
+}
+
+function renumberChoiceOptions() {
+  const container = document.getElementById('choice-options-inputs-container');
+  if (!container) return;
+  const rows = container.querySelectorAll('.choice-opt-input-row');
+  rows.forEach((row, idx) => {
+    const numEl = row.querySelector('.choice-opt-num');
+    const input = row.querySelector('.choice-opt-val');
+    if (numEl) numEl.textContent = (idx + 1);
+    if (input && !input.value) input.placeholder = `Option ${idx + 1}`;
+  });
+}
+
+async function submitChoiceQuestion(event) {
+  if (event) {
+    if (event.preventDefault) event.preventDefault();
+    if (event.stopPropagation) event.stopPropagation();
+  }
+
+  const questionEl = document.getElementById('choice-question-text');
+  const btnSubmit = document.getElementById('btn-submit-choice-question');
+  const optInputs = document.querySelectorAll('.choice-opt-val');
+
+  const question = questionEl ? questionEl.value.trim() : '';
+  const options = Array.from(optInputs).map(inp => inp.value.trim()).filter(Boolean);
+
+  if (!question) {
+    if (questionEl) {
+      questionEl.focus();
+      questionEl.style.borderColor = '#dc2626';
+      setTimeout(() => questionEl.style.borderColor = '', 2000);
+    }
+    return false;
+  }
+
+  if (options.length < 2) {
+    alert('Veuillez renseigner au moins 2 options au choix.');
+    return false;
+  }
+
+  if (btnSubmit) {
+    btnSubmit.disabled = true;
+    btnSubmit.textContent = '⏳ Envoi...';
+  }
+
+  try {
+    const res = await fetch('/api/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sender: 'Roberto',
+        text: question,
+        question_type: 'choice',
+        options: options
+      })
+    });
+
+    if (res.ok) {
+      closeChoiceModal();
+      if (window.SoundEngine) {
+        window.SoundEngine.playSentSound();
+      }
+    } else {
+      const err = await res.json().catch(() => ({}));
+      alert(err.error || 'Erreur lors de l\'envoi de la question.');
+    }
+  } catch (err) {
+    console.error('Erreur envoi question à choix multiples:', err);
+    alert('Erreur réseau. Veuillez réessayer.');
+  } finally {
+    if (btnSubmit) {
+      btnSubmit.disabled = false;
+      btnSubmit.textContent = '📤 Envoyer la Question';
+    }
+  }
+  return false;
+}
+
+function selectChoiceOption(questionId, itemEl) {
+  const optionValue = itemEl.getAttribute('data-val');
+  if (!optionValue) return;
+
+  activeChoiceSelections[questionId] = optionValue;
+
+  const list = itemEl.closest('.choice-options-list');
+  if (list) {
+    list.querySelectorAll('.choice-option-item').forEach(el => {
+      el.classList.remove('selected');
+      const bullet = el.querySelector('.choice-radio-bullet');
+      if (bullet) bullet.textContent = '⚪';
+    });
+  }
+
+  itemEl.classList.add('selected');
+  const bullet = itemEl.querySelector('.choice-radio-bullet');
+  if (bullet) bullet.textContent = '🔘';
+
+  const btn = document.getElementById(`btn-choice-submit-${questionId}`);
+  if (btn) {
+    btn.disabled = false;
+  }
+}
+
+async function submitChoiceAnswer(questionId) {
+  const currentUser = window.App ? window.App.getCurrentUser() : 'Adélcia';
+  const selectedOption = activeChoiceSelections[questionId];
+
+  if (!selectedOption) {
+    alert('Veuillez sélectionner une option avant d\'envoyer.');
+    return;
+  }
+
+  const btn = document.getElementById(`btn-choice-submit-${questionId}`);
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '⏳ Envoi...';
+  }
+
+  const card = document.querySelector(`.msg-choice-card[data-choice-id="${questionId}"]`);
+  if (card) {
+    card.querySelectorAll('.choice-option-item').forEach(el => {
+      el.style.pointerEvents = 'none';
+      el.style.opacity = '0.7';
+    });
+  }
+
+  if (window.SoundEngine) {
+    window.SoundEngine.playSentSound();
+  }
+
+  try {
+    const res = await fetch(`/api/messages/${questionId}/choose`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        selected_option: selectedOption,
+        answered_by: currentUser
+      })
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      delete activeChoiceSelections[questionId];
+      if (data && data.question) {
+        onChoiceAnswered(data);
+      }
+    } else {
+      const err = await res.json().catch(() => ({}));
+      alert(err.error || 'Erreur lors de l\'enregistrement de votre choix.');
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = '📤 Envoyer la Réponse';
+      }
+    }
+  } catch (err) {
+    console.error('Erreur réponse question choix multiples:', err);
+    alert('Erreur réseau. Veuillez réessayer.');
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '📤 Envoyer la Réponse';
+    }
+  }
+}
+
+function onChoiceAnswered(data) {
+  if (!data || !data.question) return;
+  const q = data.question;
+  const existing = messages.find(m => m.id === q.id);
+  if (existing) {
+    existing.question_status = q.question_status;
+    existing.selected_option = q.selected_option;
     existing.answered_by = q.answered_by;
     existing.answered_at = q.answered_at;
   }
@@ -1188,6 +1506,14 @@ function escapeHtml(str) {
     sendMessage,
     submitYesNoAnswer,
     onQuestionAnswered,
+    openChoiceModal,
+    closeChoiceModal,
+    addChoiceOptionInput,
+    renumberChoiceOptions,
+    submitChoiceQuestion,
+    selectChoiceOption,
+    submitChoiceAnswer,
+    onChoiceAnswered,
     onMessageReceived,
     onMessageDeleted,
     onMessagesRead,

@@ -171,6 +171,14 @@ function initSchema() {
   } catch (e) {}
 
   try {
+    db.exec('ALTER TABLE messages ADD COLUMN question_options TEXT DEFAULT "";');
+  } catch (e) {}
+
+  try {
+    db.exec('ALTER TABLE messages ADD COLUMN selected_option TEXT DEFAULT "";');
+  } catch (e) {}
+
+  try {
     db.exec('ALTER TABLE quick_replies ADD COLUMN label TEXT DEFAULT "";');
   } catch (e) {}
 
@@ -188,12 +196,7 @@ function initSchema() {
 
   const defaultReplies = [
     { text: 'Nettoyage terminé ✅', label: 'Nettoyage terminé ✅' },
-    { text: 'Chambre 1 prête pour le contrôle ✨', label: 'Chambre 1 prête ✨' },
-    { text: 'Chambre 2 prête pour le contrôle ✨', label: 'Chambre 2 prête ✨' },
-    { text: 'Chambre 3 prête pour le contrôle ✨', label: 'Chambre 3 prête ✨' },
-    { text: 'Chambre 4 prête pour le contrôle ✨', label: 'Chambre 4 prête ✨' },
-    { text: 'Chambre 5 prête pour le contrôle ✨', label: 'Chambre 5 prête ✨' },
-    { text: 'En cours ⏳', label: 'En cours ⏳' },
+    { text: 'Peux-tu venir ici dès que possible ? 🏃', label: 'Peux-tu venir ici ? 🏃' },
     { text: 'Besoin d\'aide 🆘', label: 'Besoin d\'aide 🆘' },
     { text: 'Tout est ok 👌', label: 'Tout est ok 👌' },
     { text: 'J\'arrive tout de suite 🏃', label: 'J\'arrive tout de suite 🏃' }
@@ -250,16 +253,16 @@ function getMessages(limit = 150) {
   return db.prepare('SELECT * FROM messages ORDER BY id ASC LIMIT ?').all(limit);
 }
 
-function addMessage(sender, text, type = 'text', replyTo = null, imageUrl = '', questionType = '', questionStatus = '') {
+function addMessage(sender, text, type = 'text', replyTo = null, imageUrl = '', questionType = '', questionStatus = '', questionOptions = '', selectedOption = '') {
   const reply_to_id = replyTo ? replyTo.id : null;
   const reply_to_sender = replyTo ? (replyTo.sender || '') : '';
   const reply_to_text = replyTo ? (replyTo.text || '') : '';
   const nowIso = new Date().toISOString();
 
   const result = db.prepare(`
-    INSERT INTO messages (sender, text, type, reply_to_id, reply_to_sender, reply_to_text, timestamp, image_url, question_type, question_status)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(sender, text, type, reply_to_id, reply_to_sender, reply_to_text, nowIso, imageUrl || '', questionType || '', questionStatus || '');
+    INSERT INTO messages (sender, text, type, reply_to_id, reply_to_sender, reply_to_text, timestamp, image_url, question_type, question_status, question_options, selected_option)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(sender, text, type, reply_to_id, reply_to_sender, reply_to_text, nowIso, imageUrl || '', questionType || '', questionStatus || '', questionOptions || '', selectedOption || '');
   return db.prepare('SELECT * FROM messages WHERE id = ?').get(result.lastInsertRowid);
 }
 
@@ -270,6 +273,16 @@ function answerYesNoQuestion(messageId, answer, answeredBy = 'Adélcia') {
     SET question_status = ?, answered_by = ?, answered_at = ?
     WHERE id = ?
   `).run(answer, answeredBy, nowIso, messageId);
+  return db.prepare('SELECT * FROM messages WHERE id = ?').get(messageId);
+}
+
+function answerChoiceQuestion(messageId, selectedOption, answeredBy = 'Adélcia') {
+  const nowIso = new Date().toISOString();
+  db.prepare(`
+    UPDATE messages
+    SET question_status = 'answered', selected_option = ?, answered_by = ?, answered_at = ?
+    WHERE id = ?
+  `).run(selectedOption, answeredBy, nowIso, messageId);
   return db.prepare('SELECT * FROM messages WHERE id = ?').get(messageId);
 }
 
@@ -687,6 +700,7 @@ module.exports = {
   getMessages,
   addMessage,
   answerYesNoQuestion,
+  answerChoiceQuestion,
   deleteMessage,
   markMessagesAsRead,
   getQuickReplies,

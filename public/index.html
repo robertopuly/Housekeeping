@@ -8,9 +8,9 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <title>Gouvernante Hôtel - Gestion & Communication</title>
-  <link rel="stylesheet" href="css/styles.css?v=42">
+  <link rel="stylesheet" href="css/styles.css?v=43">
   <script>
-    window.APP_VERSION = 42;
+    window.APP_VERSION = 43;
     function getTodayIsoStr() {
       var d = new Date();
       var y = d.getFullYear();
@@ -328,6 +328,31 @@
         m.classList.remove('modal-active');
       }
     }
+
+    function openChoiceModal() {
+      if (window.ChatModule && window.ChatModule.openChoiceModal) {
+        window.ChatModule.openChoiceModal();
+      }
+    }
+
+    function closeChoiceModal() {
+      if (window.ChatModule && window.ChatModule.closeChoiceModal) {
+        window.ChatModule.closeChoiceModal();
+      }
+    }
+
+    function addChoiceOptionInput() {
+      if (window.ChatModule && window.ChatModule.addChoiceOptionInput) {
+        window.ChatModule.addChoiceOptionInput();
+      }
+    }
+
+    function submitChoiceQuestion(event) {
+      if (window.ChatModule && window.ChatModule.submitChoiceQuestion) {
+        return window.ChatModule.submitChoiceQuestion(event);
+      }
+      return false;
+    }
   </script>
 </head>
 <body>
@@ -450,6 +475,7 @@
             <input type="checkbox" id="chat-flag-yesno" />
             <span class="flag-yesno-pill">❓ Oui / Non</span>
           </label>
+          <button type="button" id="btn-chat-choices" class="btn-chat-choices pc-only" onclick="openChoiceModal()" title="Poser une question à choix multiples">📋 Choix</button>
           <button type="submit" class="btn-send" aria-label="Envoyer">➤</button>
         </form>
       </div>
@@ -1060,16 +1086,54 @@
     </div>
   </div>
 
+  <!-- MODAL QUESTION À CHOIX MULTIPLES (PC ONLY) -->
+  <div id="modal-chat-choice" class="modal-backdrop" onclick="if(event.target===this)closeChoiceModal()">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2>📋 Question à Choix Multiples</h2>
+        <button type="button" class="btn-close-modal" onclick="closeChoiceModal()">&times;</button>
+      </div>
+      <form id="form-chat-choice" onsubmit="submitChoiceQuestion(event); return false;">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="choice-question-text">Question pour Adélcia *</label>
+            <input type="text" id="choice-question-text" class="form-control" placeholder="ex. Que préfères-tu pour le dessert ?" required />
+          </div>
+
+          <div class="form-group">
+            <label>Options au choix (au moins 2) *</label>
+            <div id="choice-options-inputs-container" class="choice-options-inputs-container">
+              <div class="choice-opt-input-row">
+                <span class="choice-opt-num">1</span>
+                <input type="text" class="form-control choice-opt-val" placeholder="Option 1" required />
+              </div>
+              <div class="choice-opt-input-row">
+                <span class="choice-opt-num">2</span>
+                <input type="text" class="form-control choice-opt-val" placeholder="Option 2" required />
+              </div>
+            </div>
+            <button type="button" class="btn-add-choice-opt" onclick="addChoiceOptionInput()">+ Ajouter une option</button>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeChoiceModal()">Annuler</button>
+          <button type="submit" id="btn-submit-choice-question" class="btn btn-primary">📤 Envoyer la Question</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <!-- SCRIPTS -->
   <script src="/socket.io/socket.io.js"></script>
-  <script src="js/audio.js?v=42"></script>
-  <script src="js/socket.js?v=42"></script>
-  <script src="js/chat.js?v=42"></script>
-  <script src="js/orders.js?v=42"></script>
-  <script src="js/deadlines.js?v=42"></script>
-  <script src="js/shopping.js?v=42"></script>
-  <script src="js/expenses.js?v=42"></script>
-  <script src="js/leave.js?v=42"></script>
-  <script src="js/app.js?v=42"></script>
+  <script src="js/audio.js?v=43"></script>
+  <script src="js/socket.js?v=43"></script>
+  <script src="js/chat.js?v=43"></script>
+  <script src="js/orders.js?v=43"></script>
+  <script src="js/deadlines.js?v=43"></script>
+  <script src="js/shopping.js?v=43"></script>
+  <script src="js/expenses.js?v=43"></script>
+  <script src="js/leave.js?v=43"></script>
+  <script src="js/app.js?v=43"></script>
 </body>
 </html>

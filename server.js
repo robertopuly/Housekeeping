@@ -17,7 +17,7 @@ const io = new Server(server, {
 });
 
 const PORT = process.env.PORT || 8765;
-const CURRENT_APP_VERSION = 42;
+const CURRENT_APP_VERSION = 43;
 
 const uploadsDir = path.join(__dirname, 'public', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -106,9 +106,15 @@ app.post('/api/messages', (req, res) => {
     }
 
     let qType = req.body.question_type || '';
-    let qStatus = qType === 'yes_no' ? 'pending' : '';
+    let qStatus = (qType === 'yes_no' || qType === 'choice') ? 'pending' : '';
+    let qOptions = '';
+    if (qType === 'choice' && Array.isArray(req.body.options)) {
+      qOptions = JSON.stringify(req.body.options.map(o => String(o).trim()).filter(Boolean));
+    } else if (req.body.question_options) {
+      qOptions = typeof req.body.question_options === 'string' ? req.body.question_options : JSON.stringify(req.body.question_options);
+    }
 
-    const msg = db.addMessage(sender, text || '', msgType, reply_to || null, imageUrl, qType, qStatus);
+    const msg = db.addMessage(sender, text || '', msgType, reply_to || null, imageUrl, qType, qStatus, qOptions, '');
     io.emit('chat:message', msg);
     res.status(201).json(msg);
   } catch (err) {
@@ -138,6 +144,39 @@ app.post('/api/messages/:id/answer', (req, res) => {
     const responseMsg = db.addMessage(responder, replyText, 'yes_no_response', replyTo, '');
 
     io.emit('chat:question_answered', {
+      question: updatedQuestion,
+      responseMessage: responseMsg
+    });
+    io.emit('chat:message', responseMsg);
+
+    res.json({ success: true, question: updatedQuestion, responseMessage: responseMsg });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/messages/:id/choose', (req, res) => {
+  try {
+    const { id } = req.params;
+    const { selected_option, answered_by } = req.body;
+    if (!selected_option || !String(selected_option).trim()) {
+      return res.status(400).json({ error: 'Option sélectionnée obligatoire' });
+    }
+    const responder = answered_by || 'Adélcia';
+    const chosenText = String(selected_option).trim();
+    const updatedQuestion = db.answerChoiceQuestion(Number(id), chosenText, responder);
+    if (!updatedQuestion) {
+      return res.status(404).json({ error: 'Question non trouvée' });
+    }
+
+    const replyTo = {
+      id: updatedQuestion.id,
+      sender: updatedQuestion.sender,
+      text: updatedQuestion.text
+    };
+    const responseMsg = db.addMessage(responder, chosenText, 'choice_response', replyTo, '');
+
+    io.emit('chat:choice_answered', {
       question: updatedQuestion,
       responseMessage: responseMsg
     });
