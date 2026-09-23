@@ -8,9 +8,9 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <title>Gouvernante Hôtel - Gestion & Communication</title>
-  <link rel="stylesheet" href="css/styles.css?v=44">
+  <link rel="stylesheet" href="css/styles.css?v=45">
   <script>
-    window.APP_VERSION = 44;
+    window.APP_VERSION = 45;
     function getTodayIsoStr() {
       var d = new Date();
       var y = d.getFullYear();
@@ -356,77 +356,80 @@
   </script>
 </head>
 <body>
-  <!-- HEADER -->
-  <header class="app-header">
-    <div class="header-brand">
-      <div class="header-logo">
-        <img src="icons/icon.svg" alt="Logo" />
-      </div>
-      <div class="header-title-box">
-        <h1>HOUSEKEEPING</h1>
-        <div class="header-subtitle">
-          <span id="connection-dot" class="status-dot dot-offline"></span>
-          <span id="connection-text">Connexion en cours...</span>
+  <!-- TOP BAR (HEADER & NAVIGATION FIXES EN HAUT) -->
+  <div class="app-top-bar" id="app-top-bar">
+    <!-- HEADER -->
+    <header class="app-header">
+      <div class="header-brand">
+        <div class="header-logo">
+          <img src="icons/icon.svg" alt="Logo" />
+        </div>
+        <div class="header-title-box">
+          <h1>HOUSEKEEPING</h1>
+          <div class="header-subtitle">
+            <span id="connection-dot" class="status-dot dot-offline"></span>
+            <span id="connection-text">Connexion en cours...</span>
+          </div>
         </div>
       </div>
-    </div>
 
-    <div class="header-actions">
-      <!-- Badge Opérateur Actif (Non cliquable) -->
-      <div class="user-chip-badge" title="Opérateur Actif">
-        <span id="current-user-avatar" class="user-avatar-badge">R</span>
-        <span id="current-user-name">Roberto</span>
+      <div class="header-actions">
+        <!-- Badge Opérateur Actif (Non cliquable) -->
+        <div class="user-chip-badge" title="Opérateur Actif">
+          <span id="current-user-avatar" class="user-avatar-badge">R</span>
+          <span id="current-user-name">Roberto</span>
+        </div>
+
+        <!-- Sound Toggle -->
+        <button type="button" id="btn-sound-toggle" class="btn-header-action" aria-label="Activer ou désactiver l'audio">
+          🔔 <span class="hide-mobile">Audio</span>
+        </button>
       </div>
+    </header>
 
-      <!-- Sound Toggle -->
-      <button type="button" id="btn-sound-toggle" class="btn-header-action" aria-label="Activer ou désactiver l'audio">
-        🔔 <span class="hide-mobile">Audio</span>
+    <!-- NAVIGATION TABS -->
+    <nav class="app-nav" role="tablist">
+      <button type="button" class="nav-tab-btn active" data-tab="tab-chat" role="tab" aria-selected="true">
+        <span class="tab-icon">💬</span>
+        <span>Discussion</span>
+        <span id="chat-badge" class="badge" style="display: none;">0</span>
       </button>
-    </div>
-  </header>
 
-  <!-- NAVIGATION TABS -->
-  <nav class="app-nav" role="tablist">
-    <button type="button" class="nav-tab-btn active" data-tab="tab-chat" role="tab" aria-selected="true">
-      <span class="tab-icon">💬</span>
-      <span>Discussion</span>
-      <span id="chat-badge" class="badge" style="display: none;">0</span>
-    </button>
+      <button type="button" class="nav-tab-btn" data-tab="tab-orders" role="tab" aria-selected="false" id="nav-btn-orders">
+        <span class="tab-icon">📋</span>
+        <span>Ordres</span>
+        <span id="orders-badge" class="badge" style="display: none;">0</span>
+      </button>
 
-    <button type="button" class="nav-tab-btn" data-tab="tab-orders" role="tab" aria-selected="false" id="nav-btn-orders">
-      <span class="tab-icon">📋</span>
-      <span>Ordres</span>
-      <span id="orders-badge" class="badge" style="display: none;">0</span>
-    </button>
+      <button type="button" class="nav-tab-btn" data-tab="tab-rooms" role="tab" aria-selected="false" id="nav-btn-rooms">
+        <span class="tab-icon">🛏️</span>
+        <span>Chambres</span>
+      </button>
 
-    <button type="button" class="nav-tab-btn" data-tab="tab-rooms" role="tab" aria-selected="false" id="nav-btn-rooms">
-      <span class="tab-icon">🛏️</span>
-      <span>Chambres</span>
-    </button>
+      <button type="button" class="nav-tab-btn" data-tab="tab-deadlines" role="tab" aria-selected="false">
+        <span class="tab-icon">⏰</span>
+        <span>Échéances & Liste</span>
+        <span id="deadlines-badge" class="badge badge-pulse" style="display: none;">0</span>
+      </button>
 
-    <button type="button" class="nav-tab-btn" data-tab="tab-deadlines" role="tab" aria-selected="false">
-      <span class="tab-icon">⏰</span>
-      <span>Échéances & Liste</span>
-      <span id="deadlines-badge" class="badge badge-pulse" style="display: none;">0</span>
-    </button>
+      <button type="button" class="nav-tab-btn" data-tab="tab-shopping" role="tab" aria-selected="false">
+        <span class="tab-icon">🛒</span>
+        <span>Achats & Courses</span>
+        <span id="shopping-badge" class="badge badge-pulse" style="display: none;">0</span>
+      </button>
 
-    <button type="button" class="nav-tab-btn" data-tab="tab-shopping" role="tab" aria-selected="false">
-      <span class="tab-icon">🛒</span>
-      <span>Achats & Courses</span>
-      <span id="shopping-badge" class="badge badge-pulse" style="display: none;">0</span>
-    </button>
+      <button type="button" class="nav-tab-btn" data-tab="tab-leave" role="tab" aria-selected="false" id="nav-btn-leave">
+        <span class="tab-icon">🏖️</span>
+        <span>Congés & Vacances</span>
+        <span id="leave-badge" class="badge badge-pulse" style="display: none;">0</span>
+      </button>
 
-    <button type="button" class="nav-tab-btn" data-tab="tab-leave" role="tab" aria-selected="false" id="nav-btn-leave">
-      <span class="tab-icon">🏖️</span>
-      <span>Congés & Vacances</span>
-      <span id="leave-badge" class="badge badge-pulse" style="display: none;">0</span>
-    </button>
-
-    <button type="button" class="nav-tab-btn pc-only" data-tab="tab-expenses" role="tab" aria-selected="false" id="nav-btn-expenses">
-      <span class="tab-icon">📊</span>
-      <span>Dépenses & Achats</span>
-    </button>
-  </nav>
+      <button type="button" class="nav-tab-btn pc-only" data-tab="tab-expenses" role="tab" aria-selected="false" id="nav-btn-expenses">
+        <span class="tab-icon">📊</span>
+        <span>Dépenses & Achats</span>
+      </button>
+    </nav>
+  </div>
 
   <!-- MAIN CONTENT -->
   <main class="app-main">
@@ -1126,14 +1129,14 @@
 
   <!-- SCRIPTS -->
   <script src="/socket.io/socket.io.js"></script>
-  <script src="js/audio.js?v=44"></script>
-  <script src="js/socket.js?v=44"></script>
-  <script src="js/chat.js?v=44"></script>
-  <script src="js/orders.js?v=44"></script>
-  <script src="js/deadlines.js?v=44"></script>
-  <script src="js/shopping.js?v=44"></script>
-  <script src="js/expenses.js?v=44"></script>
-  <script src="js/leave.js?v=44"></script>
-  <script src="js/app.js?v=44"></script>
+  <script src="js/audio.js?v=45"></script>
+  <script src="js/socket.js?v=45"></script>
+  <script src="js/chat.js?v=45"></script>
+  <script src="js/orders.js?v=45"></script>
+  <script src="js/deadlines.js?v=45"></script>
+  <script src="js/shopping.js?v=45"></script>
+  <script src="js/expenses.js?v=45"></script>
+  <script src="js/leave.js?v=45"></script>
+  <script src="js/app.js?v=45"></script>
 </body>
 </html>

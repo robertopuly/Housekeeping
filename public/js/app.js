@@ -163,6 +163,25 @@ function registerServiceWorker() {
   }
 }
 
+// Verrouillage du défilement de la fenêtre (maintient l'en-tête et les onglets toujours fixes en haut sur mobile et tablette)
+window.addEventListener('scroll', () => {
+  if (window.scrollY !== 0 || window.scrollX !== 0) {
+    window.scrollTo(0, 0);
+  }
+}, { passive: true });
+
+document.addEventListener('focusin', () => {
+  if (window.scrollY !== 0 || window.scrollX !== 0) {
+    window.scrollTo(0, 0);
+  }
+});
+
+document.addEventListener('focusout', () => {
+  if (window.scrollY !== 0 || window.scrollX !== 0) {
+    window.scrollTo(0, 0);
+  }
+});
+
 window.App = {
   getCurrentUser: () => currentUser,
   getActiveTab: () => activeTab,
