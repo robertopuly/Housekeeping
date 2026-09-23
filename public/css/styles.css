@@ -4441,7 +4441,7 @@ body.is-pc section.tab-panel.pc-only:not(.active) {
 
 .lightbox-img-wrapper {
   max-width: 90vw;
-  max-height: 68vh;
+  max-height: 72vh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -4449,44 +4449,10 @@ body.is-pc section.tab-panel.pc-only:not(.active) {
 
 #lightbox-full-img {
   max-width: 100%;
-  max-height: 68vh;
+  max-height: 72vh;
   object-fit: contain;
   border-radius: 10px;
   box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
-}
-
-.lightbox-bottom-bar {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-  margin-top: 2px;
-}
-
-.btn-lightbox-close-bottom {
-  background-color: #fee2e2;
-  border: 2px solid #ef4444;
-  border-radius: 20px;
-  padding: 8px 24px;
-  font-size: 14.5px;
-  font-weight: 800;
-  color: #b91c1c;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  transition: all 0.15s ease;
-  user-select: none;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
-}
-
-.btn-lightbox-close-bottom:hover,
-.btn-lightbox-close-bottom:active {
-  background-color: #fecaca;
-  border-color: #dc2626;
-  color: #991b1b;
-  transform: scale(1.04);
 }
 
 .lightbox-info-bar {
