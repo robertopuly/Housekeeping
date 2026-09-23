@@ -24,6 +24,23 @@ function initSocket() {
     updateConnectionStatus(false);
   });
 
+  // Détection de nouvelle version et rafraîchissement automatique
+  socket.on('app:version', (data) => {
+    if (window.APP_VERSION && data && data.version && window.APP_VERSION < data.version) {
+      console.log('Mise à jour v' + data.version + ' disponible (actuelle v' + window.APP_VERSION + '). Rafraîchissement...');
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations().then(regs => {
+          for (let r of regs) r.unregister();
+          setTimeout(() => window.location.reload(true), 250);
+        }).catch(() => {
+          window.location.reload(true);
+        });
+      } else {
+        window.location.reload(true);
+      }
+    }
+  });
+
   // Événements Chat
   socket.on('chat:message', (msg) => {
     if (window.ChatModule) {

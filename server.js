@@ -17,6 +17,7 @@ const io = new Server(server, {
 });
 
 const PORT = process.env.PORT || 8765;
+const CURRENT_APP_VERSION = 40;
 
 const uploadsDir = path.join(__dirname, 'public', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -602,6 +603,8 @@ app.post('/api/leave-requests/:id/send', (req, res) => {
 const onlineUsers = new Map();
 
 io.on('connection', (socket) => {
+  socket.emit('app:version', { version: CURRENT_APP_VERSION });
+
   socket.on('user:join', ({ username, platform }) => {
     onlineUsers.set(socket.id, {
       username: username || 'Anonimo',
