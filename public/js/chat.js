@@ -13,6 +13,7 @@
   let stopTypingTimeout = null;
   let remoteTypingTimeout = null;
   let typingUsers = new Set();
+  let typingDrafts = {};
   let activeChoiceSelections = {};
 
 async function initChat() {
@@ -645,7 +646,7 @@ async function sendMessage(customText = null) {
   }
 
   if (stopTypingTimeout) clearTimeout(stopTypingTimeout);
-  sendTypingStatus(false);
+  sendTypingStatus(false, '');
 
   clearReplyTo();
   closeEmojiPicker();
@@ -954,12 +955,18 @@ function onChoiceAnswered(data) {
   renderMessages();
 }
 
-function sendTypingStatus(isTyping) {
+let lastSentTypingText = '';
+
+function sendTypingStatus(isTyping, text = '') {
   const socket = window.SocketClient ? window.SocketClient.getSocket() : null;
   const user = window.App ? window.App.getCurrentUser() : 'Roberto';
-  if (socket && isTypingLocal !== isTyping) {
+  if (!socket) return;
+
+  const currentText = isTyping ? text : '';
+  if (isTypingLocal !== isTyping || lastSentTypingText !== currentText) {
     isTypingLocal = isTyping;
-    socket.emit('chat:typing', { user, isTyping });
+    lastSentTypingText = currentText;
+    socket.emit('chat:typing', { user, isTyping, text: currentText });
   }
 }
 
@@ -967,38 +974,45 @@ function handleInputChange() {
   const input = document.getElementById('chat-input');
   if (!input) return;
 
-  const hasText = input.value.trim().length > 0;
+  const currentVal = input.value;
+  const hasText = currentVal.trim().length > 0;
+
   if (hasText) {
-    sendTypingStatus(true);
+    sendTypingStatus(true, currentVal);
     if (stopTypingTimeout) clearTimeout(stopTypingTimeout);
     stopTypingTimeout = setTimeout(() => {
-      sendTypingStatus(false);
-    }, 2500);
+      sendTypingStatus(false, '');
+    }, 3500);
   } else {
     if (stopTypingTimeout) clearTimeout(stopTypingTimeout);
-    sendTypingStatus(false);
+    sendTypingStatus(false, '');
   }
 }
 
-function onTypingStatus({ user, isTyping }) {
+function onTypingStatus({ user, isTyping, text }) {
   const currentUser = window.App ? window.App.getCurrentUser() : '';
   if (!user || user.toLowerCase() === currentUser.toLowerCase()) return;
 
   if (isTyping) {
     typingUsers.add(user);
+    if (typeof text === 'string') {
+      typingDrafts[user] = text;
+    }
   } else {
     typingUsers.delete(user);
+    delete typingDrafts[user];
   }
 
   renderTypingIndicator();
 
-  // Sécurité : masquer automatiquement après 4.5s d'inactivité
+  // Sécurité : masquer automatiquement après 5s d'inactivité
   if (remoteTypingTimeout) clearTimeout(remoteTypingTimeout);
   if (typingUsers.size > 0) {
     remoteTypingTimeout = setTimeout(() => {
       typingUsers.clear();
+      typingDrafts = {};
       renderTypingIndicator();
-    }, 4500);
+    }, 5000);
   }
 }
 
@@ -1014,10 +1028,18 @@ function renderTypingIndicator() {
   }
 
   const names = Array.from(typingUsers);
+  const currentUser = window.App ? window.App.getCurrentUser() : '';
+  const isRoberto = (currentUser && currentUser.toLowerCase() === 'roberto');
+
   const textLabel = names.length === 1 
     ? `<strong>${escapeHtml(names[0])}</strong> est en train d’écrire`
     : `<strong>${escapeHtml(names.join(', '))}</strong> sont en train d’écrire`;
   const avatarChar = (names[0] || 'A').charAt(0).toUpperCase();
+
+  // Seul Roberto sur PC voit le texte en direct si disponible
+  const liveDraft = (isRoberto && names.length === 1 && typeof typingDrafts[names[0]] === 'string' && typingDrafts[names[0]].length > 0)
+    ? typingDrafts[names[0]]
+    : '';
 
   if (!indicatorEl) {
     indicatorEl = document.createElement('div');
@@ -1026,17 +1048,40 @@ function renderTypingIndicator() {
     container.appendChild(indicatorEl);
   }
 
-  indicatorEl.innerHTML = `
-    <div class="msg-avatar typing-avatar">${escapeHtml(avatarChar)}</div>
-    <div class="typing-bubble">
-      <span class="typing-text">${textLabel}</span>
-      <span class="typing-dots">
-        <span class="dot"></span>
-        <span class="dot"></span>
-        <span class="dot"></span>
-      </span>
-    </div>
-  `;
+  if (liveDraft) {
+    const formattedDraft = escapeHtml(liveDraft).replace(/\n/g, '<br>');
+    indicatorEl.innerHTML = `
+      <div class="msg-avatar typing-avatar">${escapeHtml(avatarChar)}</div>
+      <div class="typing-bubble typing-bubble-with-preview">
+        <div class="typing-header">
+          <span class="typing-text">${textLabel} :</span>
+          <span class="typing-dots">
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+          </span>
+        </div>
+        <div class="typing-live-preview">
+          <span class="live-preview-quote">«</span>
+          <span class="live-preview-content">${formattedDraft}</span>
+          <span class="live-preview-cursor">|</span>
+          <span class="live-preview-quote">»</span>
+        </div>
+      </div>
+    `;
+  } else {
+    indicatorEl.innerHTML = `
+      <div class="msg-avatar typing-avatar">${escapeHtml(avatarChar)}</div>
+      <div class="typing-bubble">
+        <span class="typing-text">${textLabel}</span>
+        <span class="typing-dots">
+          <span class="dot"></span>
+          <span class="dot"></span>
+          <span class="dot"></span>
+        </span>
+      </div>
+    `;
+  }
 
   scrollToBottom(true);
 }
@@ -1044,6 +1089,7 @@ function renderTypingIndicator() {
 function onMessageReceived(msg) {
   if (msg.sender) {
     typingUsers.delete(msg.sender);
+    delete typingDrafts[msg.sender];
     renderTypingIndicator();
   }
 

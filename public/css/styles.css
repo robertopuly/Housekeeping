@@ -901,6 +901,74 @@ body {
   }
 }
 
+/* Live Draft Typing Preview (PC Roberto) */
+.typing-bubble-with-preview {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: flex-start !important;
+  gap: 6px !important;
+  max-width: 82vw;
+  min-width: 220px;
+  background-color: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+.typing-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+
+.typing-live-preview {
+  background-color: #f1f5f9;
+  border-left: 3px solid var(--primary);
+  border-radius: 6px;
+  padding: 6px 10px;
+  width: 100%;
+  box-sizing: border-box;
+  font-size: 14.5px;
+  line-height: 1.4;
+  color: #0f172a;
+  word-break: break-word;
+  white-space: pre-wrap;
+  display: flex;
+  align-items: baseline;
+  gap: 3px;
+  transition: all 0.1s ease;
+}
+
+.live-preview-quote {
+  color: var(--primary);
+  font-weight: 800;
+  font-size: 15px;
+  user-select: none;
+  opacity: 0.85;
+}
+
+.live-preview-content {
+  font-weight: 600;
+  color: #1e293b;
+  flex: 1;
+}
+
+.live-preview-cursor {
+  display: inline-block;
+  color: var(--primary);
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1;
+  animation: cursorBlink 0.9s infinite;
+  margin-left: 1px;
+  user-select: none;
+}
+
+@keyframes cursorBlink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
 .quick-replies-bar {
   display: flex;
   gap: 8px;
