@@ -636,9 +636,19 @@ async function sendMessage(customText = null) {
   const replyPayload = currentReply ? { ...currentReply } : null;
   const isYesNo = (sender.toLowerCase() === 'roberto') && flagYesNo && flagYesNo.checked;
 
-  if (input && customText === null) {
-    input.value = '';
-    input.focus();
+  if (input) {
+    if (customText === null) {
+      input.value = '';
+    }
+    const isPC = (window.App && typeof window.App.getPlatform === 'function')
+      ? (window.App.getPlatform() === 'PC')
+      : document.body.classList.contains('is-pc');
+
+    if (isPC) {
+      input.focus();
+    } else {
+      input.blur();
+    }
   }
 
   if (flagYesNo) {
@@ -1323,7 +1333,14 @@ function closePhotoPreviewModal() {
   }
 
   if (chatInput) {
-    setTimeout(() => chatInput.focus(), 100);
+    const isPC = (window.App && typeof window.App.getPlatform === 'function')
+      ? (window.App.getPlatform() === 'PC')
+      : document.body.classList.contains('is-pc');
+    if (isPC) {
+      setTimeout(() => chatInput.focus(), 100);
+    } else {
+      chatInput.blur();
+    }
   }
 }
 
