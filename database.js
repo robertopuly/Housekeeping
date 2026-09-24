@@ -84,7 +84,8 @@ function initSchema() {
       completed_at DATETIME DEFAULT NULL,
       completed_by TEXT DEFAULT '',
       priority TEXT DEFAULT 'normale',
-      notes TEXT DEFAULT ''
+      notes TEXT DEFAULT '',
+      room_number TEXT DEFAULT ''
     );
 
     CREATE TABLE IF NOT EXISTS quick_replies (
@@ -202,6 +203,10 @@ function initSchema() {
 
   try {
     db.exec('ALTER TABLE messages ADD COLUMN expires_at DATETIME DEFAULT NULL;');
+  } catch (e) {}
+
+  try {
+    db.exec('ALTER TABLE deadlines ADD COLUMN room_number TEXT DEFAULT "";');
   } catch (e) {}
 
   const defaultReplies = [
@@ -520,12 +525,31 @@ function getDeadlines() {
 }
 
 function createDeadline(data) {
-  const { title, category, due_date, recurrence, priority, notes } = data;
+  const { title, category, due_date, recurrence, priority, notes, room_number } = data;
   const result = db.prepare(`
-    INSERT INTO deadlines (title, category, due_date, recurrence, priority, notes)
-    VALUES (?, ?, ?, ?, ?, ?)
-  `).run(title, category || 'Général', due_date, recurrence || 'nessuna', priority || 'normale', notes || '');
+    INSERT INTO deadlines (title, category, due_date, recurrence, priority, notes, room_number)
+    VALUES (?, ?, ?, ?, ?, ?, ?)
+  `).run(title, category || 'Général', due_date, recurrence || 'nessuna', priority || 'normale', notes || '', room_number || '');
   return db.prepare('SELECT * FROM deadlines WHERE id = ?').get(result.lastInsertRowid);
+}
+
+function updateDeadline(id, data) {
+  const current = db.prepare('SELECT * FROM deadlines WHERE id = ?').get(id);
+  if (!current) return null;
+  const title = data.title !== undefined ? data.title : current.title;
+  const category = data.category !== undefined ? data.category : current.category;
+  const due_date = data.due_date !== undefined ? data.due_date : current.due_date;
+  const recurrence = data.recurrence !== undefined ? data.recurrence : current.recurrence;
+  const priority = data.priority !== undefined ? data.priority : current.priority;
+  const notes = data.notes !== undefined ? data.notes : current.notes;
+  const room_number = data.room_number !== undefined ? data.room_number : (current.room_number || '');
+
+  db.prepare(`
+    UPDATE deadlines
+    SET title = ?, category = ?, due_date = ?, recurrence = ?, priority = ?, notes = ?, room_number = ?
+    WHERE id = ?
+  `).run(title, category, due_date, recurrence, priority, notes, room_number, id);
+  return db.prepare('SELECT * FROM deadlines WHERE id = ?').get(id);
 }
 
 function toggleDeadline(id, completedBy) {
@@ -546,9 +570,9 @@ function toggleDeadline(id, completedBy) {
   if (newStatus === 1 && current.recurrence && current.recurrence !== 'nessuna') {
     const nextDate = computeNextDate(current.due_date, current.recurrence);
     const nextResult = db.prepare(`
-      INSERT INTO deadlines (title, category, due_date, recurrence, priority, notes)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `).run(current.title, current.category, nextDate, current.recurrence, current.priority, current.notes);
+      INSERT INTO deadlines (title, category, due_date, recurrence, priority, notes, room_number)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `).run(current.title, current.category, nextDate, current.recurrence, current.priority, current.notes, current.room_number || '');
     nextItem = db.prepare('SELECT * FROM deadlines WHERE id = ?').get(nextResult.lastInsertRowid);
   }
 
@@ -571,6 +595,12 @@ function computeNextDate(dateStr, recurrence) {
     d.setDate(d.getDate() + 7);
   } else if (recurrence === 'mensile') {
     d.setMonth(d.getMonth() + 1);
+  } else if (recurrence === 'trimestrale') {
+    d.setMonth(d.getMonth() + 3);
+  } else if (recurrence === 'semestrale') {
+    d.setMonth(d.getMonth() + 6);
+  } else if (recurrence === 'annuale') {
+    d.setFullYear(d.getFullYear() + 1);
   }
   return d.toISOString().split('T')[0];
 }
@@ -766,6 +796,7 @@ module.exports = {
   updateDailyRoomStatus,
   getDeadlines,
   createDeadline,
+  updateDeadline,
   toggleDeadline,
   deleteDeadline,
   getShoppingItems,

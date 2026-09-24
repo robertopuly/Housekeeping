@@ -2782,6 +2782,27 @@ body.is-pc .btn-chat-choices.pc-only {
   border-radius: 4px;
 }
 
+.room-tag,
+.room-chip {
+  background-color: #e0e7ff;
+  color: #3730a3;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.btn-send-deadline-chat {
+  background-color: #22c55e !important;
+  color: white !important;
+  border: none !important;
+  font-weight: 700 !important;
+}
+
+.btn-send-deadline-chat:hover {
+  background-color: #16a34a !important;
+}
+
 .recurrence-chip {
   font-size: 11px;
   font-weight: 600;

@@ -8,9 +8,9 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <title>Gouvernante Hôtel - Gestion & Communication</title>
-  <link rel="stylesheet" href="css/styles.css?v=52">
+  <link rel="stylesheet" href="css/styles.css?v=53">
   <script>
-    window.APP_VERSION = 52;
+    window.APP_VERSION = 53;
     function getTodayIsoStr() {
       var d = new Date();
       var y = d.getFullYear();
@@ -544,10 +544,12 @@
       <div class="tab-content-scroll">
         <div class="tab-toolbar" style="border-radius: var(--border-radius-sm); margin-bottom: 12px;">
           <div id="deadlines-filter-bar" class="filter-bar">
-            <button type="button" class="filter-btn active" data-filter="tutte" onclick="setDeadlinesFilter('tutte')">📋 Toutes</button>
-            <button type="button" class="filter-btn" data-filter="oggi_scadute" onclick="setDeadlinesFilter('oggi_scadute')">🚨 Aujourd'hui & En Retard</button>
+            <button type="button" class="filter-btn active" data-filter="prochaines_10j" onclick="setDeadlinesFilter('prochaines_10j')">⏳ Prochains 10 jours</button>
+            <button type="button" class="filter-btn" data-filter="oggi_scadute" onclick="setDeadlinesFilter('oggi_scadute')">🚨 Aujourd'hui & Retard</button>
             <button type="button" class="filter-btn" data-filter="giornaliere" onclick="setDeadlinesFilter('giornaliere')">🔄 Quotidiennes</button>
             <button type="button" class="filter-btn" data-filter="settimanale" onclick="setDeadlinesFilter('settimanale')">🔄 Hebdomadaires</button>
+            <button type="button" class="filter-btn" data-filter="periodiques" onclick="setDeadlinesFilter('periodiques')">🗓️ Trim./Sem./Ann.</button>
+            <button type="button" class="filter-btn" data-filter="tutte" onclick="setDeadlinesFilter('tutte')">📋 Toutes (y compris &gt;10j)</button>
             <button type="button" class="filter-btn" data-filter="completate" onclick="setDeadlinesFilter('completate')">✓ Terminées</button>
           </div>
           <button type="button" id="btn-new-deadline" class="btn-action-primary" onclick="openNewDeadlineModal()">
@@ -937,6 +939,20 @@
           </div>
 
           <div class="form-group">
+            <label for="deadline-room">Chambre(s) concernée(s)</label>
+            <select id="deadline-room" class="form-control">
+              <option value="Général" selected>📋 Général / Espaces Communs</option>
+              <option value="Toutes les chambres">🏨 Toutes les chambres (Tâche globale unique)</option>
+              <option value="all_individual">🏨 Toutes les chambres (Créer 1 tâche par chambre)</option>
+              <option value="Chambre 1">🛏️ Chambre 1</option>
+              <option value="Chambre 2">🛏️ Chambre 2</option>
+              <option value="Chambre 3">🛏️ Chambre 3</option>
+              <option value="Chambre 4">🛏️ Chambre 4</option>
+              <option value="Chambre 5">🛏️ Chambre 5</option>
+            </select>
+          </div>
+
+          <div class="form-group">
             <label for="deadline-category">Catégorie</label>
             <select id="deadline-category" class="form-control">
               <option value="Nettoyage" selected>🧹 Nettoyage</option>
@@ -959,6 +975,9 @@
               <option value="giornaliera">🔄 Quotidienne</option>
               <option value="settimanale">🔄 Hebdomadaire</option>
               <option value="mensile">🔄 Mensuelle</option>
+              <option value="trimestrale">🔄 Trimestrielle (tous les 3 mois)</option>
+              <option value="semestrale">🔄 Semestrielle (tous les 6 mois)</option>
+              <option value="annuale">🔄 Annuelle (tous les ans)</option>
             </select>
           </div>
 
@@ -980,6 +999,86 @@
         <div class="modal-footer">
           <button type="button" id="btn-cancel-deadline" class="btn btn-secondary" onclick="closeNewDeadlineModal()">Annuler</button>
           <button type="button" id="btn-submit-deadline" class="btn btn-primary" onclick="submitNewDeadline(event)">✅ Enregistrer la Tâche</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL MODIFIER ÉCHÉANCE / TÂCHE -->
+  <div id="modal-edit-deadline" class="modal-backdrop" onclick="if(event.target===this)closeEditDeadlineModal()">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h2>✏️ Modifier la Tâche / Échéance</h2>
+        <button type="button" id="btn-close-modal-edit-deadline" class="btn-close-modal" onclick="closeEditDeadlineModal()">&times;</button>
+      </div>
+      <form id="form-edit-deadline" onsubmit="submitEditDeadline(event); return false;">
+        <input type="hidden" id="edit-deadline-id" />
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="edit-deadline-title">Titre de la tâche *</label>
+            <input type="text" id="edit-deadline-title" class="form-control" required />
+          </div>
+
+          <div class="form-group">
+            <label for="edit-deadline-room">Chambre(s) concernée(s)</label>
+            <select id="edit-deadline-room" class="form-control">
+              <option value="Général">📋 Général / Espaces Communs</option>
+              <option value="Toutes les chambres">🏨 Toutes les chambres (Globale)</option>
+              <option value="Chambre 1">🛏️ Chambre 1</option>
+              <option value="Chambre 2">🛏️ Chambre 2</option>
+              <option value="Chambre 3">🛏️ Chambre 3</option>
+              <option value="Chambre 4">🛏️ Chambre 4</option>
+              <option value="Chambre 5">🛏️ Chambre 5</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-deadline-category">Catégorie</label>
+            <select id="edit-deadline-category" class="form-control">
+              <option value="Nettoyage">🧹 Nettoyage</option>
+              <option value="Inventaire">📦 Inventaire</option>
+              <option value="Maintenance">🔧 Maintenance</option>
+              <option value="Contrôles">🔎 Contrôles</option>
+              <option value="Général">📋 Général</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-deadline-date">Date d'échéance *</label>
+            <input type="date" id="edit-deadline-date" class="form-control" required />
+          </div>
+
+          <div class="form-group">
+            <label for="edit-deadline-recurrence">Récurrence</label>
+            <select id="edit-deadline-recurrence" class="form-control">
+              <option value="nessuna">📌 Ponctuelle (Aucune)</option>
+              <option value="giornaliera">🔄 Quotidienne</option>
+              <option value="settimanale">🔄 Hebdomadaire</option>
+              <option value="mensile">🔄 Mensuelle</option>
+              <option value="trimestrale">🔄 Trimestrielle (tous les 3 mois)</option>
+              <option value="semestrale">🔄 Semestrielle (tous les 6 mois)</option>
+              <option value="annuale">🔄 Annuelle (tous les ans)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-deadline-priority">Priorité</label>
+            <select id="edit-deadline-priority" class="form-control">
+              <option value="normale">ℹ️ Normale</option>
+              <option value="urgente">⚠️ Urgente</option>
+              <option value="emergenza">🚨 Urgence</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="edit-deadline-notes">Notes / Détails</label>
+            <textarea id="edit-deadline-notes" class="form-control" placeholder="Consignes et détails pour l'opérateur..."></textarea>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" id="btn-cancel-edit-deadline" class="btn btn-secondary" onclick="closeEditDeadlineModal()">Annuler</button>
+          <button type="submit" id="btn-submit-edit-deadline" class="btn btn-primary">💾 Enregistrer</button>
         </div>
       </form>
     </div>
@@ -1124,14 +1223,14 @@
 
   <!-- SCRIPTS -->
   <script src="/socket.io/socket.io.js"></script>
-  <script src="js/audio.js?v=52"></script>
-  <script src="js/socket.js?v=52"></script>
-  <script src="js/chat.js?v=52"></script>
-  <script src="js/orders.js?v=52"></script>
-  <script src="js/deadlines.js?v=52"></script>
-  <script src="js/shopping.js?v=52"></script>
-  <script src="js/expenses.js?v=52"></script>
-  <script src="js/leave.js?v=52"></script>
-  <script src="js/app.js?v=52"></script>
+  <script src="js/audio.js?v=53"></script>
+  <script src="js/socket.js?v=53"></script>
+  <script src="js/chat.js?v=53"></script>
+  <script src="js/orders.js?v=53"></script>
+  <script src="js/deadlines.js?v=53"></script>
+  <script src="js/shopping.js?v=53"></script>
+  <script src="js/expenses.js?v=53"></script>
+  <script src="js/leave.js?v=53"></script>
+  <script src="js/app.js?v=53"></script>
 </body>
 </html>

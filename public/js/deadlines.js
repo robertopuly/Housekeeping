@@ -3,7 +3,7 @@
   'use strict';
 
   let deadlinesList = [];
-  let currentFilter = 'tutte';
+  let currentFilter = 'prochaines_10j';
 
 async function initDeadlines() {
   setupDeadlineEvents();
@@ -42,6 +42,15 @@ function getTodayStr() {
   return `${year}-${month}-${day}`;
 }
 
+function getLimit10DaysStr() {
+  const d = new Date();
+  d.setDate(d.getDate() + 10);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 function formatDueDate(dateStr) {
   if (!dateStr) return '';
   try {
@@ -64,18 +73,25 @@ function renderDeadlines() {
   if (!container) return;
 
   const todayStr = getTodayStr();
+  const limit10DaysStr = getLimit10DaysStr();
   let displayItems = [];
 
-  if (currentFilter === 'oggi_scadute') {
+  if (currentFilter === 'prochaines_10j') {
+    displayItems = deadlinesList.filter(d => !d.is_completed && d.due_date <= limit10DaysStr);
+    displayItems.sort((a, b) => (a.due_date || '').localeCompare(b.due_date || ''));
+  } else if (currentFilter === 'oggi_scadute') {
     displayItems = deadlinesList.filter(d => !d.is_completed && d.due_date <= todayStr);
+    displayItems.sort((a, b) => (a.due_date || '').localeCompare(b.due_date || ''));
   } else if (currentFilter === 'giornaliere') {
     displayItems = deadlinesList.filter(d => d.recurrence === 'giornaliera');
   } else if (currentFilter === 'settimanale') {
     displayItems = deadlinesList.filter(d => d.recurrence === 'settimanale');
+  } else if (currentFilter === 'periodiques') {
+    displayItems = deadlinesList.filter(d => ['trimestrale', 'semestrale', 'annuale'].includes(d.recurrence));
   } else if (currentFilter === 'completate') {
     displayItems = deadlinesList.filter(d => d.is_completed === 1);
   } else {
-    // 'tutte' - non terminées d'abord, triées par date
+    // 'tutte' - toutes les tâches non terminées d'abord (y compris > 10 jours), triées par date
     displayItems = [...deadlinesList].sort((a, b) => {
       if (a.is_completed !== b.is_completed) return a.is_completed - b.is_completed;
       return (a.due_date || '').localeCompare(b.due_date || '');
@@ -84,12 +100,16 @@ function renderDeadlines() {
 
   if (displayItems.length === 0) {
     let emptyMsg = 'Aucun élément présent.';
-    if (currentFilter === 'oggi_scadute') {
+    if (currentFilter === 'prochaines_10j') {
+      emptyMsg = 'Super ! Aucune tâche prévue pour les 10 prochains jours.';
+    } else if (currentFilter === 'oggi_scadute') {
       emptyMsg = 'Excellent travail ! Aucune tâche en retard ou prévue pour aujourd’hui.';
     } else if (currentFilter === 'giornaliere') {
       emptyMsg = 'Aucune tâche quotidienne configurée.';
     } else if (currentFilter === 'settimanale') {
       emptyMsg = 'Aucune tâche hebdomadaire configurée.';
+    } else if (currentFilter === 'periodiques') {
+      emptyMsg = 'Aucune tâche trimestrielle, semestrielle ou annuelle configurée.';
     } else if (currentFilter === 'completate') {
       emptyMsg = 'Aucune tâche terminée pour le moment.';
     }
@@ -133,6 +153,18 @@ function createDeadlineCardHtml(item, todayStr) {
     recurrenceBadge = '<span class="recurrence-chip">🔄 Hebdomadaire</span>';
   } else if (item.recurrence === 'mensile') {
     recurrenceBadge = '<span class="recurrence-chip">🔄 Mensuelle</span>';
+  } else if (item.recurrence === 'trimestrale') {
+    recurrenceBadge = '<span class="recurrence-chip">🔄 Trimestrielle</span>';
+  } else if (item.recurrence === 'semestrale') {
+    recurrenceBadge = '<span class="recurrence-chip">🔄 Semestrielle</span>';
+  } else if (item.recurrence === 'annuale') {
+    recurrenceBadge = '<span class="recurrence-chip">🔄 Annuelle</span>';
+  }
+
+  // Puce Chambre
+  let roomBadge = '';
+  if (item.room_number && item.room_number !== 'Général') {
+    roomBadge = `<span class="room-chip" style="background:#e0e7ff; color:#3730a3; padding:2px 8px; border-radius:12px; font-size:11px; font-weight:700;">🏨 ${escapeHtml(item.room_number)}</span>`;
   }
 
   // Badge priorité
@@ -167,6 +199,18 @@ function createDeadlineCardHtml(item, todayStr) {
     `;
   }
 
+  const roomMsgPart = (item.room_number && item.room_number !== 'Général') ? ` (${item.room_number})` : '';
+  const chatMsgText = `${item.title}${roomMsgPart} : Terminé ✅`;
+
+  let chatBtnHtml = '';
+  if (isCompleted) {
+    chatBtnHtml = `
+      <button type="button" class="btn btn-primary btn-send-deadline-chat" data-msg="${escapeHtml(chatMsgText)}" style="padding: 4px 10px; font-size: 11.5px; border-radius: 6px;">
+        💬 Envoyer dans le Chat
+      </button>
+    `;
+  }
+
   return `
     <div class="${cardClasses}" id="deadline-card-${item.id}">
       <div class="deadline-left">
@@ -180,6 +224,7 @@ function createDeadlineCardHtml(item, todayStr) {
         <div class="deadline-header">
           <div class="deadline-category-row">
             <span class="category-tag">📁 ${escapeHtml(item.category || 'Général')}</span>
+            ${roomBadge}
             ${recurrenceBadge}
             ${priorityBadge}
             ${alertBadge}
@@ -194,6 +239,10 @@ function createDeadlineCardHtml(item, todayStr) {
         ${completionInfo}
 
         <div class="deadline-actions">
+          ${chatBtnHtml}
+          <button type="button" class="btn btn-secondary btn-edit-deadline" data-id="${item.id}" style="padding: 4px 8px; font-size: 11px;">
+            ✏️ Modifier
+          </button>
           <button type="button" class="btn btn-secondary btn-delete-deadline" data-id="${item.id}" style="padding: 4px 8px; font-size: 11px;">
             🗑️ Supprimer
           </button>
@@ -215,8 +264,26 @@ function attachDeadlineListeners() {
       const id = input.getAttribute('data-id');
       const isCompleted = input.checked;
       await toggleDeadlineCompletion(id, isCompleted, currentUser);
-      if (isCompleted && window.SoundEngine) {
-        window.SoundEngine.playSuccessSound();
+    });
+  });
+
+  // Envoyer confirmation dans le chat
+  container.querySelectorAll('.btn-send-deadline-chat').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const msg = btn.getAttribute('data-msg');
+      if (msg) {
+        await sendDeadlineChatMessage(msg);
+      }
+    });
+  });
+
+  // Modifier
+  container.querySelectorAll('.btn-edit-deadline').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = parseInt(btn.getAttribute('data-id'), 10);
+      const item = deadlinesList.find(d => d.id === id);
+      if (item) {
+        openEditDeadlineModal(item);
       }
     });
   });
@@ -246,10 +313,42 @@ async function toggleDeadlineCompletion(id, isCompleted, user) {
         if (data.next) {
           onDeadlineCreated(data.next);
         }
+
+        // Si la tâche vient d'être terminée, proposer d'envoyer dans le chat
+        if (isCompleted) {
+          if (window.SoundEngine) window.SoundEngine.playSuccessSound();
+
+          const item = data.updated;
+          const roomMsgPart = (item.room_number && item.room_number !== 'Général') ? ` (${item.room_number})` : '';
+          const chatMsg = `${item.title}${roomMsgPart} : Terminé ✅`;
+
+          setTimeout(() => {
+            if (confirm(`Tâche terminée !\n\nSouhaitez-vous envoyer la confirmation dans le chat ?\n"${chatMsg}"`)) {
+              sendDeadlineChatMessage(chatMsg);
+            }
+          }, 200);
+        }
       }
     }
   } catch (err) {
     console.error('Erreur validation tâche:', err);
+  }
+}
+
+async function sendDeadlineChatMessage(text) {
+  try {
+    const sender = window.App ? window.App.getCurrentUser() : 'Roberto';
+    const res = await fetch('/api/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ sender, text })
+    });
+    if (res.ok) {
+      if (window.SoundEngine) window.SoundEngine.playSentSound();
+      alert('Confirmation envoyée dans le chat ! ✅');
+    }
+  } catch (err) {
+    console.error('Erreur envoi message chat:', err);
   }
 }
 
@@ -354,6 +453,7 @@ async function submitNewDeadline(e) {
   if (e && e.preventDefault) e.preventDefault();
 
   const titleEl = document.getElementById('deadline-title');
+  const roomEl = document.getElementById('deadline-room');
   const catEl = document.getElementById('deadline-category');
   const dateEl = document.getElementById('deadline-date');
   const recEl = document.getElementById('deadline-recurrence');
@@ -362,6 +462,7 @@ async function submitNewDeadline(e) {
   const btnSubmit = document.getElementById('btn-submit-deadline');
 
   const title = titleEl ? titleEl.value.trim() : '';
+  const room_number = roomEl ? roomEl.value : 'Général';
   const category = catEl ? catEl.value : 'Nettoyage';
   const rawDate = dateEl ? dateEl.value : '';
   const dueDate = normalizeIsoDate(rawDate);
@@ -390,6 +491,7 @@ async function submitNewDeadline(e) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         title,
+        room_number,
         category,
         due_date: dueDate,
         recurrence,
@@ -404,7 +506,13 @@ async function submitNewDeadline(e) {
       closeNewDeadlineModal();
       const form = document.getElementById('form-deadline');
       if (form) form.reset();
-      onDeadlineCreated(item);
+      
+      if (room_number === 'all_individual') {
+        await loadDeadlines();
+      } else {
+        onDeadlineCreated(item);
+      }
+
       if (window.SoundEngine) window.SoundEngine.playSentSound();
     } else {
       const errData = await res.json().catch(() => ({}));
@@ -422,6 +530,116 @@ async function submitNewDeadline(e) {
 }
 
 window.submitNewDeadline = submitNewDeadline;
+
+function openEditDeadlineModal(item) {
+  const modal = document.getElementById('modal-edit-deadline');
+  const idEl = document.getElementById('edit-deadline-id');
+  const titleEl = document.getElementById('edit-deadline-title');
+  const roomEl = document.getElementById('edit-deadline-room');
+  const catEl = document.getElementById('edit-deadline-category');
+  const dateEl = document.getElementById('edit-deadline-date');
+  const recEl = document.getElementById('edit-deadline-recurrence');
+  const prioEl = document.getElementById('edit-deadline-priority');
+  const notesEl = document.getElementById('edit-deadline-notes');
+
+  if (idEl) idEl.value = item.id;
+  if (titleEl) titleEl.value = item.title || '';
+  if (roomEl) roomEl.value = item.room_number || 'Général';
+  if (catEl) catEl.value = item.category || 'Nettoyage';
+  if (dateEl) dateEl.value = item.due_date || getTodayStr();
+  if (recEl) recEl.value = item.recurrence || 'nessuna';
+  if (prioEl) prioEl.value = item.priority || 'normale';
+  if (notesEl) notesEl.value = item.notes || '';
+
+  if (modal) {
+    modal.style.setProperty('display', 'flex', 'important');
+    modal.classList.add('modal-active');
+  }
+  if (titleEl) {
+    setTimeout(() => titleEl.focus(), 100);
+  }
+}
+
+function closeEditDeadlineModal() {
+  const modal = document.getElementById('modal-edit-deadline');
+  if (modal) {
+    modal.style.setProperty('display', 'none', 'important');
+    modal.classList.remove('modal-active');
+  }
+}
+
+window.openEditDeadlineModal = openEditDeadlineModal;
+window.closeEditDeadlineModal = closeEditDeadlineModal;
+
+async function submitEditDeadline(e) {
+  if (e && e.preventDefault) e.preventDefault();
+
+  const idEl = document.getElementById('edit-deadline-id');
+  const titleEl = document.getElementById('edit-deadline-title');
+  const roomEl = document.getElementById('edit-deadline-room');
+  const catEl = document.getElementById('edit-deadline-category');
+  const dateEl = document.getElementById('edit-deadline-date');
+  const recEl = document.getElementById('edit-deadline-recurrence');
+  const prioEl = document.getElementById('edit-deadline-priority');
+  const notesEl = document.getElementById('edit-deadline-notes');
+  const btnSubmit = document.getElementById('btn-submit-edit-deadline');
+
+  const id = idEl ? idEl.value : null;
+  const title = titleEl ? titleEl.value.trim() : '';
+  const room_number = roomEl ? roomEl.value : 'Général';
+  const category = catEl ? catEl.value : 'Nettoyage';
+  const rawDate = dateEl ? dateEl.value : '';
+  const dueDate = normalizeIsoDate(rawDate);
+  const recurrence = recEl ? recEl.value : 'nessuna';
+  const priority = prioEl ? prioEl.value : 'normale';
+  const notes = notesEl ? notesEl.value.trim() : '';
+
+  if (!id || !title) {
+    alert('Le titre et la date sont obligatoires.');
+    return;
+  }
+
+  if (btnSubmit) {
+    btnSubmit.disabled = true;
+    btnSubmit.textContent = '⏳ Enregistrement...';
+  }
+
+  try {
+    const res = await fetch(`/api/deadlines/${id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title,
+        room_number,
+        category,
+        due_date: dueDate,
+        recurrence,
+        priority,
+        notes
+      })
+    });
+
+    if (res.ok) {
+      const updated = await res.json();
+      closeEditDeadlineModal();
+      onDeadlineUpdated(updated);
+      if (window.SoundEngine) window.SoundEngine.playSentSound();
+    } else {
+      const errData = await res.json().catch(() => ({}));
+      alert(errData.error || 'Erreur lors de la modification de la tâche.');
+    }
+  } catch (err) {
+    console.error('Erreur modification tâche:', err);
+    alert('Erreur réseau. Veuillez réessayer.');
+  } finally {
+    if (btnSubmit) {
+      btnSubmit.disabled = false;
+      btnSubmit.textContent = '💾 Enregistrer';
+    }
+  }
+}
+
+window.submitEditDeadline = submitEditDeadline;
 
 function setupDeadlineEvents() {
   // Filtres
@@ -454,9 +672,29 @@ function setupDeadlineEvents() {
     });
   }
 
-  // Form submit
+  // Form submit new
   if (formDeadline) {
     formDeadline.addEventListener('submit', submitNewDeadline);
+  }
+
+  // Modal Modifier Tâche
+  const modalEditDeadline = document.getElementById('modal-edit-deadline');
+  const btnCloseModalEdit = document.getElementById('btn-close-modal-edit-deadline');
+  const btnCancelEditDeadline = document.getElementById('btn-cancel-edit-deadline');
+  const formEditDeadline = document.getElementById('form-edit-deadline');
+
+  if (btnCloseModalEdit) btnCloseModalEdit.addEventListener('click', closeEditDeadlineModal);
+  if (btnCancelEditDeadline) btnCancelEditDeadline.addEventListener('click', closeEditDeadlineModal);
+
+  if (modalEditDeadline) {
+    modalEditDeadline.addEventListener('click', (e) => {
+      if (e.target === modalEditDeadline) closeEditDeadlineModal();
+    });
+  }
+
+  // Form submit edit
+  if (formEditDeadline) {
+    formEditDeadline.addEventListener('submit', submitEditDeadline);
   }
 }
 
@@ -476,10 +714,13 @@ function escapeHtml(str) {
     renderDeadlines,
     setFilter,
     submitNewDeadline,
+    submitEditDeadline,
     openModal: openNewDeadlineModal,
     closeModal: closeNewDeadlineModal,
     openNewDeadlineModal,
     closeNewDeadlineModal,
+    openEditDeadlineModal,
+    closeEditDeadlineModal,
     onDeadlineCreated,
     onDeadlineUpdated,
     onDeadlineDeleted,
@@ -489,7 +730,10 @@ function escapeHtml(str) {
   window.setDeadlinesFilter = setFilter;
   window.openNewDeadlineModal = openNewDeadlineModal;
   window.closeNewDeadlineModal = closeNewDeadlineModal;
+  window.openEditDeadlineModal = openEditDeadlineModal;
+  window.closeEditDeadlineModal = closeEditDeadlineModal;
   window.submitNewDeadline = submitNewDeadline;
+  window.submitEditDeadline = submitEditDeadline;
   window.loadDeadlines = loadDeadlines;
   window.renderDeadlines = renderDeadlines;
 })();

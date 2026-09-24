@@ -17,7 +17,7 @@ const io = new Server(server, {
 });
 
 const PORT = process.env.PORT || 8765;
-const CURRENT_APP_VERSION = 52;
+const CURRENT_APP_VERSION = 53;
 
 const uploadsDir = path.join(__dirname, 'public', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -348,13 +348,47 @@ app.get('/api/deadlines', (req, res) => {
 
 app.post('/api/deadlines', (req, res) => {
   try {
+    const { title, due_date, room_number } = req.body;
+    if (!title || !due_date) {
+      return res.status(400).json({ error: 'Titolo e data scadenza sono obbligatori' });
+    }
+
+    if (room_number === 'all_individual') {
+      const createdItems = [];
+      const rooms = ['Chambre 1', 'Chambre 2', 'Chambre 3', 'Chambre 4', 'Chambre 5'];
+      for (const rm of rooms) {
+        const itemData = {
+          ...req.body,
+          room_number: rm
+        };
+        const item = db.createDeadline(itemData);
+        io.emit('deadline:created', item);
+        createdItems.push(item);
+      }
+      return res.status(201).json(createdItems[0]);
+    }
+
+    const item = db.createDeadline(req.body);
+    io.emit('deadline:created', item);
+    res.status(201).json(item);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.put('/api/deadlines/:id', (req, res) => {
+  try {
+    const { id } = req.params;
     const { title, due_date } = req.body;
     if (!title || !due_date) {
       return res.status(400).json({ error: 'Titolo e data scadenza sono obbligatori' });
     }
-    const item = db.createDeadline(req.body);
-    io.emit('deadline:created', item);
-    res.status(201).json(item);
+    const updated = db.updateDeadline(Number(id), req.body);
+    if (!updated) {
+      return res.status(404).json({ error: 'Mansione non trovata' });
+    }
+    io.emit('deadline:updated', updated);
+    res.json(updated);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
