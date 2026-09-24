@@ -1908,6 +1908,259 @@ body.is-pc .btn-chat-choices.pc-only {
   min-height: 36px;
 }
 
+/* ==========================================================================
+   BANNIÈRE D'ÉTAT & DERNIÈRE MISE À JOUR DU PLANNING
+   ========================================================================== */
+.daily-update-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  transition: all 0.25s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.daily-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1 1 320px;
+}
+
+.daily-banner-icon-box {
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+}
+
+.daily-banner-content {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.daily-banner-badge-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+
+.daily-banner-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  padding: 3px 8px;
+  border-radius: 20px;
+}
+
+.daily-banner-title {
+  font-size: 15px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.daily-banner-title strong {
+  font-weight: 800;
+}
+
+.daily-banner-author {
+  font-size: 13px;
+  opacity: 0.85;
+  font-weight: 600;
+  margin-left: 4px;
+}
+
+.daily-banner-subtitle {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.35;
+}
+
+.daily-banner-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+/* ÉTAT : PLANNING À JOUR (AUJOURD'HUI) */
+.daily-update-banner.is-updated {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+  border: 2px solid #86efac;
+  border-left: 6px solid #16a34a;
+  color: #14532d;
+}
+
+.daily-update-banner.is-updated .daily-banner-icon-box {
+  background-color: #16a34a;
+  color: #ffffff;
+}
+
+.daily-update-banner.is-updated .daily-banner-badge {
+  background-color: #bbf7d0;
+  color: #166534;
+  border: 1px solid #86efac;
+}
+
+.daily-update-banner.is-updated .daily-banner-title {
+  color: #166534;
+}
+
+.daily-update-banner.is-updated .daily-banner-subtitle {
+  color: #15803d;
+}
+
+/* ÉTAT : PLANNING NON ENCORE MIS À JOUR AUJOURD'HUI (ATTENTION / ATTENTE) */
+.daily-update-banner.is-pending {
+  background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+  border: 2px solid #fde047;
+  border-left: 6px solid #eab308;
+  color: #78350f;
+  animation: banner-subtle-pulse 3s infinite ease-in-out;
+}
+
+@keyframes banner-subtle-pulse {
+  0%, 100% {
+    box-shadow: 0 2px 6px rgba(234, 179, 8, 0.15);
+  }
+  50% {
+    box-shadow: 0 4px 14px rgba(234, 179, 8, 0.35);
+  }
+}
+
+.daily-update-banner.is-pending .daily-banner-icon-box {
+  background-color: #eab308;
+  color: #ffffff;
+}
+
+.daily-update-banner.is-pending .daily-banner-badge {
+  background-color: #fef08a;
+  color: #854d0e;
+  border: 1px solid #facc15;
+}
+
+.daily-update-banner.is-pending .daily-banner-title {
+  color: #854d0e;
+}
+
+.daily-update-banner.is-pending .daily-banner-subtitle {
+  color: #92400e;
+}
+
+/* ÉTAT : AUTRE DATE (HIER / DEMAIN / DATE FUTURE) */
+.daily-update-banner.is-other-date {
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  border: 2px solid #cbd5e1;
+  border-left: 6px solid #64748b;
+  color: #1e293b;
+}
+
+.daily-update-banner.is-other-date .daily-banner-icon-box {
+  background-color: #64748b;
+  color: #ffffff;
+}
+
+.daily-update-banner.is-other-date .daily-banner-badge {
+  background-color: #e2e8f0;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+}
+
+.daily-update-banner.is-other-date .daily-banner-title {
+  color: #334155;
+}
+
+.daily-update-banner.is-other-date .daily-banner-subtitle {
+  color: #475569;
+}
+
+/* BOUTONS D'ACTION DANS LE BANNER */
+.btn-banner-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: none;
+  white-space: nowrap;
+}
+
+.btn-banner-action:active {
+  transform: scale(0.97);
+}
+
+.btn-banner-validate-now {
+  background-color: #16a34a;
+  color: #ffffff;
+  box-shadow: 0 2px 6px rgba(22, 163, 74, 0.35);
+}
+
+.btn-banner-validate-now:hover {
+  background-color: #15803d;
+  box-shadow: 0 3px 8px rgba(22, 163, 74, 0.45);
+}
+
+.btn-banner-revalidate {
+  background-color: #ffffff;
+  color: #166534;
+  border: 1px solid #86efac;
+}
+
+.btn-banner-revalidate:hover {
+  background-color: #f0fdf4;
+  border-color: #4ade80;
+}
+
+.btn-banner-return-today {
+  background-color: #ffffff;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+}
+
+.btn-banner-return-today:hover {
+  background-color: #e2e8f0;
+}
+
+@media (max-width: 768px) {
+  .daily-update-banner {
+    padding: 12px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .daily-banner-left {
+    flex: 1 1 100%;
+  }
+  .daily-banner-right {
+    width: 100%;
+    margin-top: 4px;
+  }
+  .btn-banner-action {
+    width: 100%;
+    justify-content: center;
+    min-height: 40px;
+    font-size: 14px;
+  }
+}
+
 .daily-rooms-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));

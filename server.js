@@ -17,7 +17,7 @@ const io = new Server(server, {
 });
 
 const PORT = process.env.PORT || 8765;
-const CURRENT_APP_VERSION = 53;
+const CURRENT_APP_VERSION = 54;
 
 const uploadsDir = path.join(__dirname, 'public', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -230,7 +230,8 @@ app.get('/api/daily-rooms', (req, res) => {
     const today = new Date().toISOString().split('T')[0];
     const date = req.query.date || today;
     const rooms = db.getDailyRoomStatus(date);
-    res.json({ date, rooms });
+    const meta = db.getDailyPlanningMeta(date);
+    res.json({ date, rooms, meta });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -240,8 +241,21 @@ app.put('/api/daily-rooms/:date/:roomNumber', (req, res) => {
   try {
     const { date, roomNumber } = req.params;
     const updated = db.updateDailyRoomStatus(date, Number(roomNumber), req.body);
-    io.emit('room_status:updated', { date, room: updated });
+    const meta = db.getDailyPlanningMeta(date);
+    io.emit('room_status:updated', { date, room: updated, meta });
     res.json(updated);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/daily-rooms/:date/validate', (req, res) => {
+  try {
+    const { date } = req.params;
+    const user = req.body && req.body.user ? req.body.user : 'Roberto';
+    const meta = db.touchDailyPlanning(date, user);
+    io.emit('daily_planning:validated', { date, meta });
+    res.json({ success: true, meta });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

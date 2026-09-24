@@ -74,6 +74,12 @@ function initSchema() {
       UNIQUE(date, room_number)
     );
 
+    CREATE TABLE IF NOT EXISTS daily_planning_meta (
+      date TEXT PRIMARY KEY,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_by TEXT DEFAULT 'Roberto'
+    );
+
     CREATE TABLE IF NOT EXISTS deadlines (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       title TEXT NOT NULL,
@@ -134,6 +140,7 @@ function initSchema() {
     CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status, is_archived);
     CREATE INDEX IF NOT EXISTS idx_deadlines_date ON deadlines(due_date, is_completed);
     CREATE INDEX IF NOT EXISTS idx_daily_rooms_date ON daily_room_status(date);
+    CREATE INDEX IF NOT EXISTS idx_daily_planning_meta_date ON daily_planning_meta(date);
     CREATE INDEX IF NOT EXISTS idx_shopping_checked ON shopping_items(is_checked);
     CREATE INDEX IF NOT EXISTS idx_expenses_request_date ON expenses(request_date);
     CREATE INDEX IF NOT EXISTS idx_leave_start_date ON leave_requests(start_date);
@@ -505,7 +512,44 @@ function updateDailyRoomStatus(dateStr, roomNumber, data) {
       updated_at = CURRENT_TIMESTAMP
   `).run(dateStr, parseInt(roomNumber), finalStatus, finalGuests, finalExtraBed, finalBedsType, finalNotes, finalAccess, finalCleanliness, finalControlRequested, finalUpdatedBy);
 
+  // Mettre à jour automatiquement les métadonnées de dernière mise à jour du planning
+  touchDailyPlanning(dateStr, finalUpdatedBy || 'Roberto');
+
   return db.prepare('SELECT * FROM daily_room_status WHERE date = ? AND room_number = ?').get(dateStr, roomNumber);
+}
+
+function getDailyPlanningMeta(dateStr) {
+  let meta = db.prepare('SELECT * FROM daily_planning_meta WHERE date = ?').get(dateStr);
+  if (!meta) {
+    // Si pas encore d'entrée dans daily_planning_meta, vérifier les mises à jour réelles dans daily_room_status
+    const roomUpdate = db.prepare(`
+      SELECT MAX(updated_at) as updated_at, updated_by 
+      FROM daily_room_status 
+      WHERE date = ? AND updated_by IS NOT NULL AND updated_by != ''
+    `).get(dateStr);
+
+    if (roomUpdate && roomUpdate.updated_at) {
+      meta = {
+        date: dateStr,
+        updated_at: roomUpdate.updated_at,
+        updated_by: roomUpdate.updated_by || 'Roberto'
+      };
+    }
+  }
+  return meta || null;
+}
+
+function touchDailyPlanning(dateStr, updatedBy = 'Roberto') {
+  const author = updatedBy || 'Roberto';
+  db.prepare(`
+    INSERT INTO daily_planning_meta (date, updated_at, updated_by)
+    VALUES (?, CURRENT_TIMESTAMP, ?)
+    ON CONFLICT(date) DO UPDATE SET
+      updated_at = CURRENT_TIMESTAMP,
+      updated_by = excluded.updated_by
+  `).run(dateStr, author);
+
+  return db.prepare('SELECT * FROM daily_planning_meta WHERE date = ?').get(dateStr);
 }
 
 // DEADLINES
@@ -794,6 +838,8 @@ module.exports = {
   deleteOrder,
   getDailyRoomStatus,
   updateDailyRoomStatus,
+  getDailyPlanningMeta,
+  touchDailyPlanning,
   getDeadlines,
   createDeadline,
   updateDeadline,

@@ -8,7 +8,35 @@
 
   let selectedDate = getTodayStr();
   let dailyRooms = [];
+  let currentDailyMeta = null;
   let saveNoteTimeouts = {};
+
+  function escapeHtml(str) {
+    if (str === null || str === undefined) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  function getZurichDateStr(dateObj = new Date()) {
+    try {
+      const parts = new Intl.DateTimeFormat('fr-CA', {
+        timeZone: 'Europe/Zurich',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      }).formatToParts(dateObj);
+      const y = parts.find(p => p.type === 'year').value;
+      const m = parts.find(p => p.type === 'month').value;
+      const d = parts.find(p => p.type === 'day').value;
+      return `${y}-${m}-${d}`;
+    } catch (e) {
+      return getTodayStr();
+    }
+  }
 
 async function initOrders() {
   setupDailyBoardEvents();
@@ -47,6 +75,7 @@ async function loadDailyRooms(dateStr) {
     if (res.ok) {
       const data = await res.json();
       dailyRooms = data.rooms || [];
+      currentDailyMeta = data.meta || null;
       renderDailyBoard();
     }
   } catch (err) {
@@ -68,6 +97,9 @@ function renderDailyBoard() {
   const isToday = selectedDate === getTodayStr();
   if (btnTodayEl) btnTodayEl.classList.toggle('active', isToday);
 
+  // Rendu de la bannière bien mise en évidence pour Adélcia et Roberto
+  renderDailyUpdateBanner();
+
   const grid = document.getElementById('daily-rooms-grid');
   if (!grid) return;
 
@@ -82,6 +114,164 @@ function renderDailyBoard() {
   } else {
     grid.innerHTML = dailyRooms.map(room => createDailyRoomCardHtml(room)).join('');
     attachDailyRoomListeners();
+  }
+}
+
+function renderDailyUpdateBanner() {
+  const banner = document.getElementById('daily-planning-update-banner');
+  if (!banner) return;
+
+  const todayZurich = getZurichDateStr(new Date());
+  const isViewingToday = (selectedDate === todayZurich);
+  const currentUser = (window.App && typeof window.App.getCurrentUser === 'function')
+    ? window.App.getCurrentUser()
+    : (localStorage.getItem('hk_user') || 'Roberto');
+  const isRoberto = currentUser && currentUser.toLowerCase() === 'roberto';
+
+  const hasMeta = currentDailyMeta && currentDailyMeta.updated_at;
+  let updateDate = null;
+  let isUpdatedToday = false;
+  let timeStr = '';
+  let dateStr = '';
+  let author = 'Roberto';
+
+  if (hasMeta) {
+    updateDate = parseDateSafe(currentDailyMeta.updated_at);
+    isUpdatedToday = (getZurichDateStr(updateDate) === todayZurich);
+    timeStr = updateDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Zurich' });
+    dateStr = updateDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Europe/Zurich' });
+    author = currentDailyMeta.updated_by || 'Roberto';
+  }
+
+  // CAS 1 : On consulte AUJOURD'HUI
+  if (isViewingToday) {
+    if (isUpdatedToday) {
+      // PLANNING À JOUR POUR AUJOURD'HUI (VERT / ÉMERAUDE)
+      banner.className = 'daily-update-banner is-updated';
+      banner.innerHTML = `
+        <div class="daily-banner-left">
+          <div class="daily-banner-icon-box" title="Planning vérifié">✓</div>
+          <div class="daily-banner-content">
+            <div class="daily-banner-badge-row">
+              <span class="daily-banner-badge">✓ PLANNING DU JOUR À JOUR</span>
+            </div>
+            <div class="daily-banner-title">
+              Dernière mise à jour : <strong>Aujourd'hui à ${timeStr}</strong> <span class="daily-banner-author">par ${escapeHtml(author)}</span>
+            </div>
+            <div class="daily-banner-subtitle">
+              Toutes les informations, statuts des 5 chambres, départs et arrivées sont vérifiés pour aujourd'hui.
+            </div>
+          </div>
+        </div>
+        <div class="daily-banner-right">
+          ${isRoberto ? `
+            <button type="button" class="btn-banner-action btn-banner-revalidate" onclick="window.OrdersModule.validateTodayPlanning()" title="Réactualiser l'horodatage de vérification">
+              🔄 Réactualiser
+            </button>
+          ` : ''}
+        </div>
+      `;
+    } else {
+      // PLANNING NON ENCORE MIS À JOUR AUJOURD'HUI (AMBRE / ATTENTION ADÉLCIA)
+      banner.className = 'daily-update-banner is-pending';
+      const prevInfo = hasMeta
+        ? `Dernière modification enregistrée : le <strong>${dateStr} à ${timeStr}</strong> par ${escapeHtml(author)}.<br>Roberto n'a pas encore validé les données de ce matin.`
+        : `Roberto n'a pas encore vérifié ni validé les fiches des chambres pour aujourd'hui.`;
+
+      banner.innerHTML = `
+        <div class="daily-banner-left">
+          <div class="daily-banner-icon-box" title="Planning en attente de vérification">⚠️</div>
+          <div class="daily-banner-content">
+            <div class="daily-banner-badge-row">
+              <span class="daily-banner-badge">⚠️ ATTENTION : PLANNING NON ENCORE ACTUALISÉ</span>
+            </div>
+            <div class="daily-banner-title">
+              Planning du jour en attente de vérification
+            </div>
+            <div class="daily-banner-subtitle">
+              ${prevInfo} <em>Adélcia : vérifiez auprès de Roberto avant de débuter le nettoyage des chambres.</em>
+            </div>
+          </div>
+        </div>
+        <div class="daily-banner-right">
+          ${isRoberto ? `
+            <button type="button" class="btn-banner-action btn-banner-validate-now" onclick="window.OrdersModule.validateTodayPlanning()" title="Marquer le planning d'aujourd'hui comme vérifié">
+              ✅ Valider le planning d'aujourd'hui
+            </button>
+          ` : ''}
+        </div>
+      `;
+    }
+  } else {
+    // CAS 2 : On consulte une AUTRE DATE (Hier, Demain, etc.)
+    banner.className = 'daily-update-banner is-other-date';
+    const { dayName, fullDate } = formatDateDisplay(selectedDate);
+    const dateText = hasMeta
+      ? `Dernière modification : le <strong>${dateStr} à ${timeStr}</strong> <span class="daily-banner-author">par ${escapeHtml(author)}</span>`
+      : `Aucune modification enregistrée pour cette date.`;
+
+    banner.innerHTML = `
+      <div class="daily-banner-left">
+        <div class="daily-banner-icon-box" title="Planning d'une autre date">🗓️</div>
+        <div class="daily-banner-content">
+          <div class="daily-banner-badge-row">
+            <span class="daily-banner-badge">📅 PLANNING DU ${escapeHtml(dayName.toUpperCase())} ${escapeHtml(fullDate.toUpperCase())}</span>
+          </div>
+          <div class="daily-banner-title">
+            ${dateText}
+          </div>
+          <div class="daily-banner-subtitle">
+            Vous consultez le planning d'une date différente d'aujourd'hui.
+          </div>
+        </div>
+      </div>
+      <div class="daily-banner-right">
+        <button type="button" class="btn-banner-action btn-banner-return-today" onclick="window.OrdersModule.goToToday()" title="Revenir au planning du jour">
+          📅 Revenir à Aujourd'hui
+        </button>
+        ${isRoberto ? `
+          <button type="button" class="btn-banner-action btn-banner-revalidate" onclick="window.OrdersModule.validateTodayPlanning()" title="Valider le planning pour cette date">
+            ✓ Valider cette date
+          </button>
+        ` : ''}
+      </div>
+    `;
+  }
+}
+
+async function validateTodayPlanning(targetDate = selectedDate) {
+  try {
+    const user = (window.App && typeof window.App.getCurrentUser === 'function')
+      ? window.App.getCurrentUser()
+      : (localStorage.getItem('hk_user') || 'Roberto');
+
+    const res = await fetch(`/api/daily-rooms/${targetDate}/validate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user })
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.meta) {
+        currentDailyMeta = data.meta;
+        renderDailyUpdateBanner();
+      }
+    }
+  } catch (err) {
+    console.error('Erreur validation planning:', err);
+  }
+}
+
+function goToToday() {
+  selectedDate = getTodayStr();
+  loadDailyRooms(selectedDate);
+}
+
+function onDailyPlanningValidated(data) {
+  if (data && data.date === selectedDate) {
+    currentDailyMeta = data.meta;
+    renderDailyUpdateBanner();
   }
 }
 
@@ -575,8 +765,17 @@ async function saveRoomUpdate(roomNum, changes) {
   }
 }
 
-function onRoomStatusUpdated({ date, room }) {
+function onRoomStatusUpdated({ date, room, meta }) {
   if (date !== selectedDate) return;
+  if (meta) {
+    currentDailyMeta = meta;
+  } else if (room && room.updated_at) {
+    currentDailyMeta = {
+      date,
+      updated_at: room.updated_at,
+      updated_by: room.updated_by || 'Roberto'
+    };
+  }
   const idx = dailyRooms.findIndex(r => r.room_number === room.room_number);
   if (idx !== -1) {
     dailyRooms[idx] = room;
@@ -1249,16 +1448,6 @@ function setupOrderEvents() {
   }
 }
 
-function escapeHtml(str) {
-  if (!str) return '';
-  return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#39;');
-}
-
 function refreshAll() {
   selectedDate = getTodayStr();
   loadDailyRooms(selectedDate);
@@ -1270,6 +1459,10 @@ function refreshAll() {
     loadOrders,
     loadDailyRooms,
     renderDailyBoard,
+    renderDailyUpdateBanner,
+    validateTodayPlanning,
+    goToToday,
+    onDailyPlanningValidated,
     refreshAll,
     renderOrders,
     setFilter,
@@ -1295,4 +1488,6 @@ function refreshAll() {
   window.closeNewOrderModal = closeNewOrderModal;
   window.submitNewOrder = submitNewOrder;
   window.submitEditOrder = submitEditOrder;
+  window.validateTodayPlanning = validateTodayPlanning;
+  window.goToToday = goToToday;
 })();

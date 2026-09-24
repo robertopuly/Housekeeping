@@ -116,6 +116,12 @@ function initSocket() {
     }
   });
 
+  socket.on('daily_planning:validated', (data) => {
+    if (window.OrdersModule && window.OrdersModule.onDailyPlanningValidated) {
+      window.OrdersModule.onDailyPlanningValidated(data);
+    }
+  });
+
   // Événements Échéances
   socket.on('deadline:created', (item) => {
     if (window.DeadlinesModule) {
