@@ -366,6 +366,15 @@ function markMessagesAsRead(byUser = '') {
   return true;
 }
 
+function resetAllMessages() {
+  db.exec('DELETE FROM messages;');
+  db.prepare('INSERT INTO messages (sender, text) VALUES (?, ?)').run(
+    'Système',
+    'Bienvenue sur l\'application Housekeeping ! La synchronisation en temps réel est active.'
+  );
+  return db.prepare('SELECT * FROM messages ORDER BY id ASC').all();
+}
+
 function getQuickReplies() {
   return db.prepare('SELECT * FROM quick_replies ORDER BY sort_order ASC, id ASC').all();
 }
@@ -828,6 +837,7 @@ module.exports = {
   answerChoiceQuestion,
   deleteMessage,
   markMessagesAsRead,
+  resetAllMessages,
   getQuickReplies,
   getOrders,
   getArchivedOrders,

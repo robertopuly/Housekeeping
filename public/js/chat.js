@@ -1717,6 +1717,14 @@ function escapeHtml(str) {
     .replace(/'/g, '&#39;');
 }
 
+function onMessagesReset(newMessages) {
+  messages = newMessages || [];
+  unreadCount = 0;
+  updateChatBadge();
+  renderMessages();
+  scrollToBottom();
+}
+
   window.ChatModule = {
     initChat,
     sendMessage,
@@ -1733,6 +1741,7 @@ function escapeHtml(str) {
     onMessageReceived,
     onMessageDeleted,
     onMessagesExpired,
+    onMessagesReset,
     toggleEphemeralMode,
     isEphemeralActive: () => isEphemeralActive,
     onMessagesRead,

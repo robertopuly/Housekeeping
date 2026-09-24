@@ -17,7 +17,7 @@ const io = new Server(server, {
 });
 
 const PORT = process.env.PORT || 8765;
-const CURRENT_APP_VERSION = 54;
+const CURRENT_APP_VERSION = 55;
 
 const uploadsDir = path.join(__dirname, 'public', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -211,6 +211,27 @@ app.post('/api/messages/read', (req, res) => {
     db.markMessagesAsRead(user);
     io.emit('chat:read_all', { user });
     res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/messages/reset', (req, res) => {
+  try {
+    const newMessages = db.resetAllMessages();
+    try {
+      if (fs.existsSync(uploadsDir)) {
+        const files = fs.readdirSync(uploadsDir);
+        for (const file of files) {
+          if (file === '.gitkeep') continue;
+          try {
+            fs.unlinkSync(path.join(uploadsDir, file));
+          } catch (e) {}
+        }
+      }
+    } catch (e) {}
+    io.emit('chat:reset', { messages: newMessages });
+    res.json({ success: true, messages: newMessages });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

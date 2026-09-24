@@ -66,6 +66,12 @@ function initSocket() {
     }
   });
 
+  socket.on('chat:reset', (data) => {
+    if (window.ChatModule && window.ChatModule.onMessagesReset) {
+      window.ChatModule.onMessagesReset(data ? data.messages : []);
+    }
+  });
+
   socket.on('chat:question_answered', (data) => {
     if (window.ChatModule && window.ChatModule.onQuestionAnswered) {
       window.ChatModule.onQuestionAnswered(data);
