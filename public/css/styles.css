@@ -1598,6 +1598,99 @@ body.is-pc .btn-chat-choices.pc-only {
   transform: scale(0.92);
 }
 
+/* Bouton Messages Éphémères */
+.btn-ephemeral-toggle {
+  background: none;
+  border: none;
+  font-size: 22px;
+  cursor: pointer;
+  padding: 0 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  transition: transform 0.15s, background-color 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  position: relative;
+}
+
+.btn-ephemeral-toggle:hover {
+  background-color: #f1f5f9;
+  transform: scale(1.1);
+}
+
+.btn-ephemeral-toggle:active {
+  transform: scale(0.92);
+}
+
+.btn-ephemeral-toggle.active {
+  background-color: #fee2e2;
+  border: 1.5px solid #ef4444;
+  animation: pulse-ephemeral 2s infinite;
+}
+
+@keyframes pulse-ephemeral {
+  0% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(239, 68, 68, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0);
+  }
+}
+
+/* Barre de saisie en rouge quand le mode éphémère est activé */
+.chat-input-bar.ephemeral-active {
+  background-color: #fff1f2 !important;
+  border-top: 2px solid #ef4444 !important;
+}
+
+.chat-input-bar.ephemeral-active .chat-input {
+  border-color: #ef4444 !important;
+  background-color: #ffffff !important;
+  color: #991b1b !important;
+  box-shadow: 0 0 0 2px rgba(239, 68, 68, 0.2) !important;
+}
+
+.chat-input-bar.ephemeral-active .chat-input::placeholder {
+  color: #dc2626 !important;
+  opacity: 0.85;
+}
+
+.chat-input-bar.ephemeral-active .btn-send {
+  background-color: #dc2626 !important;
+}
+
+.chat-input-bar.ephemeral-active .btn-send:hover {
+  background-color: #b91c1c !important;
+}
+
+/* Badge message éphémère */
+.ephemeral-timer-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  background: rgba(239, 68, 68, 0.12);
+  color: #dc2626;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+  margin-left: 6px;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.message-out .ephemeral-timer-badge {
+  background: rgba(255, 255, 255, 0.25);
+  color: #ffffff;
+  border-color: rgba(255, 255, 255, 0.4);
+}
+
 .emoji-picker-panel {
   background-color: #ffffff;
   border-top: 1px solid var(--border-color);

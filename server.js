@@ -17,7 +17,7 @@ const io = new Server(server, {
 });
 
 const PORT = process.env.PORT || 8765;
-const CURRENT_APP_VERSION = 50;
+const CURRENT_APP_VERSION = 51;
 
 const uploadsDir = path.join(__dirname, 'public', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -114,7 +114,13 @@ app.post('/api/messages', (req, res) => {
       qOptions = typeof req.body.question_options === 'string' ? req.body.question_options : JSON.stringify(req.body.question_options);
     }
 
-    const msg = db.addMessage(sender, text || '', msgType, reply_to || null, imageUrl, qType, qStatus, qOptions, '');
+    const isEphemeral = req.body.is_ephemeral === 1 || req.body.is_ephemeral === true || req.body.is_ephemeral === '1';
+    let expiresAt = null;
+    if (isEphemeral) {
+      expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+    }
+
+    const msg = db.addMessage(sender, text || '', msgType, reply_to || null, imageUrl, qType, qStatus, qOptions, '', isEphemeral ? 1 : 0, expiresAt);
     io.emit('chat:message', msg);
     res.status(201).json(msg);
   } catch (err) {
@@ -698,6 +704,28 @@ io.on('connection', (socket) => {
     io.emit('users:online', Array.from(onlineUsers.values()));
   });
 });
+
+// Nettoyage régulier des messages éphémères expirés (toutes les 30 secondes)
+setInterval(() => {
+  try {
+    const expired = db.cleanupExpiredMessages();
+    if (expired && expired.length > 0) {
+      const ids = expired.map(m => m.id);
+      for (const m of expired) {
+        if (m.image_url && m.image_url.startsWith('/uploads/')) {
+          const fn = path.basename(m.image_url);
+          const fp = path.join(uploadsDir, fn);
+          if (fs.existsSync(fp)) {
+            try { fs.unlinkSync(fp); } catch (e) {}
+          }
+        }
+      }
+      io.emit('chat:messages_expired', { ids });
+    }
+  } catch (err) {
+    console.error('Erreur nettoyage messages éphémères:', err);
+  }
+}, 30000);
 
 server.listen(PORT, '0.0.0.0', () => {
   const localIPs = getLocalIPs();

@@ -36,7 +36,9 @@ function initSchema() {
       reply_to_sender TEXT DEFAULT '',
       reply_to_text TEXT DEFAULT '',
       is_deleted INTEGER DEFAULT 0,
-      image_url TEXT DEFAULT ''
+      image_url TEXT DEFAULT '',
+      is_ephemeral INTEGER DEFAULT 0,
+      expires_at DATETIME DEFAULT NULL
     );
 
     CREATE TABLE IF NOT EXISTS orders (
@@ -194,6 +196,14 @@ function initSchema() {
     db.exec('ALTER TABLE daily_room_status ADD COLUMN control_requested INTEGER DEFAULT 0;');
   } catch (e) {}
 
+  try {
+    db.exec('ALTER TABLE messages ADD COLUMN is_ephemeral INTEGER DEFAULT 0;');
+  } catch (e) {}
+
+  try {
+    db.exec('ALTER TABLE messages ADD COLUMN expires_at DATETIME DEFAULT NULL;');
+  } catch (e) {}
+
   const defaultReplies = [
     { text: 'Nettoyage terminé ✅', label: 'Nettoyage terminé ✅' },
     { text: 'Peux-tu venir ici dès que possible ? 🏃', label: 'Peux-tu venir ici ? 🏃' },
@@ -249,20 +259,31 @@ function initSchema() {
 initSchema();
 
 // MESSAGES
+function cleanupExpiredMessages() {
+  const nowIso = new Date().toISOString();
+  const expired = db.prepare('SELECT id, image_url FROM messages WHERE is_ephemeral = 1 AND expires_at IS NOT NULL AND expires_at <= ?').all(nowIso);
+  if (expired.length > 0) {
+    const ids = expired.map(m => m.id);
+    db.prepare(`DELETE FROM messages WHERE id IN (${ids.map(() => '?').join(',')})`).run(...ids);
+  }
+  return expired;
+}
+
 function getMessages(limit = 150) {
+  cleanupExpiredMessages();
   return db.prepare('SELECT * FROM messages ORDER BY id ASC LIMIT ?').all(limit);
 }
 
-function addMessage(sender, text, type = 'text', replyTo = null, imageUrl = '', questionType = '', questionStatus = '', questionOptions = '', selectedOption = '') {
+function addMessage(sender, text, type = 'text', replyTo = null, imageUrl = '', questionType = '', questionStatus = '', questionOptions = '', selectedOption = '', isEphemeral = 0, expiresAt = null) {
   const reply_to_id = replyTo ? replyTo.id : null;
   const reply_to_sender = replyTo ? (replyTo.sender || '') : '';
   const reply_to_text = replyTo ? (replyTo.text || '') : '';
   const nowIso = new Date().toISOString();
 
   const result = db.prepare(`
-    INSERT INTO messages (sender, text, type, reply_to_id, reply_to_sender, reply_to_text, timestamp, image_url, question_type, question_status, question_options, selected_option)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(sender, text, type, reply_to_id, reply_to_sender, reply_to_text, nowIso, imageUrl || '', questionType || '', questionStatus || '', questionOptions || '', selectedOption || '');
+    INSERT INTO messages (sender, text, type, reply_to_id, reply_to_sender, reply_to_text, timestamp, image_url, question_type, question_status, question_options, selected_option, is_ephemeral, expires_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(sender, text, type, reply_to_id, reply_to_sender, reply_to_text, nowIso, imageUrl || '', questionType || '', questionStatus || '', questionOptions || '', selectedOption || '', isEphemeral ? 1 : 0, expiresAt || null);
   return db.prepare('SELECT * FROM messages WHERE id = ?').get(result.lastInsertRowid);
 }
 
@@ -698,6 +719,7 @@ function markLeaveRequestAsSent(id) {
 module.exports = {
   db,
   getMessages,
+  cleanupExpiredMessages,
   addMessage,
   answerYesNoQuestion,
   answerChoiceQuestion,

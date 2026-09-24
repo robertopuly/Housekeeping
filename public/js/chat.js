@@ -22,6 +22,7 @@ async function initChat() {
   setupChatEvents();
   setupMessageActionEvents();
   initEmojiPicker();
+  initEphemeralMode();
 }
 
 async function loadMessages() {
@@ -448,9 +449,10 @@ function renderMessages() {
         const statusIcon = isRead ? '✓✓' : '✓';
         const statusClass = isRead ? 'msg-status-read' : 'msg-status-sent';
         const statusTitle = isRead ? 'Vu par le destinataire' : 'Envoyé / Reçu par le serveur';
+        const ephemeralBadge = (msg.is_ephemeral === 1) ? '<span class="ephemeral-timer-badge" title="Message éphémère (s\'efface 1h après l\'envoi)">⏳ 1h</span>' : '';
 
         html += `
-          <div class="message message-out message-clickable" data-msg-id="${msg.id}">
+          <div class="message message-out message-clickable ${msg.is_ephemeral === 1 ? 'message-ephemeral' : ''}" data-msg-id="${msg.id}">
             <div class="bubble bubble-out ${bubbleEmojiClass} ${bubblePhotoClass}">
               ${replyHtml}
               ${photoHtml}
@@ -459,14 +461,16 @@ function renderMessages() {
               ${choiceCardHtml}
               <div class="msg-meta">
                 <span class="msg-time">${timeStr}</span>
+                ${ephemeralBadge}
                 <span class="msg-status ${statusClass}" title="${statusTitle}">${statusIcon}</span>
               </div>
             </div>
           </div>
         `;
       } else {
+        const ephemeralBadge = (msg.is_ephemeral === 1) ? '<span class="ephemeral-timer-badge" title="Message éphémère (s\'efface 1h après l\'envoi)">⏳ 1h</span>' : '';
         html += `
-          <div class="message message-in message-clickable" data-msg-id="${msg.id}">
+          <div class="message message-in message-clickable ${msg.is_ephemeral === 1 ? 'message-ephemeral' : ''}" data-msg-id="${msg.id}">
             <div class="msg-avatar">${escapeHtml((msg.sender || 'A').charAt(0).toUpperCase())}</div>
             <div class="bubble bubble-in ${bubbleEmojiClass} ${bubblePhotoClass}">
               <div class="msg-sender">${escapeHtml(msg.sender)}</div>
@@ -477,6 +481,7 @@ function renderMessages() {
               ${choiceCardHtml}
               <div class="msg-meta">
                 <span class="msg-time">${timeStr}</span>
+                ${ephemeralBadge}
               </div>
             </div>
           </div>
@@ -673,7 +678,8 @@ async function sendMessage(customText = null) {
         sender,
         text,
         reply_to: replyPayload,
-        question_type: isYesNo ? 'yes_no' : ''
+        question_type: isYesNo ? 'yes_no' : '',
+        is_ephemeral: isEphemeralActive ? 1 : 0
       })
     });
 
@@ -1137,6 +1143,31 @@ function onMessageDeleted(data) {
   renderMessages();
 }
 
+function onMessagesExpired(ids) {
+  if (!Array.isArray(ids) || ids.length === 0) return;
+  const idSet = new Set(ids.map(Number));
+  const prevLen = messages.length;
+  messages = messages.filter(m => !idSet.has(m.id));
+  if (messages.length !== prevLen) {
+    renderMessages();
+  }
+}
+
+function checkLocalMessageExpiration() {
+  const now = new Date();
+  const expiredIds = [];
+  messages.forEach(m => {
+    if (m.is_ephemeral === 1 && m.expires_at) {
+      if (new Date(m.expires_at) <= now) {
+        expiredIds.push(m.id);
+      }
+    }
+  });
+  if (expiredIds.length > 0) {
+    onMessagesExpired(expiredIds);
+  }
+}
+
 function onMessagesRead(data) {
   const currentUser = window.App ? window.App.getCurrentUser().toLowerCase() : '';
   let changed = false;
@@ -1377,7 +1408,8 @@ async function submitPhotoMessage(event) {
         text: text || '📷 Photo',
         type: 'image',
         image: pendingPhotoBase64,
-        reply_to: replyPayload
+        reply_to: replyPayload,
+        is_ephemeral: isEphemeralActive ? 1 : 0
       })
     });
 
@@ -1559,6 +1591,102 @@ function insertEmoji(emoji) {
   handleInputChange();
 }
 
+/* ==========================================================================
+   MESSAGES ÉPHÉMÈRES (Désactivation auto 30m / Expiration 1h)
+   ========================================================================== */
+let isEphemeralActive = false;
+let ephemeralAutoOffTimeout = null;
+const EPHEMERAL_AUTO_OFF_MS = 30 * 60 * 1000; // 30 minutes
+const EPHEMERAL_STORAGE_KEY = 'housekeeping_ephemeral_expiry';
+
+function initEphemeralMode() {
+  const savedExpiry = localStorage.getItem(EPHEMERAL_STORAGE_KEY);
+  if (savedExpiry) {
+    const remaining = parseInt(savedExpiry, 10) - Date.now();
+    if (remaining > 0) {
+      activateEphemeralMode(remaining);
+    } else {
+      localStorage.removeItem(EPHEMERAL_STORAGE_KEY);
+      deactivateEphemeralMode();
+    }
+  }
+
+  const btnToggle = document.getElementById('btn-ephemeral-toggle');
+  if (btnToggle) {
+    btnToggle.addEventListener('click', () => {
+      toggleEphemeralMode();
+    });
+  }
+
+  // Vérification périodique de l'expiration locale des messages (toutes les 10s)
+  setInterval(checkLocalMessageExpiration, 10000);
+}
+
+function toggleEphemeralMode() {
+  if (isEphemeralActive) {
+    deactivateEphemeralMode();
+  } else {
+    activateEphemeralMode(EPHEMERAL_AUTO_OFF_MS);
+  }
+}
+
+function activateEphemeralMode(durationMs = EPHEMERAL_AUTO_OFF_MS) {
+  isEphemeralActive = true;
+  const expiryTimestamp = Date.now() + durationMs;
+  localStorage.setItem(EPHEMERAL_STORAGE_KEY, String(expiryTimestamp));
+
+  if (ephemeralAutoOffTimeout) {
+    clearTimeout(ephemeralAutoOffTimeout);
+  }
+  ephemeralAutoOffTimeout = setTimeout(() => {
+    deactivateEphemeralMode();
+  }, durationMs);
+
+  updateEphemeralUI();
+}
+
+function deactivateEphemeralMode() {
+  isEphemeralActive = false;
+  localStorage.removeItem(EPHEMERAL_STORAGE_KEY);
+  if (ephemeralAutoOffTimeout) {
+    clearTimeout(ephemeralAutoOffTimeout);
+    ephemeralAutoOffTimeout = null;
+  }
+  updateEphemeralUI();
+}
+
+function updateEphemeralUI() {
+  const chatForm = document.getElementById('chat-form');
+  const btnToggle = document.getElementById('btn-ephemeral-toggle');
+  const chatInput = document.getElementById('chat-input');
+
+  if (chatForm) {
+    if (isEphemeralActive) {
+      chatForm.classList.add('ephemeral-active');
+    } else {
+      chatForm.classList.remove('ephemeral-active');
+    }
+  }
+
+  if (btnToggle) {
+    if (isEphemeralActive) {
+      btnToggle.classList.add('active');
+      btnToggle.title = 'Messages éphémères actifs (1h, arrêt auto dans 30 min) - Cliquer pour désactiver';
+    } else {
+      btnToggle.classList.remove('active');
+      btnToggle.title = 'Activer les messages éphémères (s\'effacent après 1h)';
+    }
+  }
+
+  if (chatInput) {
+    if (isEphemeralActive) {
+      chatInput.placeholder = 'Message éphémère (effacé après 1h)...';
+    } else {
+      chatInput.placeholder = 'Écrire un message...';
+    }
+  }
+}
+
 function escapeHtml(str) {
   if (!str) return '';
   return String(str)
@@ -1584,6 +1712,9 @@ function escapeHtml(str) {
     onChoiceAnswered,
     onMessageReceived,
     onMessageDeleted,
+    onMessagesExpired,
+    toggleEphemeralMode,
+    isEphemeralActive: () => isEphemeralActive,
     onMessagesRead,
     onTypingStatus,
     clearUnread,

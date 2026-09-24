@@ -60,6 +60,12 @@ function initSocket() {
     }
   });
 
+  socket.on('chat:messages_expired', (data) => {
+    if (window.ChatModule && window.ChatModule.onMessagesExpired && data && data.ids) {
+      window.ChatModule.onMessagesExpired(data.ids);
+    }
+  });
+
   socket.on('chat:question_answered', (data) => {
     if (window.ChatModule && window.ChatModule.onQuestionAnswered) {
       window.ChatModule.onQuestionAnswered(data);
