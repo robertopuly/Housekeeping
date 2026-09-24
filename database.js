@@ -261,12 +261,41 @@ initSchema();
 // MESSAGES
 function cleanupExpiredMessages() {
   const nowIso = new Date().toISOString();
-  const expired = db.prepare('SELECT id, image_url FROM messages WHERE is_ephemeral = 1 AND expires_at IS NOT NULL AND expires_at <= ?').all(nowIso);
+  const expired = db.prepare('SELECT id, image_url, is_read FROM messages WHERE is_ephemeral = 1 AND expires_at IS NOT NULL AND expires_at <= ?').all(nowIso);
+  const readExpired = [];
+  const unreadExpired = [];
+
   if (expired.length > 0) {
-    const ids = expired.map(m => m.id);
-    db.prepare(`DELETE FROM messages WHERE id IN (${ids.map(() => '?').join(',')})`).run(...ids);
+    for (const m of expired) {
+      if (m.is_read === 1) {
+        readExpired.push(m);
+      } else {
+        unreadExpired.push(m);
+      }
+    }
+
+    // 1. Messaggi già letti: cancellati completamente
+    if (readExpired.length > 0) {
+      const readIds = readExpired.map(m => m.id);
+      db.prepare(`DELETE FROM messages WHERE id IN (${readIds.map(() => '?').join(',')})`).run(...readIds);
+    }
+
+    // 2. Messaggi NON letti: contrassegnati come "Message supprimé et non lu"
+    if (unreadExpired.length > 0) {
+      const unreadIds = unreadExpired.map(m => m.id);
+      db.prepare(`
+        UPDATE messages 
+        SET is_deleted = 1, 
+            text = 'Message supprimé et non lu', 
+            reply_to_text = '', 
+            image_url = '', 
+            is_ephemeral = 0, 
+            expires_at = NULL 
+        WHERE id IN (${unreadIds.map(() => '?').join(',')})
+      `).run(...unreadIds);
+    }
   }
-  return expired;
+  return { expired, readExpired, unreadExpired };
 }
 
 function getMessages(limit = 150) {

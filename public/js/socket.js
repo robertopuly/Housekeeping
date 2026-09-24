@@ -56,7 +56,7 @@ function initSocket() {
 
   socket.on('chat:deleted', (data) => {
     if (window.ChatModule && window.ChatModule.onMessageDeleted) {
-      window.ChatModule.onMessageDeleted(data.id);
+      window.ChatModule.onMessageDeleted(data);
     }
   });
 

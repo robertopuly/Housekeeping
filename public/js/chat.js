@@ -378,12 +378,15 @@ function renderMessages() {
         </div>
       `;
     } else if (isDeleted) {
+      const isUnreadDeleted = msg.text === 'Message supprimé et non lu' || (typeof msg.text === 'string' && msg.text.toLowerCase().includes('non lu'));
+      const deletedLabel = isUnreadDeleted ? 'Message supprimé et non lu' : 'Message supprimé';
+      const deletedIcon = isUnreadDeleted ? '⏳🚫' : '🚫';
       html += `
-        <div class="message ${isMe ? 'message-out' : 'message-in'} message-deleted">
+        <div class="message ${isMe ? 'message-out' : 'message-in'} message-deleted ${isUnreadDeleted ? 'message-deleted-unread' : ''}">
           ${!isMe ? `<div class="msg-avatar msg-avatar-deleted">${escapeHtml((msg.sender || 'A').charAt(0).toUpperCase())}</div>` : ''}
-          <div class="bubble bubble-deleted">
-            <span class="deleted-icon">🚫</span>
-            <span class="deleted-text">Message supprimé</span>
+          <div class="bubble bubble-deleted ${isUnreadDeleted ? 'bubble-deleted-unread' : ''}">
+            <span class="deleted-icon">${deletedIcon}</span>
+            <span class="deleted-text">${escapeHtml(deletedLabel)}</span>
             <span class="msg-time deleted-time">${timeStr}</span>
           </div>
         </div>
@@ -1134,11 +1137,15 @@ function onMessageReceived(msg) {
 
 function onMessageDeleted(data) {
   const id = typeof data === 'object' && data !== null ? data.id : Number(data);
+  const text = (typeof data === 'object' && data !== null && data.text) ? data.text : 'Message supprimé';
   const msg = messages.find(m => m.id === id);
   if (msg) {
     msg.is_deleted = 1;
-    msg.text = 'Message supprimé';
+    msg.text = text;
     msg.reply_to_text = '';
+    msg.image_url = '';
+    msg.is_ephemeral = 0;
+    msg.expires_at = null;
   }
   renderMessages();
 }
@@ -1155,16 +1162,29 @@ function onMessagesExpired(ids) {
 
 function checkLocalMessageExpiration() {
   const now = new Date();
-  const expiredIds = [];
+  const readExpiredIds = [];
+  const unreadExpired = [];
+
   messages.forEach(m => {
     if (m.is_ephemeral === 1 && m.expires_at) {
       if (new Date(m.expires_at) <= now) {
-        expiredIds.push(m.id);
+        if (m.is_read === 1) {
+          readExpiredIds.push(m.id);
+        } else {
+          unreadExpired.push(m);
+        }
       }
     }
   });
-  if (expiredIds.length > 0) {
-    onMessagesExpired(expiredIds);
+
+  if (readExpiredIds.length > 0) {
+    onMessagesExpired(readExpiredIds);
+  }
+
+  if (unreadExpired.length > 0) {
+    unreadExpired.forEach(m => {
+      onMessageDeleted({ id: m.id, text: 'Message supprimé et non lu' });
+    });
   }
 }
 

@@ -17,7 +17,7 @@ const io = new Server(server, {
 });
 
 const PORT = process.env.PORT || 8765;
-const CURRENT_APP_VERSION = 51;
+const CURRENT_APP_VERSION = 52;
 
 const uploadsDir = path.join(__dirname, 'public', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -708,9 +708,8 @@ io.on('connection', (socket) => {
 // Nettoyage régulier des messages éphémères expirés (toutes les 30 secondes)
 setInterval(() => {
   try {
-    const expired = db.cleanupExpiredMessages();
+    const { expired, readExpired, unreadExpired } = db.cleanupExpiredMessages();
     if (expired && expired.length > 0) {
-      const ids = expired.map(m => m.id);
       for (const m of expired) {
         if (m.image_url && m.image_url.startsWith('/uploads/')) {
           const fn = path.basename(m.image_url);
@@ -720,7 +719,19 @@ setInterval(() => {
           }
         }
       }
-      io.emit('chat:messages_expired', { ids });
+
+      // Les messages lus sont complètement effacés
+      if (readExpired && readExpired.length > 0) {
+        const readIds = readExpired.map(m => m.id);
+        io.emit('chat:messages_expired', { ids: readIds });
+      }
+
+      // Les messages non lus sont transformés en "Message supprimé et non lu"
+      if (unreadExpired && unreadExpired.length > 0) {
+        unreadExpired.forEach(m => {
+          io.emit('chat:deleted', { id: m.id, text: 'Message supprimé et non lu' });
+        });
+      }
     }
   } catch (err) {
     console.error('Erreur nettoyage messages éphémères:', err);
