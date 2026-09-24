@@ -86,16 +86,18 @@ function renderDailyBoard() {
 }
 
 function isTabletView() {
-  const isPC = (window.App && typeof window.App.getPlatform === 'function')
-    ? (window.App.getPlatform() === 'PC')
-    : document.body.classList.contains('is-pc');
   const user = (window.App && typeof window.App.getCurrentUser === 'function')
     ? window.App.getCurrentUser()
     : (localStorage.getItem('hk_user') || 'Roberto');
 
-  if (!isPC) return true;
-  if (user && user.toLowerCase().includes('ad')) return true;
-  return false;
+  // Si l'utilisateur connecté est Roberto, il a TOUJOURS la vue complète avec toutes les options
+  // (que ce soit sur PC, Tablette ou Mobile)
+  if (user && user.toLowerCase() === 'roberto') {
+    return false;
+  }
+
+  // Pour Adélcia (ou tout autre profil gouvernante), vue épurée et simplifiée
+  return true;
 }
 
 function updateRoomCardDOM(card, room) {

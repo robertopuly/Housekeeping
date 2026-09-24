@@ -63,6 +63,23 @@ function initUser() {
   }
 
   updateUserUI();
+  initUserChipClick();
+}
+
+function initUserChipClick() {
+  const chip = document.querySelector('.user-chip-badge');
+  if (!chip) return;
+  chip.style.cursor = 'pointer';
+  chip.title = "Cliquer pour basculer d'utilisateur (Roberto / Adélcia)";
+  chip.addEventListener('click', () => {
+    const nextUser = (currentUser.toLowerCase() === 'roberto') ? 'Adélcia' : 'Roberto';
+    if (confirm(`Changer d'utilisateur vers ${nextUser} ?`)) {
+      localStorage.setItem('hk_user', nextUser);
+      const url = new URL(window.location.href);
+      url.searchParams.set('user', nextUser);
+      window.location.href = url.toString();
+    }
+  });
 }
 
 function updateUserUI() {
