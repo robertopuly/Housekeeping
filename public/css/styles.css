@@ -2182,6 +2182,138 @@ body.is-pc .btn-chat-choices.pc-only {
 }
 
 /* ==========================================================================
+   DAILY ROOM CARDS - TABLET / ADÉLCIA ADAPTATION
+   ========================================================================== */
+.daily-room-card.is-tablet-card {
+  gap: 10px;
+}
+
+.room-status-flags-tablet {
+  display: flex !important;
+  width: 100% !important;
+}
+
+.flag-btn.flag-readonly {
+  width: 100% !important;
+  padding: 10px 14px !important;
+  font-size: 15px !important;
+  font-weight: 800 !important;
+  cursor: default !important;
+  pointer-events: none !important;
+  user-select: none !important;
+  box-shadow: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.room-detail-row-tablet {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 10px !important;
+}
+
+.segmented-group-tablet {
+  display: flex !important;
+  flex: 1 !important;
+}
+
+.segmented-group-tablet .segment-btn.flag-readonly {
+  width: 100% !important;
+  text-align: center !important;
+  padding: 8px 12px !important;
+  font-size: 13.5px !important;
+  font-weight: 800 !important;
+  cursor: default !important;
+  pointer-events: none !important;
+  user-select: none !important;
+}
+
+.segmented-group-clean-tablet {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  flex: 1 !important;
+  justify-content: flex-end !important;
+}
+
+.segment-badge-status {
+  display: inline-flex !important;
+  align-items: center !important;
+  padding: 6px 12px !important;
+  font-size: 13px !important;
+  font-weight: 800 !important;
+  border-radius: 6px !important;
+}
+
+.segment-badge-status.clean-a-faire {
+  background-color: #fee2e2 !important;
+  color: #991b1b !important;
+  border: 1.5px solid #fca5a5 !important;
+}
+
+.segment-badge-status.clean-deja-propre {
+  background-color: #e0f2fe !important;
+  color: #0369a1 !important;
+  border: 1.5px solid #7dd3fc !important;
+}
+
+.segment-btn.clean-btn-action {
+  background: #f0fdf4 !important;
+  border: 2px solid #86efac !important;
+  color: #166534 !important;
+  font-weight: 800 !important;
+  font-size: 13.5px !important;
+  cursor: pointer !important;
+  border-radius: 6px !important;
+  padding: 7px 14px !important;
+  box-shadow: 0 1px 3px rgba(34, 197, 94, 0.2) !important;
+  transition: all 0.15s ease !important;
+}
+
+.segment-btn.clean-btn-action:hover,
+.segment-btn.clean-btn-action:active {
+  background: #dcfce7 !important;
+  border-color: #22c55e !important;
+  transform: scale(1.02) !important;
+}
+
+/* Exception Banners on Tablet */
+.room-exception-banner {
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13.5px;
+  font-weight: 800;
+  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  user-select: none;
+  box-sizing: border-box;
+}
+
+.room-exception-banner.exception-beds {
+  background: #ede9fe;
+  border: 2px solid #a78bfa;
+  color: #5b21b6;
+}
+
+.room-exception-banner.exception-guests {
+  background: #e0f2fe;
+  border: 2px solid #38bdf8;
+  color: #0369a1;
+}
+
+.room-exception-banner.exception-extra-bed {
+  background: #fffbeb;
+  border: 2px solid #f59e0b;
+  color: #b45309;
+  animation: pulse 2s infinite;
+}
+
+/* ==========================================================================
    ORDERS SECTION
    ========================================================================== */
 .orders-section-header {
