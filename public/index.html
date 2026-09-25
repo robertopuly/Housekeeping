@@ -8,9 +8,9 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <title>Gouvernante Hôtel - Gestion & Communication</title>
-  <link rel="stylesheet" href="css/styles.css?v=57">
+  <link rel="stylesheet" href="css/styles.css?v=58">
   <script>
-    window.APP_VERSION = 57;
+    window.APP_VERSION = 58;
     function getTodayIsoStr() {
       var d = new Date();
       var y = d.getFullYear();
@@ -1224,6 +1224,11 @@
                 <span class="choice-opt-num">2</span>
                 <input type="text" class="form-control choice-opt-val" placeholder="Option 2" required />
               </div>
+              <div class="choice-opt-input-row">
+                <span class="choice-opt-num">3</span>
+                <input type="text" class="form-control choice-opt-val" value="Rien aujourd'hui!" placeholder="Option 3" required />
+                <button type="button" class="btn-remove-opt" onclick="this.parentElement.remove(); window.ChatModule.renumberChoiceOptions();" title="Supprimer">&times;</button>
+              </div>
             </div>
             <button type="button" class="btn-add-choice-opt" onclick="addChoiceOptionInput()">+ Ajouter une option</button>
           </div>
@@ -1258,16 +1263,113 @@
     </div>
   </div>
 
+  <!-- OVERLAY OMETTO DELUSO & DOUBLE DESSERT -->
+  <div id="disappointed-dessert-overlay" class="comic-modal-overlay" style="display: none;" onclick="window.ChatModule.closeDisappointedDessertModal()">
+    <div class="comic-modal-card" onclick="event.stopPropagation()">
+      <button type="button" class="btn-close-comic" onclick="window.ChatModule.closeDisappointedDessertModal()" title="Fermer">&times;</button>
+
+      <!-- FUMETTO (Speech Bubble) pointant vers le personnage -->
+      <div class="comic-speech-bubble-wrapper">
+        <div class="comic-speech-bubble">
+          <div class="comic-bubble-header">👨‍🍳 Roberto vous répond :</div>
+          <div class="comic-bubble-body">
+            « D'accord ! Ce sera pour une autre fois, aujourd'hui pour moi double dessert ! » 🧁🍰
+          </div>
+          <div class="comic-bubble-tail"></div>
+        </div>
+      </div>
+
+      <!-- PERSONNAGE DESSINÉ ANIMÉ : Ometto déçu tenant le plateau avec 2 desserts -->
+      <div class="comic-character-stage">
+        <svg class="comic-character-svg" viewBox="0 0 240 240" xmlns="http://www.w3.org/2000/svg">
+          <!-- Goutte de déception / sueur cartoon -->
+          <path class="comic-sweat-drop" d="M 66,66 C 63,55 74,51 74,62 C 74,68 68,71 66,66 Z" fill="#38bdf8" />
+
+          <!-- Corps / Veste avec tablier et badge "R" -->
+          <path d="M 70,170 C 70,140 90,135 120,135 C 150,135 170,140 170,170 L 178,215 C 178,225 168,230 155,230 L 85,230 C 72,230 62,225 62,215 Z" fill="#2563eb" />
+          <path d="M 88,148 L 152,148 L 148,230 L 92,230 Z" fill="#ffffff" />
+          <polygon points="120,135 108,155 132,155" fill="#f59e0b" />
+          <circle cx="120" cy="180" r="14" fill="#1d4ed8" />
+          <text x="120" y="186" font-size="16" font-weight="900" font-family="system-ui, sans-serif" fill="#ffffff" text-anchor="middle">R</text>
+
+          <!-- Tête -->
+          <ellipse cx="120" cy="98" rx="46" ry="44" fill="#fed7aa" />
+          <!-- Oreilles -->
+          <circle cx="74" cy="100" r="10" fill="#fed7aa" />
+          <circle cx="166" cy="100" r="10" fill="#fed7aa" />
+
+          <!-- Cheveux bruns soignés -->
+          <path d="M 74,86 C 72,56 94,48 120,48 C 146,48 168,56 166,86 C 158,68 136,66 120,68 C 102,66 84,72 74,86 Z" fill="#334155" />
+          <!-- Toque de chef pâtissier / cuisinier -->
+          <path d="M 92,56 C 90,26 150,26 148,56 Z" fill="#ffffff" stroke="#cbd5e1" stroke-width="2" />
+          <path d="M 86,54 C 80,36 102,22 120,24 C 138,22 160,36 154,54 Z" fill="#f8fafc" />
+
+          <!-- Joues roses -->
+          <ellipse cx="94" cy="112" rx="9" ry="5" fill="#f472b6" opacity="0.65" />
+          <ellipse cx="146" cy="112" rx="9" ry="5" fill="#f472b6" opacity="0.65" />
+
+          <!-- Yeux comiques déçus / attendrissants -->
+          <ellipse cx="102" cy="95" rx="8" ry="10" fill="#1e293b" />
+          <circle cx="104" cy="92" r="3.5" fill="#ffffff" />
+          <circle cx="99" cy="98" r="1.8" fill="#ffffff" />
+
+          <ellipse cx="138" cy="95" rx="8" ry="10" fill="#1e293b" />
+          <circle cx="140" cy="92" r="3.5" fill="#ffffff" />
+          <circle cx="135" cy="98" r="1.8" fill="#ffffff" />
+
+          <!-- Sourcils comiquement tristes / inclinés en bas vers l'extérieur \ / -->
+          <path d="M 92,82 Q 102,77 111,84" fill="none" stroke="#334155" stroke-width="3.5" stroke-linecap="round" />
+          <path d="M 148,82 Q 138,77 129,84" fill="none" stroke="#334155" stroke-width="3.5" stroke-linecap="round" />
+
+          <!-- Petit nez -->
+          <circle cx="120" cy="104" r="3" fill="#ea580c" />
+
+          <!-- Bouche moue comique qui boude gentiment -->
+          <path class="comic-mouth" d="M 110,118 Q 115,113 120,116 Q 125,113 130,118" fill="none" stroke="#1e293b" stroke-width="3.2" stroke-linecap="round" />
+
+          <!-- Petite larme cartoon qui brille -->
+          <path class="comic-tear" d="M 146,104 C 146,104 151,114 147,117 C 143,117 142,112 146,104 Z" fill="#38bdf8" />
+
+          <!-- Plateau d'argent avec 2 desserts (Double dessert !) -->
+          <ellipse cx="120" cy="190" rx="66" ry="16" fill="#e2e8f0" stroke="#94a3b8" stroke-width="2" />
+          <ellipse cx="120" cy="188" rx="62" ry="13" fill="#f8fafc" />
+
+          <!-- Dessert 1 (gâteau fraise / framboise) -->
+          <path d="M 88,186 L 92,204 L 108,204 L 112,186 Z" fill="#d97706" />
+          <path d="M 84,186 C 84,166 116,166 116,186 Z" fill="#f43f5e" />
+          <circle cx="100" cy="166" r="5" fill="#ef4444" />
+
+          <!-- Dessert 2 (gâteau chocolat / crème caramel) -->
+          <path d="M 128,186 L 132,204 L 148,204 L 152,186 Z" fill="#78350f" />
+          <path d="M 124,186 C 124,166 156,166 156,186 Z" fill="#fbbf24" />
+          <circle cx="140" cy="166" r="5" fill="#10b981" />
+
+          <!-- Mains tenant le plateau -->
+          <circle cx="56" cy="190" r="10" fill="#fed7aa" />
+          <circle cx="184" cy="190" r="10" fill="#fed7aa" />
+        </svg>
+      </div>
+
+      <div class="comic-badge-banner">
+        🎂 <strong>DOUBLE DESSERT POUR ROBERTO !</strong> 🧁🍰
+      </div>
+
+      <button type="button" class="btn-comic-dismiss" onclick="window.ChatModule.closeDisappointedDessertModal()">
+        🧁 Haha d'accord !
+      </button>
+    </div>
+  </div>
+
   <!-- SCRIPTS -->
   <script src="/socket.io/socket.io.js"></script>
-  <script src="js/audio.js?v=57"></script>
-  <script src="js/socket.js?v=57"></script>
-  <script src="js/chat.js?v=57"></script>
-  <script src="js/orders.js?v=57"></script>
-  <script src="js/deadlines.js?v=57"></script>
-  <script src="js/shopping.js?v=57"></script>
-  <script src="js/expenses.js?v=57"></script>
-  <script src="js/leave.js?v=57"></script>
-  <script src="js/app.js?v=57"></script>
+  <script src="js/audio.js?v=58"></script>
+  <script src="js/socket.js?v=58"></script>
+  <script src="js/chat.js?v=58"></script>
+  <script src="js/orders.js?v=58"></script>
+  <script src="js/deadlines.js?v=58"></script>
+  <script src="js/shopping.js?v=58"></script>
+  <script src="js/expenses.js?v=58"></script>
+  <script src="js/leave.js?v=58"></script>
+  <script src="js/app.js?v=58"></script>
 </body>
 </html>

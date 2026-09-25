@@ -206,6 +206,52 @@ function playRewardSound() {
   }
 }
 
+// Son comique déçu puis gourmand ("wah-wah" comique + carillon gourmand)
+function playDisappointedDessertSound() {
+  if (isMuted()) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const now = ctx.currentTime;
+    // Descente comique fa, mi, mib, re
+    const wahNotes = [349.23, 329.63, 311.13, 293.66];
+    wahNotes.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(freq, now + idx * 0.16);
+      osc.frequency.exponentialRampToValueAtTime(freq * 0.94, now + idx * 0.16 + 0.15);
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.setValueAtTime(0.18, now + idx * 0.16);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.16 + 0.16);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now + idx * 0.16);
+      osc.stop(now + idx * 0.16 + 0.16);
+    });
+
+    // Carillon gourmand double dessert
+    const chimeTimes = [0.75, 0.92, 1.08];
+    const chimeNotes = [587.33, 783.99, 1174.66];
+    chimeTimes.forEach((t, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(chimeNotes[i], now + t);
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.setValueAtTime(0.22, now + t);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + t + 0.28);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now + t);
+      osc.stop(now + t + 0.28);
+    });
+  } catch (e) {
+    console.warn('Audio disappointed error:', e);
+  }
+}
+
 window.SoundEngine = {
   initAudio,
   isMuted,
@@ -216,5 +262,6 @@ window.SoundEngine = {
   playSentSound,
   playUrgentAlert,
   playSuccessSound,
-  playRewardSound
+  playRewardSound,
+  playDisappointedDessertSound
 };

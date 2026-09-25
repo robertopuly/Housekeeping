@@ -257,6 +257,12 @@ function renderYesNoQuestionHtml(msg, isMe, currentUser) {
   `;
 }
 
+function isRienAujourdhuiOption(text) {
+  if (!text) return false;
+  const s = String(text).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+  return s.includes('rien') && (s.includes('aujourd') || s.includes('aujord'));
+}
+
 function renderChoiceQuestionHtml(msg, isMe, currentUser) {
   const isRoberto = (currentUser && currentUser.toLowerCase() === 'roberto');
   const status = msg.question_status || 'pending';
@@ -321,6 +327,20 @@ function renderChoiceQuestionHtml(msg, isMe, currentUser) {
       bodyHtml = `
         <div class="msg-choice-result result-selected">
           <div class="result-title">🔘 Choix sélectionné : <strong>${escapeHtml(selectedOption)} ✅</strong></div>
+        </div>
+      `;
+    }
+
+    if (isRienAujourdhuiOption(selectedOption)) {
+      bodyHtml += `
+        <div class="comic-inline-callout" onclick="window.ChatModule.showDisappointedDessertModal()" title="Cliquer pour afficher la réaction complète">
+          <div class="comic-callout-avatar">🥺🧁</div>
+          <div class="comic-callout-content">
+            <div class="comic-callout-bubble">
+              « D'accord ! Ce sera pour une autre fois, aujourd'hui pour moi double dessert ! » 🧁🍰
+            </div>
+            <div class="comic-callout-author">💬 Roberto (Double Dessert !)</div>
+          </div>
         </div>
       `;
     }
@@ -816,6 +836,11 @@ function openChoiceModal() {
         <span class="choice-opt-num">2</span>
         <input type="text" class="form-control choice-opt-val" placeholder="Option 2" required />
       </div>
+      <div class="choice-opt-input-row">
+        <span class="choice-opt-num">3</span>
+        <input type="text" class="form-control choice-opt-val" value="Rien aujourd'hui!" placeholder="Option 3" required />
+        <button type="button" class="btn-remove-opt" onclick="this.parentElement.remove(); window.ChatModule.renumberChoiceOptions();" title="Supprimer">&times;</button>
+      </div>
     `;
   }
   if (modal) {
@@ -1027,6 +1052,10 @@ function onChoiceAnswered(data) {
     existing.answered_at = q.answered_at;
   }
   renderMessages();
+
+  if (isRienAujourdhuiOption(q.selected_option)) {
+    showDisappointedDessertModal();
+  }
 }
 
 let lastSentTypingText = '';
@@ -1829,6 +1858,30 @@ function onMessagesReset(newMessages) {
   scrollToBottom();
 }
 
+let lastDisappointedModalTime = 0;
+
+function showDisappointedDessertModal() {
+  const now = Date.now();
+  if (now - lastDisappointedModalTime < 2500) return;
+  lastDisappointedModalTime = now;
+
+  const overlay = document.getElementById('disappointed-dessert-overlay');
+  if (!overlay) return;
+
+  overlay.style.display = 'flex';
+
+  if (window.SoundEngine && typeof window.SoundEngine.playDisappointedDessertSound === 'function') {
+    window.SoundEngine.playDisappointedDessertSound();
+  }
+}
+
+function closeDisappointedDessertModal() {
+  const overlay = document.getElementById('disappointed-dessert-overlay');
+  if (overlay) {
+    overlay.style.display = 'none';
+  }
+}
+
 let activeRewardMsgId = null;
 let confettiAnimId = null;
 
@@ -2005,6 +2058,8 @@ function stopRewardConfetti() {
     showRewardCelebration,
     closeRewardCelebration,
     replayRewardCelebration,
+    showDisappointedDessertModal,
+    closeDisappointedDessertModal,
     toggleEphemeralMode,
     isEphemeralActive: () => isEphemeralActive,
     onMessagesRead,
@@ -2016,4 +2071,6 @@ function stopRewardConfetti() {
 
   window.toggleChoiceRewardAnimation = toggleChoiceRewardAnimation;
   window.closeRewardCelebration = closeRewardCelebration;
+  window.showDisappointedDessertModal = showDisappointedDessertModal;
+  window.closeDisappointedDessertModal = closeDisappointedDessertModal;
 })();
