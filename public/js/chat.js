@@ -23,6 +23,14 @@ async function initChat() {
   setupMessageActionEvents();
   initEmojiPicker();
   initEphemeralMode();
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      if (window.App && window.App.getActiveTab() === 'tab-chat') {
+        clearUnread();
+      }
+    }
+  });
 }
 
 async function loadMessages() {
@@ -32,8 +40,9 @@ async function loadMessages() {
       messages = await res.json();
       renderMessages();
       scrollToBottom();
-      if (window.App && window.App.getActiveTab() === 'tab-chat') {
+      if (window.App && window.App.getActiveTab() === 'tab-chat' && document.visibilityState !== 'hidden') {
         markAsReadOnServer();
+        checkPendingRewardCelebration();
       }
     }
   } catch (err) {
@@ -1163,23 +1172,27 @@ function onMessageReceived(msg) {
   scrollToBottom(true);
 
   const currentUser = window.App ? window.App.getCurrentUser() : '';
-  const isMe = msg.sender.toLowerCase() === currentUser.toLowerCase();
-  const isSystem = msg.sender.toLowerCase() === 'système' || msg.sender.toLowerCase() === 'sistema';
+  const isMe = msg.sender && currentUser && msg.sender.toLowerCase() === currentUser.toLowerCase();
+  const isSystem = msg.sender && (msg.sender.toLowerCase() === 'système' || msg.sender.toLowerCase() === 'sistema');
 
   if (!isMe && !isSystem) {
-    const isReward = (msg.reward_animation === 1 || msg.reward_animation === '1');
-    if (isReward) {
-      showRewardCelebration(msg);
-    } else if (window.SoundEngine) {
-      window.SoundEngine.playMessageSound();
-    }
-
     const isChatActive = window.App ? window.App.getActiveTab() === 'tab-chat' : false;
-    if (!isChatActive) {
+    const isVisibleAndActive = isChatActive && document.visibilityState !== 'hidden';
+
+    if (!isVisibleAndActive) {
       unreadCount++;
       updateUnreadBadge();
+      if (window.SoundEngine) {
+        window.SoundEngine.playMessageSound();
+      }
     } else {
       markAsReadOnServer();
+      const isReward = (msg.reward_animation === 1 || msg.reward_animation === '1');
+      if (isReward) {
+        checkPendingRewardCelebration(msg);
+      } else if (window.SoundEngine) {
+        window.SoundEngine.playMessageSound();
+      }
     }
   }
 }
@@ -1251,10 +1264,52 @@ function onMessagesRead(data) {
   }
 }
 
+function checkPendingRewardCelebration(specificMsg = null) {
+  const currentUser = window.App ? window.App.getCurrentUser() : '';
+  const isChatActive = window.App ? window.App.getActiveTab() === 'tab-chat' : false;
+  const isVisible = document.visibilityState !== 'hidden';
+
+  if (!isChatActive || !isVisible) return;
+
+  if (specificMsg) {
+    const isMe = specificMsg.sender && currentUser && specificMsg.sender.toLowerCase() === currentUser.toLowerCase();
+    const isReward = (specificMsg.reward_animation === 1 || specificMsg.reward_animation === '1');
+    if (!isMe && isReward) {
+      const seenKey = 'hk_reward_seen_' + specificMsg.id;
+      if (!localStorage.getItem(seenKey)) {
+        localStorage.setItem(seenKey, '1');
+        setTimeout(() => {
+          showRewardCelebration(specificMsg);
+        }, 350);
+      }
+    }
+    return;
+  }
+
+  // Scan all messages for any unseen reward question sent to current user
+  if (!messages || messages.length === 0) return;
+  for (let i = messages.length - 1; i >= 0; i--) {
+    const m = messages[i];
+    const isMe = m.sender && currentUser && m.sender.toLowerCase() === currentUser.toLowerCase();
+    const isReward = (m.reward_animation === 1 || m.reward_animation === '1');
+    if (!isMe && isReward) {
+      const seenKey = 'hk_reward_seen_' + m.id;
+      if (!localStorage.getItem(seenKey)) {
+        localStorage.setItem(seenKey, '1');
+        setTimeout(() => {
+          showRewardCelebration(m);
+        }, 400);
+        break;
+      }
+    }
+  }
+}
+
 function clearUnread() {
   unreadCount = 0;
   updateUnreadBadge();
   markAsReadOnServer();
+  checkPendingRewardCelebration();
 }
 
 function updateUnreadBadge() {
@@ -1955,6 +2010,7 @@ function stopRewardConfetti() {
     onMessagesRead,
     onTypingStatus,
     clearUnread,
+    checkPendingRewardCelebration,
     scrollToBottom
   };
 
