@@ -38,7 +38,8 @@ function initSchema() {
       is_deleted INTEGER DEFAULT 0,
       image_url TEXT DEFAULT '',
       is_ephemeral INTEGER DEFAULT 0,
-      expires_at DATETIME DEFAULT NULL
+      expires_at DATETIME DEFAULT NULL,
+      reward_animation INTEGER DEFAULT 0
     );
 
     CREATE TABLE IF NOT EXISTS orders (
@@ -213,6 +214,10 @@ function initSchema() {
   } catch (e) {}
 
   try {
+    db.exec('ALTER TABLE messages ADD COLUMN reward_animation INTEGER DEFAULT 0;');
+  } catch (e) {}
+
+  try {
     db.exec('ALTER TABLE deadlines ADD COLUMN room_number TEXT DEFAULT "";');
   } catch (e) {}
 
@@ -315,16 +320,16 @@ function getMessages(limit = 150) {
   return db.prepare('SELECT * FROM messages ORDER BY id ASC LIMIT ?').all(limit);
 }
 
-function addMessage(sender, text, type = 'text', replyTo = null, imageUrl = '', questionType = '', questionStatus = '', questionOptions = '', selectedOption = '', isEphemeral = 0, expiresAt = null) {
+function addMessage(sender, text, type = 'text', replyTo = null, imageUrl = '', questionType = '', questionStatus = '', questionOptions = '', selectedOption = '', isEphemeral = 0, expiresAt = null, rewardAnimation = 0) {
   const reply_to_id = replyTo ? replyTo.id : null;
   const reply_to_sender = replyTo ? (replyTo.sender || '') : '';
   const reply_to_text = replyTo ? (replyTo.text || '') : '';
   const nowIso = new Date().toISOString();
 
   const result = db.prepare(`
-    INSERT INTO messages (sender, text, type, reply_to_id, reply_to_sender, reply_to_text, timestamp, image_url, question_type, question_status, question_options, selected_option, is_ephemeral, expires_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(sender, text, type, reply_to_id, reply_to_sender, reply_to_text, nowIso, imageUrl || '', questionType || '', questionStatus || '', questionOptions || '', selectedOption || '', isEphemeral ? 1 : 0, expiresAt || null);
+    INSERT INTO messages (sender, text, type, reply_to_id, reply_to_sender, reply_to_text, timestamp, image_url, question_type, question_status, question_options, selected_option, is_ephemeral, expires_at, reward_animation)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(sender, text, type, reply_to_id, reply_to_sender, reply_to_text, nowIso, imageUrl || '', questionType || '', questionStatus || '', questionOptions || '', selectedOption || '', isEphemeral ? 1 : 0, expiresAt || null, rewardAnimation ? 1 : 0);
   return db.prepare('SELECT * FROM messages WHERE id = ?').get(result.lastInsertRowid);
 }
 

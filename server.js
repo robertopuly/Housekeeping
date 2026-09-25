@@ -17,7 +17,7 @@ const io = new Server(server, {
 });
 
 const PORT = process.env.PORT || 8765;
-const CURRENT_APP_VERSION = 55;
+const CURRENT_APP_VERSION = 56;
 
 const uploadsDir = path.join(__dirname, 'public', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -119,8 +119,9 @@ app.post('/api/messages', (req, res) => {
     if (isEphemeral) {
       expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
     }
+    const rewardAnimation = req.body.reward_animation === 1 || req.body.reward_animation === true || req.body.reward_animation === '1';
 
-    const msg = db.addMessage(sender, text || '', msgType, reply_to || null, imageUrl, qType, qStatus, qOptions, '', isEphemeral ? 1 : 0, expiresAt);
+    const msg = db.addMessage(sender, text || '', msgType, reply_to || null, imageUrl, qType, qStatus, qOptions, '', isEphemeral ? 1 : 0, expiresAt, rewardAnimation ? 1 : 0);
     io.emit('chat:message', msg);
     res.status(201).json(msg);
   } catch (err) {

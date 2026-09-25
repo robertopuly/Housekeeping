@@ -163,6 +163,49 @@ function playSuccessSound() {
   } catch (e) {}
 }
 
+// Son festif de récompense / gain (fanfare joyeuse + carillon de pièces scintillantes)
+function playRewardSound() {
+  if (isMuted()) return;
+  const ctx = getAudioContext();
+  if (!ctx) return;
+
+  try {
+    const now = ctx.currentTime;
+    // Fanfare de triomphe joyeux : Do5, Mi5, Sol5, Do6, Mi6
+    const fanfareNotes = [523.25, 659.25, 783.99, 1046.50, 1318.51];
+    fanfareNotes.forEach((freq, idx) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(freq, now + idx * 0.1);
+      gain.gain.setValueAtTime(0.001, now);
+      gain.gain.setValueAtTime(0.26, now + idx * 0.1);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.1 + (idx === fanfareNotes.length - 1 ? 0.9 : 0.25));
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now + idx * 0.1);
+      osc.stop(now + idx * 0.1 + (idx === fanfareNotes.length - 1 ? 0.9 : 0.25));
+    });
+
+    // Carillon doré scintillant (effet pièces d'or)
+    const sparkleTimes = [0.25, 0.45, 0.65, 0.85, 1.05, 1.25];
+    sparkleTimes.forEach((t, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(1760 + i * 220, now + t);
+      gain.gain.setValueAtTime(0.12, now + t);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + t + 0.18);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start(now + t);
+      osc.stop(now + t + 0.18);
+    });
+  } catch (e) {
+    console.warn('Audio reward error:', e);
+  }
+}
+
 window.SoundEngine = {
   initAudio,
   isMuted,
@@ -172,5 +215,6 @@ window.SoundEngine = {
   playMessageSound,
   playSentSound,
   playUrgentAlert,
-  playSuccessSound
+  playSuccessSound,
+  playRewardSound
 };

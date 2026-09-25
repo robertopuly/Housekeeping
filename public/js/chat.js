@@ -317,10 +317,19 @@ function renderChoiceQuestionHtml(msg, isMe, currentUser) {
     }
   }
 
+  const isReward = msg.reward_animation === 1 || msg.reward_animation === '1';
+
   return `
-    <div class="msg-choice-card ${isMe ? 'card-out' : 'card-in'}" data-choice-id="${msg.id}">
+    <div class="msg-choice-card ${isMe ? 'card-out' : 'card-in'} ${isReward ? 'msg-choice-card-reward' : ''}" data-choice-id="${msg.id}">
       <div class="msg-choice-header">
-        <span class="msg-choice-badge">📋 Question à choix multiples</span>
+        <span class="msg-choice-badge ${isReward ? 'msg-choice-badge-reward' : ''}">
+          ${isReward ? '🎁 Question Récompense ✨' : '📋 Question à choix multiples'}
+        </span>
+        ${isReward ? `
+          <button type="button" class="btn-replay-reward" onclick="window.ChatModule.replayRewardCelebration(${msg.id})" title="Rejouer l'animation de célébration">
+            🎉 Rejouer l'animation
+          </button>
+        ` : ''}
       </div>
       ${bodyHtml}
     </div>
@@ -748,11 +757,46 @@ function onQuestionAnswered(data) {
   renderMessages();
 }
 
+function toggleChoiceRewardAnimation() {
+  const input = document.getElementById('choice-reward-animation-input');
+  const btn = document.getElementById('btn-toggle-reward-anim');
+  const badge = document.getElementById('reward-toggle-badge');
+  const icon = document.getElementById('reward-toggle-icon');
+  if (!input || !btn) return;
+
+  const isCurrentlyActive = input.value === '1';
+  const nextState = !isCurrentlyActive;
+  input.value = nextState ? '1' : '0';
+
+  if (nextState) {
+    btn.classList.add('active');
+    if (badge) badge.textContent = '✨ ACTIF';
+    if (icon) icon.textContent = '🎉';
+    if (window.SoundEngine && typeof window.SoundEngine.playSentSound === 'function') {
+      window.SoundEngine.playSentSound();
+    }
+  } else {
+    btn.classList.remove('active');
+    if (badge) badge.textContent = 'OFF';
+    if (icon) icon.textContent = '🎁';
+  }
+}
+
 function openChoiceModal() {
   const modal = document.getElementById('modal-chat-choice');
   const questionInput = document.getElementById('choice-question-text');
   const container = document.getElementById('choice-options-inputs-container');
   if (questionInput) questionInput.value = '';
+
+  const rewardInput = document.getElementById('choice-reward-animation-input');
+  const rewardBtn = document.getElementById('btn-toggle-reward-anim');
+  const rewardBadge = document.getElementById('reward-toggle-badge');
+  const rewardIcon = document.getElementById('reward-toggle-icon');
+  if (rewardInput) rewardInput.value = '0';
+  if (rewardBtn) rewardBtn.classList.remove('active');
+  if (rewardBadge) rewardBadge.textContent = 'OFF';
+  if (rewardIcon) rewardIcon.textContent = '🎁';
+
   if (container) {
     container.innerHTML = `
       <div class="choice-opt-input-row">
@@ -822,6 +866,7 @@ async function submitChoiceQuestion(event) {
 
   const question = questionEl ? questionEl.value.trim() : '';
   const options = Array.from(optInputs).map(inp => inp.value.trim()).filter(Boolean);
+  const isReward = document.getElementById('choice-reward-animation-input')?.value === '1';
 
   if (!question) {
     if (questionEl) {
@@ -850,7 +895,8 @@ async function submitChoiceQuestion(event) {
         sender: 'Roberto',
         text: question,
         question_type: 'choice',
-        options: options
+        options: options,
+        reward_animation: isReward ? 1 : 0
       })
     });
 
@@ -1121,7 +1167,10 @@ function onMessageReceived(msg) {
   const isSystem = msg.sender.toLowerCase() === 'système' || msg.sender.toLowerCase() === 'sistema';
 
   if (!isMe && !isSystem) {
-    if (window.SoundEngine) {
+    const isReward = (msg.reward_animation === 1 || msg.reward_animation === '1');
+    if (isReward) {
+      showRewardCelebration(msg);
+    } else if (window.SoundEngine) {
       window.SoundEngine.playMessageSound();
     }
 
@@ -1725,6 +1774,161 @@ function onMessagesReset(newMessages) {
   scrollToBottom();
 }
 
+let activeRewardMsgId = null;
+let confettiAnimId = null;
+
+function showRewardCelebration(msg) {
+  const overlay = document.getElementById('reward-celebration-overlay');
+  const questionText = document.getElementById('reward-celebration-question-text');
+  if (!overlay) return;
+
+  activeRewardMsgId = msg ? msg.id : null;
+  if (questionText && msg) {
+    questionText.textContent = `« ${msg.text || ''} »`;
+  }
+
+  overlay.style.display = 'flex';
+  overlay.classList.add('reward-active');
+
+  if (window.SoundEngine && typeof window.SoundEngine.playRewardSound === 'function') {
+    window.SoundEngine.playRewardSound();
+  }
+
+  startRewardConfetti();
+}
+
+function closeRewardCelebration(goToMessage = false) {
+  const overlay = document.getElementById('reward-celebration-overlay');
+  if (overlay) {
+    overlay.classList.remove('reward-active');
+    setTimeout(() => {
+      overlay.style.display = 'none';
+      stopRewardConfetti();
+    }, 200);
+  } else {
+    stopRewardConfetti();
+  }
+
+  if (goToMessage) {
+    if (window.App && typeof window.App.switchTab === 'function') {
+      window.App.switchTab('tab-chat');
+    }
+    if (activeRewardMsgId) {
+      setTimeout(() => {
+        const card = document.querySelector(`.msg-choice-card[data-choice-id="${activeRewardMsgId}"]`);
+        if (card) {
+          card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          card.classList.add('highlight-pulse');
+          setTimeout(() => card.classList.remove('highlight-pulse'), 2000);
+        } else {
+          scrollToBottom(true);
+        }
+      }, 300);
+    }
+  }
+}
+
+function replayRewardCelebration(msgId) {
+  const msg = messages.find(m => m.id === msgId);
+  if (msg) {
+    showRewardCelebration(msg);
+  }
+}
+
+function startRewardConfetti() {
+  const canvas = document.getElementById('reward-confetti-canvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return;
+
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+
+  const colors = [
+    '#f59e0b', '#fbbf24', '#d97706', // Golds
+    '#10b981', '#34d399', '#059669', // Emeralds
+    '#ec4899', '#f43f5e', '#ef4444', // Pinks / Reds
+    '#8b5cf6', '#6366f1', '#3b82f6'  // Purples / Blues
+  ];
+
+  const particleCount = 110;
+  const particles = [];
+
+  for (let i = 0; i < particleCount; i++) {
+    particles.push({
+      x: Math.random() * canvas.width,
+      y: -20 - Math.random() * 120,
+      w: 8 + Math.random() * 10,
+      h: 5 + Math.random() * 8,
+      color: colors[Math.floor(Math.random() * colors.length)],
+      vx: -3 + Math.random() * 6,
+      vy: 3 + Math.random() * 5,
+      rot: Math.random() * 360,
+      vRot: -6 + Math.random() * 12,
+      isStar: Math.random() > 0.65,
+      opacity: 1
+    });
+  }
+
+  let startTime = Date.now();
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const elapsed = Date.now() - startTime;
+
+    particles.forEach(p => {
+      p.x += p.vx;
+      p.y += p.vy;
+      p.rot += p.vRot;
+
+      if (p.y > canvas.height) {
+        if (elapsed < 4000) {
+          p.y = -20;
+          p.x = Math.random() * canvas.width;
+        } else {
+          p.opacity -= 0.025;
+        }
+      }
+
+      if (p.opacity <= 0) return;
+
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, p.opacity);
+      ctx.translate(p.x, p.y);
+      ctx.rotate((p.rot * Math.PI) / 180);
+      ctx.fillStyle = p.color;
+
+      if (p.isStar) {
+        ctx.beginPath();
+        ctx.arc(0, 0, p.w / 2.2, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
+      }
+      ctx.restore();
+    });
+
+    if (particles.some(p => p.opacity > 0)) {
+      confettiAnimId = requestAnimationFrame(draw);
+    }
+  }
+
+  if (confettiAnimId) cancelAnimationFrame(confettiAnimId);
+  confettiAnimId = requestAnimationFrame(draw);
+}
+
+function stopRewardConfetti() {
+  if (confettiAnimId) {
+    cancelAnimationFrame(confettiAnimId);
+    confettiAnimId = null;
+  }
+  const canvas = document.getElementById('reward-confetti-canvas');
+  if (canvas) {
+    const ctx = canvas.getContext('2d');
+    if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
+  }
+}
+
   window.ChatModule = {
     initChat,
     sendMessage,
@@ -1734,6 +1938,7 @@ function onMessagesReset(newMessages) {
     closeChoiceModal,
     addChoiceOptionInput,
     renumberChoiceOptions,
+    toggleChoiceRewardAnimation,
     submitChoiceQuestion,
     selectChoiceOption,
     submitChoiceAnswer,
@@ -1742,6 +1947,9 @@ function onMessagesReset(newMessages) {
     onMessageDeleted,
     onMessagesExpired,
     onMessagesReset,
+    showRewardCelebration,
+    closeRewardCelebration,
+    replayRewardCelebration,
     toggleEphemeralMode,
     isEphemeralActive: () => isEphemeralActive,
     onMessagesRead,
@@ -1749,4 +1957,7 @@ function onMessagesReset(newMessages) {
     clearUnread,
     scrollToBottom
   };
+
+  window.toggleChoiceRewardAnimation = toggleChoiceRewardAnimation;
+  window.closeRewardCelebration = closeRewardCelebration;
 })();

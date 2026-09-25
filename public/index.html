@@ -8,9 +8,9 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <title>Gouvernante Hôtel - Gestion & Communication</title>
-  <link rel="stylesheet" href="css/styles.css?v=55">
+  <link rel="stylesheet" href="css/styles.css?v=56">
   <script>
-    window.APP_VERSION = 55;
+    window.APP_VERSION = 56;
     function getTodayIsoStr() {
       var d = new Date();
       var y = d.getFullYear();
@@ -1195,7 +1195,20 @@
       </div>
       <form id="form-chat-choice" onsubmit="submitChoiceQuestion(event); return false;">
         <div class="modal-body">
-          <div class="form-group">
+          <!-- BOUTON D'ACTIVATION ANIMATION RÉCOMPENSE / GAIN -->
+          <div class="reward-animation-toggle-box">
+            <button type="button" id="btn-toggle-reward-anim" class="btn-toggle-reward-anim" onclick="window.ChatModule.toggleChoiceRewardAnimation()" title="Activer l'animation surprise / gain pour le destinataire">
+              <span class="reward-toggle-icon" id="reward-toggle-icon">🎁</span>
+              <div class="reward-toggle-text">
+                <span class="reward-toggle-title">Animation de Récompense (Effet Gain)</span>
+                <span class="reward-toggle-sub">Déclenche confettis, fanfare et célébration surprise pour le destinataire</span>
+              </div>
+              <span class="reward-toggle-badge" id="reward-toggle-badge">OFF</span>
+            </button>
+            <input type="hidden" id="choice-reward-animation-input" value="0" />
+          </div>
+
+          <div class="form-group" style="margin-top: 14px;">
             <label for="choice-question-text">Question pour Adélcia *</label>
             <input type="text" id="choice-question-text" class="form-control" placeholder="ex. Que préfères-tu pour le dessert ?" required />
           </div>
@@ -1224,16 +1237,37 @@
     </div>
   </div>
 
+  <!-- OVERLAY CÉLÉBRATION RÉCOMPENSE / GAIN -->
+  <div id="reward-celebration-overlay" class="reward-celebration-overlay" style="display: none;" onclick="window.ChatModule.closeRewardCelebration()">
+    <canvas id="reward-confetti-canvas" class="reward-confetti-canvas"></canvas>
+    <div class="reward-celebration-card" onclick="event.stopPropagation()">
+      <button type="button" class="btn-close-reward" onclick="window.ChatModule.closeRewardCelebration()" title="Fermer">&times;</button>
+      <div class="reward-rays-wrapper">
+        <div class="reward-rays"></div>
+        <div class="reward-trophy-icon" id="reward-celebration-icon">🎁</div>
+      </div>
+      <div class="reward-celebration-badge">✨ CÉLÉBRATION SPÉCIALE ✨</div>
+      <h2 class="reward-celebration-title">Surprise pour toi !</h2>
+      <p class="reward-celebration-sub">Tu as gagné une récompense ! Roberto t'a envoyé une question spéciale :</p>
+      <div class="reward-question-quote" id="reward-celebration-question-text">
+        « ... »
+      </div>
+      <button type="button" class="btn-reward-discover" onclick="window.ChatModule.closeRewardCelebration(true)">
+        🎁 Découvrir mon Choix !
+      </button>
+    </div>
+  </div>
+
   <!-- SCRIPTS -->
   <script src="/socket.io/socket.io.js"></script>
-  <script src="js/audio.js?v=55"></script>
-  <script src="js/socket.js?v=55"></script>
-  <script src="js/chat.js?v=55"></script>
-  <script src="js/orders.js?v=55"></script>
-  <script src="js/deadlines.js?v=55"></script>
-  <script src="js/shopping.js?v=55"></script>
-  <script src="js/expenses.js?v=55"></script>
-  <script src="js/leave.js?v=55"></script>
-  <script src="js/app.js?v=55"></script>
+  <script src="js/audio.js?v=56"></script>
+  <script src="js/socket.js?v=56"></script>
+  <script src="js/chat.js?v=56"></script>
+  <script src="js/orders.js?v=56"></script>
+  <script src="js/deadlines.js?v=56"></script>
+  <script src="js/shopping.js?v=56"></script>
+  <script src="js/expenses.js?v=56"></script>
+  <script src="js/leave.js?v=56"></script>
+  <script src="js/app.js?v=56"></script>
 </body>
 </html>
