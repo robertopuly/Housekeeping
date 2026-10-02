@@ -459,18 +459,26 @@ function updateRoomCardDOM(card, room) {
   // Ne JAMAIS détruire le DOM ni l'input ! Conserver la saisie et le focus intacts.
   if (isTyping) {
     room.notes = noteInput.value;
-    const topBadges = card.querySelector('.daily-room-top-badges');
-    if (topBadges) {
-      if (isActualized) {
-        const unact = topBadges.querySelector('.pill-unactualized');
+    if (isTablet) {
+      const pillsContainer = card.querySelector('.tablet-room-pills');
+      if (pillsContainer && isActualized) {
+        const unact = pillsContainer.querySelector('.pill-unactualized');
         if (unact) unact.remove();
-        const valBtn = topBadges.querySelector('.btn-actualize-room');
-        if (valBtn) valBtn.remove();
-        if (!topBadges.querySelector('.pill-actualized')) {
-          const actPill = document.createElement('span');
-          actPill.className = 'status-pill pill-actualized';
-          actPill.textContent = '✓ Actualisé';
-          topBadges.prepend(actPill);
+      }
+    } else {
+      const topBadges = card.querySelector('.daily-room-top-badges');
+      if (topBadges) {
+        if (isActualized) {
+          const unact = topBadges.querySelector('.pill-unactualized');
+          if (unact) unact.remove();
+          const valBtn = topBadges.querySelector('.btn-actualize-room');
+          if (valBtn) valBtn.remove();
+          if (!topBadges.querySelector('.pill-actualized')) {
+            const actPill = document.createElement('span');
+            actPill.className = 'status-pill pill-actualized';
+            actPill.textContent = '✓ Actualisé';
+            topBadges.prepend(actPill);
+          }
         }
       }
     }
@@ -514,111 +522,57 @@ function getDailyRoomCardInnerHtml(room, isTablet) {
 
   if (isTablet) {
     // ----------------------------------------------------
-    // VUE ADÉLCIA / TABLET (Épurée, claire, sans sélecteurs)
+    // VUE ADÉLCIA / TABLET (3 LIGNES COMPACTES)
     // ----------------------------------------------------
+    const isReadyOrTermine = (isControlRequested || cleanliness === 'termine');
+
     return `
-      <!-- TOP : Chambre et badges d'exception / état -->
-      <div class="daily-room-top">
-        <div class="daily-room-number-badge">
+      <!-- LIGNE 1 : Chambre + Mouvement + Éventuelles spécificités lits/personnes -->
+      <div class="tablet-room-row tablet-room-row-1">
+        <div class="tablet-room-title">
           <span>🚪 Chambre ${roomNum}</span>
         </div>
-        <div class="daily-room-top-badges">
-          ${!isActualized ? '<span class="status-pill pill-unactualized">⚪ Non actualisé</span>' : ''}
-          ${isActualized && cleanliness === 'deja_propre' ? '<span class="status-pill pill-propre">✨ Déjà Propre</span>' : ''}
-          ${isActualized && cleanliness === 'a_faire' ? '<span class="status-pill pill-a-faire">⏳ À faire</span>' : ''}
-          ${isActualized && cleanliness === 'termine' ? '<span class="status-pill pill-termine">✅ Terminé</span>' : ''}
-          ${isActualized && access === 'client_sorti' ? '<span class="status-pill pill-accessible">🟢 Accès Libre</span>' : ''}
-          ${isSeparati ? '<span class="bed-type-badge separati">🛏️🛏️ Lits Séparés</span>' : ''}
-        </div>
-      </div>
-
-      <!-- 1. MOUVEMENT DU JOUR (Uniquement le badge actif) -->
-      <div class="room-status-flags room-status-flags-tablet">
-        ${!isActualized ? `
-          <div class="flag-btn flag-readonly flag-unactualized" title="En attente de vérification par Roberto">
-            <span>⚪ En attente de Roberto</span>
-          </div>
-        ` : `
-          ${status === 'libera' ? `
-            <div class="flag-btn flag-libera active flag-readonly" title="Chambre Libre / Arrivée">
-              <span>🟢 Libre</span>
-            </div>
-          ` : ''}
-          ${status === 'partenza' ? `
-            <div class="flag-btn flag-partenza active flag-readonly" title="Départ / À blanc">
-              <span>🔴 Départ</span>
-            </div>
-          ` : ''}
-          ${status === 'restante' ? `
-            <div class="flag-btn flag-restante active flag-readonly" title="Recouche / Client reste">
-              <span>🟡 Recouche</span>
-            </div>
-          ` : ''}
-        `}
-      </div>
-
-      <!-- 2. ACCÈS EN TEMPS RÉEL (Uniquement le statut actif) -->
-      <div class="room-detail-row room-detail-row-tablet">
-        <span class="detail-label">🚪 Accès :</span>
-        <div class="segmented-group-tablet">
-          ${access === 'en_chambre' ? `
-            <div class="segment-btn btn-access active access-en-chambre flag-readonly">
-              🔴 En chambre
-            </div>
+        <div class="tablet-room-pills">
+          ${!isActualized ? `
+            <span class="tablet-pill pill-unactualized" title="En attente de vérification par Roberto">⚪ Non actualisé</span>
           ` : `
-            <div class="segment-btn btn-access active access-client-sorti flag-readonly">
-              🟢 Client sorti / Libre
-            </div>
+            ${status === 'libera' ? '<span class="tablet-pill pill-libera">🟢 Libre</span>' : ''}
+            ${status === 'partenza' ? '<span class="tablet-pill pill-partenza">🔴 Départ</span>' : ''}
+            ${status === 'restante' ? '<span class="tablet-pill pill-restante">🟡 Recouche</span>' : ''}
           `}
+          ${isSeparati ? '<span class="tablet-pill pill-beds" title="Lits séparés">🛏️ Séparés</span>' : ''}
+          ${needsExtraBed ? '<span class="tablet-pill pill-extra-bed" title="Ajouter un lit d\'appoint (3 personnes)">⚠️ Lit suppl. (3p)</span>' : ''}
+          ${guests !== 2 && !needsExtraBed ? `<span class="tablet-pill pill-guests">👥 ${guests}p</span>` : ''}
         </div>
       </div>
 
-      <!-- 3. ÉTAT DU MÉNAGE (Bouton Terminé pour Adélcia) -->
-      <div class="room-detail-row room-detail-row-tablet">
-        <span class="detail-label">🧹 État :</span>
-        <div class="segmented-group segmented-group-clean-tablet">
-          ${cleanliness === 'termine' ? `
-            <button type="button" class="segment-btn btn-clean active clean-termine" data-clean="termine" data-room="${roomNum}" title="Cliquer pour basculer à faire en cas d'erreur">
-              ✅ Terminé
-            </button>
-          ` : `
-            <span class="segment-badge-status ${cleanliness === 'deja_propre' ? 'clean-deja-propre' : 'clean-a-faire'}">
-              ${cleanliness === 'deja_propre' ? '✨ Déjà propre' : '⏳ À faire'}
-            </span>
-            <button type="button" class="segment-btn btn-clean clean-btn-action" data-clean="termine" data-room="${roomNum}">
-              ✅ Terminé
-            </button>
-          `}
+      <!-- LIGNE 2 : État des chambres (Accès + État du ménage SANS le bouton terminé) -->
+      <div class="tablet-room-row tablet-room-row-2">
+        <div class="tablet-status-item">
+          <span class="tablet-status-label">🚪 Accès :</span>
+          ${access === 'client_sorti'
+            ? '<span class="tablet-badge badge-access-sorti">🟢 Client sorti</span>'
+            : '<span class="tablet-badge badge-access-chambre">🔴 En chambre</span>'
+          }
+        </div>
+        <div class="tablet-status-item">
+          <span class="tablet-status-label">🧹 État :</span>
+          ${cleanliness === 'deja_propre'
+            ? '<span class="tablet-badge badge-clean-propre">✨ Déjà propre</span>'
+            : (isReadyOrTermine
+              ? '<span class="tablet-badge badge-clean-termine">✅ Fait</span>'
+              : '<span class="tablet-badge badge-clean-afaire">⏳ À faire</span>'
+            )
+          }
         </div>
       </div>
 
-      <!-- 4. EXCEPTIONS CLIENTS & LITS (Uniquement si différent du standard 2 pers / Grand Lit) -->
-      ${guests !== 2 ? `
-        <div class="room-exception-banner ${needsExtraBed ? 'exception-extra-bed' : 'exception-guests'}">
-          ${needsExtraBed ? `
-            <span>⚠️ 🛏️ <strong>AJOUTER UN LIT D'APPOINT !</strong> (3 Personnes)</span>
-          ` : `
-            <span>👥 <strong>${guests} Personne${guests > 1 ? 's' : ''}</strong></span>
-          `}
-        </div>
-      ` : ''}
-
-      ${isSeparati ? `
-        <div class="room-exception-banner exception-beds">
-          <span>🛏️🛏️ <strong>ATTENTION : LITS SÉPARÉS !</strong></span>
-        </div>
-      ` : ''}
-
-      <!-- 5. NOTES CHAMBRE -->
-      <div>
-        <input type="text" class="room-notes-input" placeholder="Notes pour la Chambre ${roomNum}..." value="${escapeHtml(notes)}" data-room="${roomNum}" />
-      </div>
-
-      <!-- 6. BOUTON PRÊTE POUR LE CONTRÔLE -->
-      <div>
-        <button type="button" class="btn-room-ready ${isControlRequested ? 'btn-sent' : ''}" data-room="${roomNum}" title="${isControlRequested ? 'Maintenir appuyé 2s pour annuler' : 'Notifier Roberto que la Chambre ' + roomNum + ' est prête pour le contrôle'}">
-          <span>${isControlRequested ? '✅ Message envoyé à Roberto !' : `🔍 Chambre ${roomNum} prête pour le contrôle`}</span>
+      <!-- LIGNE 3 : Action gauche (Terminé ok x contrôle) + Commentaire droite -->
+      <div class="tablet-room-row tablet-room-row-3">
+        <button type="button" class="btn-room-ready btn-tablet-ready ${isReadyOrTermine ? 'btn-sent' : ''}" data-room="${roomNum}" title="${isReadyOrTermine ? 'Maintenir appuyé 2s pour annuler' : 'Marquer terminé et envoyer à Roberto'}">
+          <span>✅ Terminé (ok x contrôle)</span>
         </button>
+        <input type="text" class="room-notes-input tablet-notes-input" placeholder="Notes pour la Chambre ${roomNum}..." value="${escapeHtml(notes)}" data-room="${roomNum}" />
       </div>
     `;
   }
@@ -883,15 +837,25 @@ function bindRoomCardEvents(card) {
     });
   }
 
-  // 7. Bouton Contrôle (avec maintien 2s pour annuler)
+  // 7. Bouton Contrôle / Terminé (avec maintien 2s pour annuler)
   const readyBtn = card.querySelector('.btn-room-ready');
   if (readyBtn) {
     let holdTimer = null;
     let isLongPressTriggered = false;
 
-    const startHold = (e) => {
+    const getBtnNormalText = () => {
+      if (isTabletView()) {
+        return `<span>✅ Terminé (ok x contrôle)</span>`;
+      }
       const currentRoom = dailyRooms.find(r => r.room_number === roomNum);
       const isSent = currentRoom && currentRoom.control_requested === 1;
+      return isSent ? `<span>✅ Message envoyé à Roberto !</span>` : `<span>🔍 Chambre ${roomNum} prête pour le contrôle</span>`;
+    };
+
+    const startHold = (e) => {
+      const currentRoom = dailyRooms.find(r => r.room_number === roomNum);
+      const isTablet = isTabletView();
+      const isSent = currentRoom && (currentRoom.control_requested === 1 || (isTablet && currentRoom.cleanliness_status === 'termine'));
       if (!isSent) return;
 
       isLongPressTriggered = false;
@@ -907,7 +871,23 @@ function bindRoomCardEvents(card) {
         }
 
         const user = window.App ? window.App.getCurrentUser() : 'Adélcia';
-        await saveRoomUpdate(roomNum, { control_requested: 0, updated_by: user });
+        const changes = { control_requested: 0, updated_by: user };
+        if (isTablet) {
+          changes.cleanliness_status = 'a_faire';
+          changes.is_actualized = 1;
+        }
+        if (currentRoom) {
+          currentRoom.control_requested = 0;
+          if (isTablet) {
+            currentRoom.cleanliness_status = 'a_faire';
+            currentRoom.is_actualized = 1;
+          }
+        }
+        await saveRoomUpdate(roomNum, changes);
+        readyBtn.classList.remove('btn-sent');
+        readyBtn.innerHTML = getBtnNormalText();
+        updateRoomCardDOM(card, currentRoom);
+        renderDailyUpdateBanner();
 
         if (user.toLowerCase() !== 'roberto') {
           const cancelMsg = `Désolé, la chambre ${roomNum} n’est pas encore prête`;
@@ -932,9 +912,10 @@ function bindRoomCardEvents(card) {
       readyBtn.classList.remove('btn-holding');
 
       const currentRoom = dailyRooms.find(r => r.room_number === roomNum);
-      const isSent = currentRoom && currentRoom.control_requested === 1;
+      const isTablet = isTabletView();
+      const isSent = currentRoom && (currentRoom.control_requested === 1 || (isTablet && currentRoom.cleanliness_status === 'termine'));
       if (isSent && !isLongPressTriggered) {
-        readyBtn.innerHTML = `<span>✅ Message envoyé à Roberto !</span>`;
+        readyBtn.innerHTML = getBtnNormalText();
       }
     };
 
@@ -955,10 +936,30 @@ function bindRoomCardEvents(card) {
       }
 
       const currentRoom = dailyRooms.find(r => r.room_number === roomNum);
-      const isSent = currentRoom && currentRoom.control_requested === 1;
+      const isTablet = isTabletView();
+      const isSent = currentRoom && (currentRoom.control_requested === 1 || (isTablet && currentRoom.cleanliness_status === 'termine'));
       const user = window.App ? window.App.getCurrentUser() : 'Roberto';
 
       if (!isSent) {
+        readyBtn.classList.add('btn-sent');
+        const changes = { control_requested: 1, updated_by: user };
+        if (isTablet) {
+          changes.cleanliness_status = 'termine';
+          changes.is_actualized = 1;
+        }
+        if (currentRoom) {
+          currentRoom.control_requested = 1;
+          if (isTablet) {
+            currentRoom.cleanliness_status = 'termine';
+            currentRoom.is_actualized = 1;
+          }
+        }
+
+        readyBtn.innerHTML = getBtnNormalText();
+        await saveRoomUpdate(roomNum, changes);
+        updateRoomCardDOM(card, currentRoom);
+        renderDailyUpdateBanner();
+
         if (user.toLowerCase() !== 'roberto') {
           const msgText = `Chambre ${roomNum} prête pour le contrôle`;
           if (window.ChatModule && typeof window.ChatModule.sendMessage === 'function') {
@@ -970,18 +971,14 @@ function bindRoomCardEvents(card) {
               body: JSON.stringify({ sender: user, text: msgText })
             });
           }
-          readyBtn.classList.add('btn-sent');
-          readyBtn.innerHTML = `<span>✅ Message envoyé à Roberto !</span>`;
-          await saveRoomUpdate(roomNum, { control_requested: 1, updated_by: user });
-        } else {
-          await saveRoomUpdate(roomNum, { control_requested: 1, updated_by: user });
         }
       } else {
         readyBtn.innerHTML = `<span>⏳ Maintenir 2s pour annuler</span>`;
         setTimeout(() => {
           const checkRoom = dailyRooms.find(r => r.room_number === roomNum);
-          if (checkRoom && checkRoom.control_requested === 1 && !readyBtn.classList.contains('btn-holding')) {
-            readyBtn.innerHTML = `<span>✅ Message envoyé à Roberto !</span>`;
+          const stillSent = checkRoom && (checkRoom.control_requested === 1 || (isTabletView() && checkRoom.cleanliness_status === 'termine'));
+          if (stillSent && !readyBtn.classList.contains('btn-holding')) {
+            readyBtn.innerHTML = getBtnNormalText();
           }
         }, 1500);
       }
