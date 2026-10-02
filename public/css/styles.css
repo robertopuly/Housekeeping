@@ -178,6 +178,25 @@ body {
   background: #334155;
 }
 
+.wakelock-btn {
+  background: #14532d !important;
+  color: #86efac !important;
+  border-color: #22c55e !important;
+  font-weight: 700 !important;
+}
+
+.wakelock-btn.inactive {
+  background: var(--bg-header-light) !important;
+  color: #94a3b8 !important;
+  border-color: #475569 !important;
+  opacity: 0.75;
+}
+
+.wakelock-btn:hover {
+  background: #166534 !important;
+  color: #bbf7d0 !important;
+}
+
 .user-chip-badge {
   background: var(--bg-header-light);
   color: var(--text-light);

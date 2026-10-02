@@ -39,8 +39,16 @@
   }
 
   function onTabletAlertReceived(data = {}) {
-    // Joue la chansonnette de 3 secondes uniquement sur le Tablet (ou session Adélcia)
+    // Joue la chansonnette uniquement sur le Tablet (ou session Adélcia)
     if (!isTabletDevice()) return;
+
+    if (data && data.id) {
+      const lastId = localStorage.getItem('hk_last_played_alert_id');
+      if (lastId && String(lastId) === String(data.id)) {
+        return; // Déjà joué, évite le doublon
+      }
+      localStorage.setItem('hk_last_played_alert_id', String(data.id));
+    }
 
     if (window.SoundEngine && typeof window.SoundEngine.playHappySongSound === 'function') {
       window.SoundEngine.playHappySongSound();
@@ -48,6 +56,37 @@
 
     showTabletAlertToast("🔔 Roberto a mis à jour les chambres !");
   }
+
+  async function checkMissedTabletNotification() {
+    if (!isTabletDevice()) return;
+    try {
+      const res = await fetch('/api/daily-rooms/latest-tablet-notification');
+      if (res.ok) {
+        const json = await res.json();
+        const notif = json && json.notification;
+        if (notif && notif.timestamp) {
+          const ageMs = Date.now() - notif.timestamp;
+          // Si l'alerte a été envoyée il y a moins de 25 minutes et n'a pas encore été jouée sur cet appareil
+          if (ageMs < 25 * 60 * 1000) {
+            const lastId = localStorage.getItem('hk_last_played_alert_id');
+            if (!lastId || String(lastId) !== String(notif.id)) {
+              console.log('Alerte manquée détectée au réveil du tablet:', notif);
+              onTabletAlertReceived(notif);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Erreur vérification alerte manquée tablet:', e);
+    }
+  }
+
+  // Vérifier les alertes manquées dès que la tablette redevient active / visible
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') {
+      checkMissedTabletNotification();
+    }
+  });
 
   async function notifyTabletWithSong() {
     const currentUser = (window.App && typeof window.App.getCurrentUser === 'function')
@@ -1726,6 +1765,7 @@ function refreshAll() {
     actualizeRoom,
     notifyTabletWithSong,
     onTabletAlertReceived,
+    checkMissedTabletNotification,
     goToToday,
     onDailyPlanningValidated,
     refreshAll,

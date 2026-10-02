@@ -14,6 +14,9 @@ function initSocket() {
     const user = window.App ? window.App.getCurrentUser() : 'Roberto';
     const platform = window.App ? window.App.getPlatform() : 'Desktop';
     socket.emit('user:join', { username: user, platform });
+    if (window.OrdersModule && typeof window.OrdersModule.checkMissedTabletNotification === 'function') {
+      window.OrdersModule.checkMissedTabletNotification();
+    }
   });
 
   socket.on('disconnect', () => {

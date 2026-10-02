@@ -252,11 +252,28 @@ function playDisappointedDessertSound() {
   }
 }
 
-// Son joyeux d'actualisation de chambre (canzone allegra di ~3 secondi per il tablet)
-function playHappySongSound() {
-  if (isMuted()) return;
+let keepAliveAudio = null;
+
+function startAudioKeepAlive() {
+  if (keepAliveAudio) return;
+  try {
+    keepAliveAudio = new Audio('/audio/silence.wav');
+    keepAliveAudio.loop = true;
+    keepAliveAudio.volume = 0.01;
+    const p = keepAliveAudio.play();
+    if (p !== undefined) {
+      p.catch(() => {});
+    }
+  } catch (e) {}
+}
+
+// Synthétiseur Web Audio de secours pour la chansonnette
+function playHappySongSynth() {
   const ctx = getAudioContext();
   if (!ctx) return;
+  if (ctx.state === 'suspended') {
+    ctx.resume().catch(() => {});
+  }
 
   try {
     const now = ctx.currentTime;
@@ -280,66 +297,81 @@ function playHappySongSound() {
 
     // Mélodie joyeuse et rythmée (~3 secondes)
     const melody = [
-      // Phrase 1: bond joyeux
       { f: 523.25, t: 0.00, d: 0.14 }, // Do5
       { f: 659.25, t: 0.14, d: 0.14 }, // Mi5
       { f: 783.99, t: 0.28, d: 0.14 }, // Sol5
       { f: 1046.50, t: 0.44, d: 0.22 }, // Do6
-
-      // Phrase 2: saut dansant
       { f: 987.77, t: 0.70, d: 0.14 }, // Si5
       { f: 783.99, t: 0.84, d: 0.14 }, // Sol5
       { f: 880.00, t: 0.98, d: 0.14 }, // La5
       { f: 987.77, t: 1.12, d: 0.14 }, // Si5
       { f: 1046.50, t: 1.26, d: 0.18 }, // Do6
-
-      // Phrase 3: montée entraînante
       { f: 1174.66, t: 1.46, d: 0.14 }, // Re6
       { f: 1046.50, t: 1.60, d: 0.14 }, // Do6
       { f: 1174.66, t: 1.74, d: 0.14 }, // Re6
       { f: 1318.51, t: 1.88, d: 0.22 }, // Mi6
-
-      // Phrase 4: apothéose triomphante et finale
       { f: 1567.98, t: 2.12, d: 0.18 }, // Sol6
       { f: 1318.51, t: 2.30, d: 0.18 }, // Mi6
       { f: 1174.66, t: 2.48, d: 0.16 }, // Re6
-      { f: 1046.50, t: 2.64, d: 0.46 }  // Do6 (longue note finale)
+      { f: 1046.50, t: 2.64, d: 0.46 }  // Do6
     ];
-
     melody.forEach(n => playNote(n.f, now + n.t, n.d, 'triangle', 0.20));
 
-    // Harmonies chaleureuses / basse rythmée
     const chords = [
-      { f: 261.63, t: 0.00, d: 0.65 }, // Do4
-      { f: 329.63, t: 0.00, d: 0.65 }, // Mi4
-      { f: 196.00, t: 0.70, d: 0.65 }, // Sol3
-      { f: 293.66, t: 0.70, d: 0.65 }, // Re4
-      { f: 349.23, t: 1.46, d: 0.60 }, // Fa4
-      { f: 440.00, t: 1.46, d: 0.60 }, // La4
-      { f: 392.00, t: 2.12, d: 0.50 }, // Sol4
-      { f: 493.88, t: 2.12, d: 0.50 }, // Si4
-      { f: 261.63, t: 2.64, d: 0.50 }, // Do4 (accord final Do majeur)
-      { f: 392.00, t: 2.64, d: 0.50 }, // Sol4
-      { f: 659.25, t: 2.64, d: 0.50 }  // Mi5
+      { f: 261.63, t: 0.00, d: 0.65 },
+      { f: 329.63, t: 0.00, d: 0.65 },
+      { f: 196.00, t: 0.70, d: 0.65 },
+      { f: 293.66, t: 0.70, d: 0.65 },
+      { f: 349.23, t: 1.46, d: 0.60 },
+      { f: 440.00, t: 1.46, d: 0.60 },
+      { f: 392.00, t: 2.12, d: 0.50 },
+      { f: 493.88, t: 2.12, d: 0.50 },
+      { f: 261.63, t: 2.64, d: 0.50 },
+      { f: 392.00, t: 2.64, d: 0.50 },
+      { f: 659.25, t: 2.64, d: 0.50 }
     ];
-
     chords.forEach(c => playNote(c.f, now + c.t, c.d, 'sine', 0.14));
 
-    // Petits carillons scintillants sur la fin (effet joyeux magique)
     const sparkles = [
-      { f: 1567.98, t: 2.70, d: 0.20 }, // Sol6
-      { f: 2093.00, t: 2.84, d: 0.22 }, // Do7
-      { f: 2637.02, t: 2.98, d: 0.25 }  // Mi7
+      { f: 1567.98, t: 2.70, d: 0.20 },
+      { f: 2093.00, t: 2.84, d: 0.22 },
+      { f: 2637.02, t: 2.98, d: 0.25 }
     ];
-
     sparkles.forEach(s => playNote(s.f, now + s.t, s.d, 'sine', 0.12));
   } catch (e) {
-    console.warn('Audio happy song error:', e);
+    console.warn('Audio happy song synth error:', e);
   }
+}
+
+// Son joyeux d'actualisation de chambre (canzone allegra di ~3 secondi per il tablet)
+function playHappySongSound() {
+  if (isMuted()) return;
+
+  // 1. Essai prioritaire : HTML5 Audio avec le fichier WAV (haute fidélité et accès direct aux enceintes)
+  try {
+    const audioEl = new Audio('/audio/happy-song.wav?v=' + (window.APP_VERSION || Date.now()));
+    audioEl.volume = 1.0;
+    const playPromise = audioEl.play();
+    if (playPromise !== undefined) {
+      playPromise.then(() => {
+        // Lecture HTML5 lancée avec succès
+      }).catch(err => {
+        console.warn('HTML5 audio play blocked/error, fallback to Web Audio API:', err);
+        playHappySongSynth();
+      });
+      return;
+    }
+  } catch (err) {
+    console.warn('HTML5 audio exception:', err);
+  }
+
+  // 2. Fallback de secours : Synthétiseur Web Audio
+  playHappySongSynth();
 }
 
 window.SoundEngine = {
   initAudio,
+  startAudioKeepAlive,
   isMuted,
   setMuted,
   toggleMute,

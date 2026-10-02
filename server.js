@@ -17,7 +17,7 @@ const io = new Server(server, {
 });
 
 const PORT = process.env.PORT || 8765;
-const CURRENT_APP_VERSION = 65;
+const CURRENT_APP_VERSION = 66;
 
 const uploadsDir = path.join(__dirname, 'public', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -286,15 +286,28 @@ app.post('/api/daily-rooms/:date/validate', (req, res) => {
   }
 });
 
+let latestTabletNotification = null;
+
 app.post('/api/daily-rooms/notify-tablet', (req, res) => {
   try {
     const user = (req.body && req.body.user) ? req.body.user : 'Roberto';
     const date = (req.body && req.body.date) ? req.body.date : new Date().toISOString().split('T')[0];
-    io.emit('daily_rooms:notify_tablet', { sender: user, date, timestamp: Date.now() });
-    res.json({ success: true, message: 'Notification sonore envoyée au tablet' });
+    const notifId = Date.now();
+    latestTabletNotification = {
+      id: notifId,
+      sender: user,
+      date,
+      timestamp: notifId
+    };
+    io.emit('daily_rooms:notify_tablet', latestTabletNotification);
+    res.json({ success: true, message: 'Notification sonore envoyée au tablet', notification: latestTabletNotification });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
+});
+
+app.get('/api/daily-rooms/latest-tablet-notification', (req, res) => {
+  res.json({ notification: latestTabletNotification });
 });
 
 // ORDERS

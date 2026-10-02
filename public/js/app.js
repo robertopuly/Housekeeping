@@ -6,6 +6,7 @@ function initApp() {
   initUser();
   initNavigation();
   initSoundButton();
+  initWakeLock();
   registerServiceWorker();
 
   if (window.SocketClient) window.SocketClient.initSocket();
@@ -166,6 +167,106 @@ function initSoundButton() {
     window.SoundEngine.updateSoundButtonUI();
     btn.addEventListener('click', () => {
       window.SoundEngine.toggleMute();
+    });
+  }
+}
+
+let screenWakeLock = null;
+let isWakeLockRequested = false;
+
+async function requestScreenWakeLock() {
+  if ('wakeLock' in navigator && navigator.wakeLock) {
+    try {
+      if (screenWakeLock !== null) {
+        return;
+      }
+      screenWakeLock = await navigator.wakeLock.request('screen');
+      screenWakeLock.addEventListener('release', () => {
+        screenWakeLock = null;
+        updateWakeLockUI(false);
+      });
+      updateWakeLockUI(true);
+      console.log('Screen Wake Lock actif: écran maintenu allumé pour le tablet');
+    } catch (err) {
+      console.warn('Wake Lock request error:', err.message);
+      updateWakeLockUI(false);
+    }
+  }
+}
+
+function releaseScreenWakeLock() {
+  if (screenWakeLock !== null) {
+    try {
+      screenWakeLock.release();
+    } catch (e) {}
+    screenWakeLock = null;
+    updateWakeLockUI(false);
+  }
+}
+
+function updateWakeLockUI(isActive) {
+  const btn = document.getElementById('btn-wakelock-toggle');
+  const textEl = document.getElementById('wakelock-text');
+  if (btn) {
+    btn.classList.toggle('active', isActive);
+    btn.classList.toggle('inactive', !isActive);
+    if (textEl) {
+      textEl.textContent = isActive ? 'Anti-veille : Actif' : 'Anti-veille : Inactif';
+    }
+    btn.title = isActive 
+      ? "L'écran reste allumé pour ne jamais rater une sonnerie" 
+      : "Cliquer pour activer le maintien de l'écran allumé";
+  }
+}
+
+function toggleWakeLock() {
+  if (screenWakeLock) {
+    isWakeLockRequested = false;
+    releaseScreenWakeLock();
+  } else {
+    isWakeLockRequested = true;
+    requestScreenWakeLock();
+  }
+}
+
+function initWakeLock() {
+  const isMobileOrTablet = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  const isAdelcia = currentUser && currentUser.toLowerCase().includes('adelcia');
+
+  const btn = document.getElementById('btn-wakelock-toggle');
+  if (btn) {
+    if (isMobileOrTablet || isAdelcia) {
+      btn.style.display = 'inline-flex';
+      btn.addEventListener('click', () => {
+        toggleWakeLock();
+      });
+    } else {
+      btn.style.display = 'none';
+    }
+  }
+
+  if (isMobileOrTablet || isAdelcia) {
+    isWakeLockRequested = true;
+    requestScreenWakeLock();
+
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible' && isWakeLockRequested) {
+        requestScreenWakeLock();
+        if (window.SoundEngine && typeof window.SoundEngine.startAudioKeepAlive === 'function') {
+          window.SoundEngine.startAudioKeepAlive();
+        }
+      }
+    });
+
+    ['touchstart', 'click'].forEach(evt => {
+      document.addEventListener(evt, () => {
+        if (isWakeLockRequested && !screenWakeLock) {
+          requestScreenWakeLock();
+        }
+        if (window.SoundEngine && typeof window.SoundEngine.startAudioKeepAlive === 'function') {
+          window.SoundEngine.startAudioKeepAlive();
+        }
+      }, { once: true, passive: true });
     });
   }
 }
