@@ -2330,6 +2330,7 @@ body.is-pc .btn-chat-choices.pc-only {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 8px;
 }
 
 .daily-room-number-badge {
@@ -2339,6 +2340,12 @@ body.is-pc .btn-chat-choices.pc-only {
   display: flex;
   align-items: center;
   gap: 6px;
+  white-space: nowrap !important;
+  flex-shrink: 0 !important;
+}
+
+.daily-room-number-badge span {
+  white-space: nowrap !important;
 }
 
 /* Status selection buttons (3 flags) */

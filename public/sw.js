@@ -1,18 +1,18 @@
-const CACHE_NAME = 'hk-cache-v61';
+const CACHE_NAME = 'hk-cache-v62';
 const ASSETS = [
   '/',
   '/index.html',
   '/manifest.json',
-  '/css/styles.css?v=61',
-  '/js/audio.js?v=61',
-  '/js/socket.js?v=61',
-  '/js/chat.js?v=61',
-  '/js/orders.js?v=61',
-  '/js/deadlines.js?v=61',
-  '/js/shopping.js?v=61',
-  '/js/expenses.js?v=61',
-  '/js/leave.js?v=61',
-  '/js/app.js?v=61',
+  '/css/styles.css?v=62',
+  '/js/audio.js?v=62',
+  '/js/socket.js?v=62',
+  '/js/chat.js?v=62',
+  '/js/orders.js?v=62',
+  '/js/deadlines.js?v=62',
+  '/js/shopping.js?v=62',
+  '/js/expenses.js?v=62',
+  '/js/leave.js?v=62',
+  '/js/app.js?v=62',
   '/icons/icon.svg'
 ];
 
