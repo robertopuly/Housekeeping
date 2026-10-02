@@ -350,7 +350,11 @@ function updateRoomCardDOM(card, room) {
   const currentNoteVal = noteInput ? noteInput.value : (room.notes || '');
 
   const actualizedClass = isActualized ? 'is-actualized' : 'is-not-actualized';
-  card.className = `daily-room-card ${actualizedClass} status-card-${status} clean-${cleanliness}${isTablet ? ' is-tablet-card' : ''}`;
+  if (isActualized) {
+    card.className = `daily-room-card ${actualizedClass} status-card-${status} clean-${cleanliness}${isTablet ? ' is-tablet-card' : ''}`;
+  } else {
+    card.className = `daily-room-card ${actualizedClass}${isTablet ? ' is-tablet-card' : ''}`;
+  }
   card.innerHTML = getDailyRoomCardInnerHtml(room, isTablet);
 
   if (isTyping) {
@@ -371,7 +375,9 @@ function createDailyRoomCardHtml(room) {
   const cleanliness = room.cleanliness_status || 'a_faire';
   const isActualized = (room.is_actualized === 1);
   const actualizedClass = isActualized ? 'is-actualized' : 'is-not-actualized';
-  const cardStatusClass = `${actualizedClass} status-card-${status} clean-${cleanliness}${isTablet ? ' is-tablet-card' : ''}`;
+  const cardStatusClass = isActualized
+    ? `${actualizedClass} status-card-${status} clean-${cleanliness}${isTablet ? ' is-tablet-card' : ''}`
+    : `${actualizedClass}${isTablet ? ' is-tablet-card' : ''}`;
 
   return `
     <div class="daily-room-card ${cardStatusClass}" id="daily-room-card-${roomNum}" data-room="${roomNum}">
@@ -519,10 +525,10 @@ function getDailyRoomCardInnerHtml(room, isTablet) {
         ` : `
           <span class="status-pill pill-actualized">✓ Actualisé</span>
         `}
-        ${cleanliness === 'deja_propre' ? '<span class="status-pill pill-propre">✨ Déjà Propre</span>' : ''}
-        ${cleanliness === 'a_faire' ? '<span class="status-pill pill-a-faire">⏳ À faire</span>' : ''}
-        ${cleanliness === 'termine' ? '<span class="status-pill pill-termine">✅ Terminé</span>' : ''}
-        ${access === 'client_sorti' ? '<span class="status-pill pill-accessible">🟢 Accès Libre</span>' : ''}
+        ${isActualized && cleanliness === 'deja_propre' ? '<span class="status-pill pill-propre">✨ Déjà Propre</span>' : ''}
+        ${isActualized && cleanliness === 'a_faire' ? '<span class="status-pill pill-a-faire">⏳ À faire</span>' : ''}
+        ${isActualized && cleanliness === 'termine' ? '<span class="status-pill pill-termine">✅ Terminé</span>' : ''}
+        ${isActualized && access === 'client_sorti' ? '<span class="status-pill pill-accessible">🟢 Accès Libre</span>' : ''}
         <span class="bed-type-badge ${isSeparati ? 'separati' : 'matrimoniale'}">
           ${isSeparati ? '🛏️🛏️ Lits Séparés' : '🛏️ Grand Lit'}
         </span>

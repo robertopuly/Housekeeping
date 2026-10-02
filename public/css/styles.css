@@ -2241,15 +2241,31 @@ body.is-pc .btn-chat-choices.pc-only {
 }
 
 /* ⚪ STATUT NON ACTUALISÉ : FOND ET BORDURE GRIS NEUTRE (PRIORITÉ ABSOLUE SUR LES COULEURS) */
-.daily-room-card.is-not-actualized {
-  background-color: #f1f5f9 !important;
-  border-color: #cbd5e1 !important;
+.daily-room-card.is-not-actualized,
+.daily-room-card.is-not-actualized.status-card-libera,
+.daily-room-card.is-not-actualized.status-card-partenza,
+.daily-room-card.is-not-actualized.status-card-restante,
+.daily-room-card.is-not-actualized.clean-a_faire,
+.daily-room-card.is-not-actualized.clean-a-faire,
+.daily-room-card.is-not-actualized.clean-termine,
+.daily-room-card.is-not-actualized.status-card-libera.clean-a_faire,
+.daily-room-card.is-not-actualized.status-card-libera.clean-a-faire {
+  background-color: #f8fafc !important;
+  border: 2px solid #94a3b8 !important;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
 }
 
-.daily-room-card.is-not-actualized:hover {
-  background-color: #e2e8f0 !important;
-  border-color: #94a3b8 !important;
+.daily-room-card.is-not-actualized:hover,
+.daily-room-card.is-not-actualized.status-card-libera:hover,
+.daily-room-card.is-not-actualized.status-card-partenza:hover,
+.daily-room-card.is-not-actualized.status-card-restante:hover,
+.daily-room-card.is-not-actualized.clean-a_faire:hover,
+.daily-room-card.is-not-actualized.clean-a-faire:hover,
+.daily-room-card.is-not-actualized.clean-termine:hover,
+.daily-room-card.is-not-actualized.status-card-libera.clean-a_faire:hover,
+.daily-room-card.is-not-actualized.status-card-libera.clean-a-faire:hover {
+  background-color: #f1f5f9 !important;
+  border: 2px solid #64748b !important;
 }
 
 .daily-room-card.is-not-actualized .daily-room-number-badge {
