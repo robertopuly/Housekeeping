@@ -165,6 +165,7 @@
   }
 
 async function initOrders() {
+  startBlinkWatcher();
   setupDailyBoardEvents();
   setupOrderEvents();
   await Promise.all([
@@ -200,7 +201,13 @@ async function loadDailyRooms(dateStr) {
     const res = await fetch(`/api/daily-rooms?date=${dateStr}`);
     if (res.ok) {
       const data = await res.json();
-      dailyRooms = data.rooms || [];
+      dailyRooms = (data.rooms || []).map(r => {
+        if (typeof r.field_timestamps === 'string') {
+          try { r.field_timestamps = JSON.parse(r.field_timestamps); } catch (e) { r.field_timestamps = {}; }
+        }
+        if (!r.field_timestamps) r.field_timestamps = {};
+        return r;
+      });
       currentDailyMeta = data.meta || null;
       renderDailyBoard();
     }
@@ -528,6 +535,46 @@ function updateRoomCardDOM(card, room) {
   bindRoomCardEvents(card);
 }
 
+const FIVE_MINUTES_MS = 5 * 60 * 1000;
+
+function isFieldRecentlyModified(room, fieldName) {
+  if (!room || !room.field_timestamps) return false;
+  let ts = room.field_timestamps[fieldName];
+  if (!ts) return false;
+  ts = Number(ts);
+  const age = Date.now() - ts;
+  return age >= 0 && age < FIVE_MINUTES_MS;
+}
+
+function getBlinkClass(room, fieldName, isInput = false) {
+  if (!isFieldRecentlyModified(room, fieldName)) return '';
+  return isInput ? ' field-blink-input' : ' field-blink';
+}
+
+function getBlinkData(room, fieldName) {
+  if (!isFieldRecentlyModified(room, fieldName)) return '';
+  const ts = Number(room.field_timestamps[fieldName]);
+  return ` data-blink-until="${ts + FIVE_MINUTES_MS}" data-blink-field="${fieldName}"`;
+}
+
+let blinkWatcherInterval = null;
+function startBlinkWatcher() {
+  if (blinkWatcherInterval) return;
+  blinkWatcherInterval = setInterval(() => {
+    const blinkingEls = document.querySelectorAll('[data-blink-until]');
+    if (!blinkingEls || blinkingEls.length === 0) return;
+    const now = Date.now();
+    blinkingEls.forEach(el => {
+      const until = Number(el.getAttribute('data-blink-until'));
+      if (until && now >= until) {
+        el.classList.remove('field-blink', 'field-blink-input');
+        el.removeAttribute('data-blink-until');
+        el.removeAttribute('data-blink-field');
+      }
+    });
+  }, 2000);
+}
+
 function createDailyRoomCardHtml(room) {
   const isTablet = isTabletView();
   const roomNum = room.room_number;
@@ -575,13 +622,13 @@ function getDailyRoomCardInnerHtml(room, isTablet) {
           ${!isActualized ? `
             <span class="tablet-pill pill-unactualized" title="En attente de vérification par Roberto">⚪ Non actualisé</span>
           ` : `
-            ${status === 'libera' ? '<span class="tablet-pill pill-libera">🟢 Libre</span>' : ''}
-            ${status === 'partenza' ? '<span class="tablet-pill pill-partenza">🔴 Départ</span>' : ''}
-            ${status === 'restante' ? '<span class="tablet-pill pill-restante">🟡 Recouche</span>' : ''}
+            ${status === 'libera' ? `<span class="tablet-pill pill-libera${getBlinkClass(room, 'status')}"${getBlinkData(room, 'status')}>🟢 Libre</span>` : ''}
+            ${status === 'partenza' ? `<span class="tablet-pill pill-partenza${getBlinkClass(room, 'status')}"${getBlinkData(room, 'status')}>🔴 Départ</span>` : ''}
+            ${status === 'restante' ? `<span class="tablet-pill pill-restante${getBlinkClass(room, 'status')}"${getBlinkData(room, 'status')}>🟡 Recouche</span>` : ''}
           `}
-          ${isSeparati ? '<span class="tablet-pill pill-beds" title="Lits séparés">🛏️ Séparés</span>' : ''}
-          ${needsExtraBed ? '<span class="tablet-pill pill-extra-bed" title="Ajouter un lit d\'appoint (3 personnes)">⚠️ Lit suppl. (3p)</span>' : ''}
-          ${guests !== 2 && !needsExtraBed ? `<span class="tablet-pill pill-guests">👥 ${guests}p</span>` : ''}
+          ${isSeparati ? `<span class="tablet-pill pill-beds${getBlinkClass(room, 'beds_type')}"${getBlinkData(room, 'beds_type')} title="Lits séparés">🛏️ Séparés</span>` : ''}
+          ${needsExtraBed ? `<span class="tablet-pill pill-extra-bed${getBlinkClass(room, 'guests_count')}"${getBlinkData(room, 'guests_count')} title="Ajouter un lit d'appoint (3 personnes)">⚠️ Lit suppl. (3p)</span>` : ''}
+          ${guests !== 2 && !needsExtraBed ? `<span class="tablet-pill pill-guests${getBlinkClass(room, 'guests_count')}"${getBlinkData(room, 'guests_count')}>👥 ${guests}p</span>` : ''}
         </div>
       </div>
 
@@ -590,17 +637,17 @@ function getDailyRoomCardInnerHtml(room, isTablet) {
         <div class="tablet-status-item">
           <span class="tablet-status-label">🚪 Accès :</span>
           ${access === 'client_sorti'
-            ? '<span class="tablet-badge badge-access-sorti">🟢 Client sorti</span>'
-            : '<span class="tablet-badge badge-access-chambre">🔴 En chambre</span>'
+            ? `<span class="tablet-badge badge-access-sorti${getBlinkClass(room, 'access_status')}"${getBlinkData(room, 'access_status')}>🟢 Client sorti</span>`
+            : `<span class="tablet-badge badge-access-chambre${getBlinkClass(room, 'access_status')}"${getBlinkData(room, 'access_status')}>🔴 En chambre</span>`
           }
         </div>
         <div class="tablet-status-item">
           <span class="tablet-status-label">🧹 État :</span>
           ${cleanliness === 'deja_propre'
-            ? '<span class="tablet-badge badge-clean-propre">✨ Déjà propre</span>'
+            ? `<span class="tablet-badge badge-clean-propre${getBlinkClass(room, 'cleanliness_status')}"${getBlinkData(room, 'cleanliness_status')}>✨ Déjà propre</span>`
             : (isReadyOrTermine
-              ? '<span class="tablet-badge badge-clean-termine">✅ Fait</span>'
-              : '<span class="tablet-badge badge-clean-afaire">⏳ À faire</span>'
+              ? `<span class="tablet-badge badge-clean-termine${getBlinkClass(room, 'cleanliness_status')}"${getBlinkData(room, 'cleanliness_status')}>✅ Fait</span>`
+              : `<span class="tablet-badge badge-clean-afaire${getBlinkClass(room, 'cleanliness_status')}"${getBlinkData(room, 'cleanliness_status')}>⏳ À faire</span>`
             )
           }
         </div>
@@ -608,10 +655,10 @@ function getDailyRoomCardInnerHtml(room, isTablet) {
 
       <!-- LIGNE 3 : Action gauche (Terminé ok x contrôle) + Commentaire droite -->
       <div class="tablet-room-row tablet-room-row-3">
-        <button type="button" class="btn-room-ready btn-tablet-ready ${isReadyOrTermine ? 'btn-sent' : ''}" data-room="${roomNum}" title="${isReadyOrTermine ? 'Maintenir appuyé 2s pour annuler' : 'Marquer terminé et envoyer à Roberto'}">
+        <button type="button" class="btn-room-ready btn-tablet-ready ${isReadyOrTermine ? 'btn-sent' : ''}${isReadyOrTermine ? getBlinkClass(room, 'cleanliness_status') : ''}"${isReadyOrTermine ? getBlinkData(room, 'cleanliness_status') : ''} data-room="${roomNum}" title="${isReadyOrTermine ? 'Maintenir appuyé 2s pour annuler' : 'Marquer terminé et envoyer à Roberto'}">
           <span>✅ Terminé (ok x contrôle)</span>
         </button>
-        <input type="text" class="room-notes-input tablet-notes-input" placeholder="Notes pour la Chambre ${roomNum}..." value="${escapeHtml(notes)}" data-room="${roomNum}" />
+        <input type="text" class="room-notes-input tablet-notes-input${getBlinkClass(room, 'notes', true)}"${getBlinkData(room, 'notes')} placeholder="Notes pour la Chambre ${roomNum}..." value="${escapeHtml(notes)}" data-room="${roomNum}" />
       </div>
     `;
   }
@@ -631,11 +678,11 @@ function getDailyRoomCardInnerHtml(room, isTablet) {
         ` : `
           <span class="status-pill pill-actualized">✓ Actualisé</span>
         `}
-        ${isActualized && cleanliness === 'deja_propre' ? '<span class="status-pill pill-propre">✨ Déjà Propre</span>' : ''}
-        ${isActualized && cleanliness === 'a_faire' ? '<span class="status-pill pill-a-faire">⏳ À faire</span>' : ''}
-        ${isActualized && cleanliness === 'termine' ? '<span class="status-pill pill-termine">✅ Terminé</span>' : ''}
-        ${isActualized && access === 'client_sorti' ? '<span class="status-pill pill-accessible">🟢 Accès Libre</span>' : ''}
-        <span class="bed-type-badge ${isSeparati ? 'separati' : 'matrimoniale'}">
+        ${isActualized && cleanliness === 'deja_propre' ? `<span class="status-pill pill-propre${getBlinkClass(room, 'cleanliness_status')}"${getBlinkData(room, 'cleanliness_status')}>✨ Déjà Propre</span>` : ''}
+        ${isActualized && cleanliness === 'a_faire' ? `<span class="status-pill pill-a-faire${getBlinkClass(room, 'cleanliness_status')}"${getBlinkData(room, 'cleanliness_status')}>⏳ À faire</span>` : ''}
+        ${isActualized && cleanliness === 'termine' ? `<span class="status-pill pill-termine${getBlinkClass(room, 'cleanliness_status')}"${getBlinkData(room, 'cleanliness_status')}>✅ Terminé</span>` : ''}
+        ${isActualized && access === 'client_sorti' ? `<span class="status-pill pill-accessible${getBlinkClass(room, 'access_status')}"${getBlinkData(room, 'access_status')}>🟢 Accès Libre</span>` : ''}
+        <span class="bed-type-badge ${isSeparati ? 'separati' : 'matrimoniale'}${getBlinkClass(room, 'beds_type')}"${getBlinkData(room, 'beds_type')}>
           ${isSeparati ? '🛏️🛏️ Lits Séparés' : '🛏️ Grand Lit'}
         </span>
       </div>
@@ -643,13 +690,13 @@ function getDailyRoomCardInnerHtml(room, isTablet) {
 
     <!-- 1. MOUVEMENT DU JOUR (3 FLAGS) -->
     <div class="room-status-flags">
-      <button type="button" class="flag-btn flag-libera ${status === 'libera' ? 'active' : ''}" data-status="libera" title="Chambre libre / Arrivée">
+      <button type="button" class="flag-btn flag-libera ${status === 'libera' ? 'active' : ''}${status === 'libera' ? getBlinkClass(room, 'status') : ''}"${status === 'libera' ? getBlinkData(room, 'status') : ''} data-status="libera" title="Chambre libre / Arrivée">
         <span>🟢 Libre</span>
       </button>
-      <button type="button" class="flag-btn flag-partenza ${status === 'partenza' ? 'active' : ''}" data-status="partenza" title="Départ / À blanc">
+      <button type="button" class="flag-btn flag-partenza ${status === 'partenza' ? 'active' : ''}${status === 'partenza' ? getBlinkClass(room, 'status') : ''}"${status === 'partenza' ? getBlinkData(room, 'status') : ''} data-status="partenza" title="Départ / À blanc">
         <span>🔴 Départ</span>
       </button>
-      <button type="button" class="flag-btn flag-restante ${status === 'restante' ? 'active' : ''}" data-status="restante" title="Recouche / Client reste">
+      <button type="button" class="flag-btn flag-restante ${status === 'restante' ? 'active' : ''}${status === 'restante' ? getBlinkClass(room, 'status') : ''}"${status === 'restante' ? getBlinkData(room, 'status') : ''} data-status="restante" title="Recouche / Client reste">
         <span>🟡 Recouche</span>
       </button>
     </div>
@@ -658,10 +705,10 @@ function getDailyRoomCardInnerHtml(room, isTablet) {
     <div class="room-detail-row">
       <span class="detail-label">🚪 Accès :</span>
       <div class="segmented-group">
-        <button type="button" class="segment-btn btn-access ${access === 'en_chambre' ? 'active access-en-chambre' : ''}" data-access="en_chambre" title="Client présent dans la chambre">
+        <button type="button" class="segment-btn btn-access ${access === 'en_chambre' ? 'active access-en-chambre' : ''}${access === 'en_chambre' ? getBlinkClass(room, 'access_status') : ''}"${access === 'en_chambre' ? getBlinkData(room, 'access_status') : ''} data-access="en_chambre" title="Client présent dans la chambre">
           🔴 En chambre
         </button>
-        <button type="button" class="segment-btn btn-access ${access === 'client_sorti' ? 'active access-client-sorti' : ''}" data-access="client_sorti" title="Client sorti : accès libre pour le ménage">
+        <button type="button" class="segment-btn btn-access ${access === 'client_sorti' ? 'active access-client-sorti' : ''}${access === 'client_sorti' ? getBlinkClass(room, 'access_status') : ''}"${access === 'client_sorti' ? getBlinkData(room, 'access_status') : ''} data-access="client_sorti" title="Client sorti : accès libre pour le ménage">
           🟢 Client sorti / Libre
         </button>
       </div>
@@ -671,13 +718,13 @@ function getDailyRoomCardInnerHtml(room, isTablet) {
     <div class="room-detail-row">
       <span class="detail-label">🧹 État :</span>
       <div class="segmented-group">
-        <button type="button" class="segment-btn btn-clean ${cleanliness === 'a_faire' ? 'active clean-a-faire' : ''}" data-clean="a_faire">
+        <button type="button" class="segment-btn btn-clean ${cleanliness === 'a_faire' ? 'active clean-a-faire' : ''}${cleanliness === 'a_faire' ? getBlinkClass(room, 'cleanliness_status') : ''}"${cleanliness === 'a_faire' ? getBlinkData(room, 'cleanliness_status') : ''} data-clean="a_faire">
           ⏳ À faire
         </button>
-        <button type="button" class="segment-btn btn-clean ${cleanliness === 'deja_propre' ? 'active clean-deja-propre' : ''}" data-clean="deja_propre" title="Chambre déjà propre car non utilisée la nuit précédente">
+        <button type="button" class="segment-btn btn-clean ${cleanliness === 'deja_propre' ? 'active clean-deja-propre' : ''}${cleanliness === 'deja_propre' ? getBlinkClass(room, 'cleanliness_status') : ''}"${cleanliness === 'deja_propre' ? getBlinkData(room, 'cleanliness_status') : ''} data-clean="deja_propre" title="Chambre déjà propre car non utilisée la nuit précédente">
           ✨ Déjà propre
         </button>
-        <button type="button" class="segment-btn btn-clean ${cleanliness === 'termine' ? 'active clean-termine' : ''}" data-clean="termine">
+        <button type="button" class="segment-btn btn-clean ${cleanliness === 'termine' ? 'active clean-termine' : ''}${cleanliness === 'termine' ? getBlinkClass(room, 'cleanliness_status') : ''}"${cleanliness === 'termine' ? getBlinkData(room, 'cleanliness_status') : ''} data-clean="termine">
           ✅ Terminé
         </button>
       </div>
@@ -687,15 +734,15 @@ function getDailyRoomCardInnerHtml(room, isTablet) {
     <div class="room-detail-row">
       <span class="detail-label">👥 Clients :</span>
       <div class="segmented-group">
-        <button type="button" class="segment-btn ${guests === 1 ? 'active' : ''}" data-guests="1">1 Personne</button>
-        <button type="button" class="segment-btn ${guests === 2 ? 'active' : ''}" data-guests="2">2 Personnes</button>
-        ${isRoom5 ? `<button type="button" class="segment-btn ${guests === 3 ? 'active' : ''}" data-guests="3">3 Personnes</button>` : ''}
+        <button type="button" class="segment-btn ${guests === 1 ? 'active' : ''}${guests === 1 ? getBlinkClass(room, 'guests_count') : ''}"${guests === 1 ? getBlinkData(room, 'guests_count') : ''} data-guests="1">1 Personne</button>
+        <button type="button" class="segment-btn ${guests === 2 ? 'active' : ''}${guests === 2 ? getBlinkClass(room, 'guests_count') : ''}"${guests === 2 ? getBlinkData(room, 'guests_count') : ''} data-guests="2">2 Personnes</button>
+        ${isRoom5 ? `<button type="button" class="segment-btn ${guests === 3 ? 'active' : ''}${guests === 3 ? getBlinkClass(room, 'guests_count') : ''}"${guests === 3 ? getBlinkData(room, 'guests_count') : ''} data-guests="3">3 Personnes</button>` : ''}
       </div>
     </div>
 
     <!-- ALERTE LIT SUPPLÉMENTAIRE (POUR CHAMBRE 5 AVEC 3 OCCUPANTS) -->
     ${needsExtraBed ? `
-      <div class="extra-bed-alert">
+      <div class="extra-bed-alert${getBlinkClass(room, 'guests_count')}"${getBlinkData(room, 'guests_count')}>
         <span>⚠️ 🛏️ <strong>AJOUTER UN LIT D'APPOINT !</strong> (3 Personnes)</span>
       </div>
     ` : ''}
@@ -704,14 +751,14 @@ function getDailyRoomCardInnerHtml(room, isTablet) {
     <div class="room-detail-row">
       <span class="detail-label">🛏️ Configuration :</span>
       <div class="segmented-group">
-        <button type="button" class="segment-btn ${!isSeparati ? 'active' : ''}" data-bedstype="matrimoniale">Grand Lit</button>
-        <button type="button" class="segment-btn ${isSeparati ? 'active' : ''}" data-bedstype="separati">Lits Séparés</button>
+        <button type="button" class="segment-btn ${!isSeparati ? 'active' : ''}${!isSeparati ? getBlinkClass(room, 'beds_type') : ''}"${!isSeparati ? getBlinkData(room, 'beds_type') : ''} data-bedstype="matrimoniale">Grand Lit</button>
+        <button type="button" class="segment-btn ${isSeparati ? 'active' : ''}${isSeparati ? getBlinkClass(room, 'beds_type') : ''}"${isSeparati ? getBlinkData(room, 'beds_type') : ''} data-bedstype="separati">Lits Séparés</button>
       </div>
     </div>
 
     <!-- 6. NOTES CHAMBRE -->
     <div>
-      <input type="text" class="room-notes-input" placeholder="Notes pour la Chambre ${roomNum}..." value="${escapeHtml(notes)}" data-room="${roomNum}" />
+      <input type="text" class="room-notes-input${getBlinkClass(room, 'notes', true)}"${getBlinkData(room, 'notes')} placeholder="Notes pour la Chambre ${roomNum}..." value="${escapeHtml(notes)}" data-room="${roomNum}" />
     </div>
 
     <!-- 7. BOUTON PRÊTE POUR LE CONTRÔLE -->
@@ -743,12 +790,21 @@ function bindRoomCardEvents(card) {
   const roomNum = parseInt(card.getAttribute('data-room'), 10);
   const currentUser = window.App ? window.App.getCurrentUser() : 'Roberto';
 
+  const markFieldUpdated = (targetRoom, field) => {
+    if (!targetRoom) return;
+    if (!targetRoom.field_timestamps) targetRoom.field_timestamps = {};
+    targetRoom.field_timestamps[field] = Date.now();
+  };
+
   // 1. Boutons Statut (Libre / Départ / Recouche) - Uniquement si interactifs (PC)
   card.querySelectorAll('.flag-btn:not(.flag-readonly)').forEach(btn => {
     btn.addEventListener('click', async () => {
       const newStatus = btn.getAttribute('data-status');
       const room = dailyRooms.find(r => r.room_number === roomNum);
       if (room) {
+        if (room.status !== newStatus) {
+          markFieldUpdated(room, 'status');
+        }
         room.status = newStatus;
         room.is_actualized = 1;
         updateRoomCardDOM(card, room);
@@ -764,6 +820,9 @@ function bindRoomCardEvents(card) {
       const newAccess = btn.getAttribute('data-access');
       const room = dailyRooms.find(r => r.room_number === roomNum);
       if (room) {
+        if (room.access_status !== newAccess) {
+          markFieldUpdated(room, 'access_status');
+        }
         room.access_status = newAccess;
         room.is_actualized = 1;
         updateRoomCardDOM(card, room);
@@ -782,6 +841,9 @@ function bindRoomCardEvents(card) {
         if (isTabletView() && room.cleanliness_status === 'termine' && newClean === 'termine') {
           newClean = 'a_faire';
         }
+        if (room.cleanliness_status !== newClean) {
+          markFieldUpdated(room, 'cleanliness_status');
+        }
         room.cleanliness_status = newClean;
         room.is_actualized = 1;
         updateRoomCardDOM(card, room);
@@ -797,6 +859,9 @@ function bindRoomCardEvents(card) {
       const guests = parseInt(btn.getAttribute('data-guests'), 10);
       const room = dailyRooms.find(r => r.room_number === roomNum);
       if (room) {
+        if (room.guests_count !== guests) {
+          markFieldUpdated(room, 'guests_count');
+        }
         room.guests_count = guests;
         room.is_actualized = 1;
         updateRoomCardDOM(card, room);
@@ -812,6 +877,9 @@ function bindRoomCardEvents(card) {
       const bedsType = btn.getAttribute('data-bedstype');
       const room = dailyRooms.find(r => r.room_number === roomNum);
       if (room) {
+        if (room.beds_type !== bedsType) {
+          markFieldUpdated(room, 'beds_type');
+        }
         room.beds_type = bedsType;
         room.is_actualized = 1;
         updateRoomCardDOM(card, room);
@@ -828,6 +896,12 @@ function bindRoomCardEvents(card) {
       const text = noteInput.value;
       const room = dailyRooms.find(r => r.room_number === roomNum);
       if (room) {
+        if (room.notes !== text) {
+          markFieldUpdated(room, 'notes');
+          noteInput.classList.add('field-blink-input');
+          noteInput.setAttribute('data-blink-until', Date.now() + FIVE_MINUTES_MS);
+          noteInput.setAttribute('data-blink-field', 'notes');
+        }
         room.notes = text;
         if (!room.is_actualized) {
           room.is_actualized = 1;
@@ -863,7 +937,15 @@ function bindRoomCardEvents(card) {
       const text = noteInput.value;
       if (saveNoteTimeouts[roomNum]) clearTimeout(saveNoteTimeouts[roomNum]);
       const room = dailyRooms.find(r => r.room_number === roomNum);
-      if (room) room.notes = text;
+      if (room) {
+        if (room.notes !== text) {
+          markFieldUpdated(room, 'notes');
+          noteInput.classList.add('field-blink-input');
+          noteInput.setAttribute('data-blink-until', Date.now() + FIVE_MINUTES_MS);
+          noteInput.setAttribute('data-blink-field', 'notes');
+        }
+        room.notes = text;
+      }
       await saveRoomUpdate(roomNum, { notes: text, is_actualized: 1, updated_by: currentUser });
       renderDailyUpdateBanner();
     });
@@ -920,6 +1002,7 @@ function bindRoomCardEvents(card) {
           if (isTablet) {
             currentRoom.cleanliness_status = 'a_faire';
             currentRoom.is_actualized = 1;
+            markFieldUpdated(currentRoom, 'cleanliness_status');
           }
         }
         await saveRoomUpdate(roomNum, changes);
@@ -991,6 +1074,7 @@ function bindRoomCardEvents(card) {
           if (isTablet) {
             currentRoom.cleanliness_status = 'termine';
             currentRoom.is_actualized = 1;
+            markFieldUpdated(currentRoom, 'cleanliness_status');
           }
         }
 
@@ -1068,6 +1152,12 @@ function onRoomStatusUpdated({ date, room, meta, sender }) {
       updated_at: room.updated_at,
       updated_by: room.updated_by || 'Roberto'
     };
+  }
+  if (room) {
+    if (typeof room.field_timestamps === 'string') {
+      try { room.field_timestamps = JSON.parse(room.field_timestamps); } catch (e) { room.field_timestamps = {}; }
+    }
+    if (!room.field_timestamps) room.field_timestamps = {};
   }
   const idx = dailyRooms.findIndex(r => r.room_number === room.room_number);
   if (idx !== -1) {

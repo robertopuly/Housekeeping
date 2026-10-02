@@ -5867,6 +5867,50 @@ body.is-pc section.tab-panel.pc-only:not(.active) {
   margin-top: 2px;
 }
 
+/* ==========================================================================
+   MODIFICATION RÉCENTE - CLIGNOTEMENT 5 MINUTES (TABLET & PC)
+   ========================================================================== */
+@keyframes optionBlink {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(245, 158, 11, 0);
+    filter: brightness(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(1.03);
+    box-shadow: 0 0 14px 4px rgba(245, 158, 11, 0.85);
+    filter: brightness(1.25);
+    border-color: #f59e0b !important;
+  }
+}
+
+.field-blink {
+  animation: optionBlink 1.3s infinite ease-in-out !important;
+  position: relative !important;
+  z-index: 5 !important;
+  outline: 2.5px solid #f59e0b !important;
+  outline-offset: 1.5px !important;
+}
+
+@keyframes inputBlink {
+  0%, 100% {
+    border-color: var(--border-color, #cbd5e1);
+    box-shadow: none;
+    background-color: #ffffff;
+  }
+  50% {
+    border-color: #f59e0b !important;
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.7) !important;
+    background-color: #fffbeb !important;
+  }
+}
+
+.field-blink-input {
+  animation: inputBlink 1.3s infinite ease-in-out !important;
+}
+
 
 
 
