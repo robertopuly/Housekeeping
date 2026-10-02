@@ -128,16 +128,19 @@ function renderDailyUpdateBanner() {
     : (localStorage.getItem('hk_user') || 'Roberto');
   const isRoberto = currentUser && currentUser.toLowerCase() === 'roberto';
 
+  const totalRooms = dailyRooms.length || 5;
+  const actualizedCount = dailyRooms.filter(r => r.is_actualized === 1).length;
+  const allActualized = (actualizedCount === totalRooms && totalRooms > 0);
+  const isPartiallyActualized = (actualizedCount > 0 && actualizedCount < totalRooms);
+
   const hasMeta = currentDailyMeta && currentDailyMeta.updated_at;
   let updateDate = null;
-  let isUpdatedToday = false;
   let timeStr = '';
   let dateStr = '';
   let author = 'Roberto';
 
   if (hasMeta) {
     updateDate = parseDateSafe(currentDailyMeta.updated_at);
-    isUpdatedToday = (getZurichDateStr(updateDate) === todayZurich);
     timeStr = updateDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Zurich' });
     dateStr = updateDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Europe/Zurich' });
     author = currentDailyMeta.updated_by || 'Roberto';
@@ -145,7 +148,7 @@ function renderDailyUpdateBanner() {
 
   // CAS 1 : On consulte AUJOURD'HUI
   if (isViewingToday) {
-    if (isUpdatedToday) {
+    if (allActualized) {
       // PLANNING À JOUR POUR AUJOURD'HUI (VERT / ÉMERAUDE)
       banner.className = 'daily-update-banner is-updated';
       banner.innerHTML = `
@@ -153,13 +156,13 @@ function renderDailyUpdateBanner() {
           <div class="daily-banner-icon-box" title="Planning vérifié">✓</div>
           <div class="daily-banner-content">
             <div class="daily-banner-badge-row">
-              <span class="daily-banner-badge">✓ PLANNING DU JOUR À JOUR</span>
+              <span class="daily-banner-badge">✓ PLANNING DU JOUR À JOUR (${actualizedCount}/${totalRooms} VÉRIFIÉES)</span>
             </div>
             <div class="daily-banner-title">
-              Dernière mise à jour : <strong>Aujourd'hui à ${timeStr}</strong> <span class="daily-banner-author">par ${escapeHtml(author)}</span>
+              Dernière mise à jour : <strong>Aujourd'hui à ${timeStr || 'ce matin'}</strong> <span class="daily-banner-author">par ${escapeHtml(author)}</span>
             </div>
             <div class="daily-banner-subtitle">
-              Toutes les informations, statuts des 5 chambres, départs et arrivées sont vérifiés pour aujourd'hui.
+              Toutes les informations, statuts des 5 chambres, départs et arrivées sont vérifiés et actualisés pour aujourd'hui.
             </div>
           </div>
         </div>
@@ -171,25 +174,47 @@ function renderDailyUpdateBanner() {
           ` : ''}
         </div>
       `;
+    } else if (isPartiallyActualized) {
+      // PLANNING EN COURS D'ACTUALISATION (BLEU / PROGRESSION)
+      banner.className = 'daily-update-banner is-in-progress';
+      banner.innerHTML = `
+        <div class="daily-banner-left">
+          <div class="daily-banner-icon-box" title="Actualisation en cours">🔄</div>
+          <div class="daily-banner-content">
+            <div class="daily-banner-badge-row">
+              <span class="daily-banner-badge">🔄 ACTUALISATION EN COURS : ${actualizedCount} / ${totalRooms} CHAMBRES VÉRIFIÉES</span>
+            </div>
+            <div class="daily-banner-title">
+              Mise à jour partielle par ${escapeHtml(author)}
+            </div>
+            <div class="daily-banner-subtitle">
+              ${actualizedCount} chambre(s) actualisée(s) en couleur. ${totalRooms - actualizedCount} chambre(s) encore en grisé (en attente de vérification).
+            </div>
+          </div>
+        </div>
+        <div class="daily-banner-right">
+          ${isRoberto ? `
+            <button type="button" class="btn-banner-action btn-banner-validate-now" onclick="window.OrdersModule.validateTodayPlanning()" title="Valider toutes les chambres restantes d'un coup">
+              ✅ Tout valider (${actualizedCount}/${totalRooms})
+            </button>
+          ` : ''}
+        </div>
+      `;
     } else {
-      // PLANNING NON ENCORE MIS À JOUR AUJOURD'HUI (AMBRE / ATTENTION ADÉLCIA)
+      // PLANNING NON ENCORE ACTUALISÉ (AMBRE / ATTENTION ADÉLCIA)
       banner.className = 'daily-update-banner is-pending';
-      const prevInfo = hasMeta
-        ? `Dernière modification enregistrée : le <strong>${dateStr} à ${timeStr}</strong> par ${escapeHtml(author)}.<br>Roberto n'a pas encore validé les données de ce matin.`
-        : `Roberto n'a pas encore vérifié ni validé les fiches des chambres pour aujourd'hui.`;
-
       banner.innerHTML = `
         <div class="daily-banner-left">
           <div class="daily-banner-icon-box" title="Planning en attente de vérification">⚠️</div>
           <div class="daily-banner-content">
             <div class="daily-banner-badge-row">
-              <span class="daily-banner-badge">⚠️ ATTENTION : PLANNING NON ENCORE ACTUALISÉ</span>
+              <span class="daily-banner-badge">⚠️ ATTENTION : PLANNING NON ENCORE ACTUALISÉ (0 / ${totalRooms} VÉRIFIÉES)</span>
             </div>
             <div class="daily-banner-title">
               Planning du jour en attente de vérification
             </div>
             <div class="daily-banner-subtitle">
-              ${prevInfo} <em>Adélcia : vérifiez auprès de Roberto avant de débuter le nettoyage des chambres.</em>
+              Toutes les chambres apparaissent en grisé. Roberto n'a pas encore vérifié les fiches des chambres pour aujourd'hui. <em>Adélcia : vérifiez auprès de Roberto avant de débuter le nettoyage des chambres.</em>
             </div>
           </div>
         </div>
@@ -204,24 +229,43 @@ function renderDailyUpdateBanner() {
     }
   } else {
     // CAS 2 : On consulte une AUTRE DATE (Hier, Demain, etc.)
-    banner.className = 'daily-update-banner is-other-date';
     const { dayName, fullDate } = formatDateDisplay(selectedDate);
     const dateText = hasMeta
       ? `Dernière modification : le <strong>${dateStr} à ${timeStr}</strong> <span class="daily-banner-author">par ${escapeHtml(author)}</span>`
       : `Aucune modification enregistrée pour cette date.`;
+
+    if (allActualized) {
+      banner.className = 'daily-update-banner is-updated';
+    } else if (isPartiallyActualized) {
+      banner.className = 'daily-update-banner is-in-progress';
+    } else {
+      banner.className = 'daily-update-banner is-other-date';
+    }
+
+    const badgeLabel = allActualized 
+      ? `✓ PLANNING DU ${escapeHtml(dayName.toUpperCase())} ${escapeHtml(fullDate.toUpperCase())} (${actualizedCount}/${totalRooms} ACTUALISÉES)`
+      : (isPartiallyActualized 
+          ? `🔄 PLANNING DU ${escapeHtml(dayName.toUpperCase())} ${escapeHtml(fullDate.toUpperCase())} (${actualizedCount}/${totalRooms} ACTUALISÉES)`
+          : `⚪ PLANNING DU ${escapeHtml(dayName.toUpperCase())} ${escapeHtml(fullDate.toUpperCase())} (NON ACTUALISÉ)`);
+
+    const subLabel = allActualized
+      ? `Toutes les chambres sont actualisées pour cette date.`
+      : (isPartiallyActualized
+          ? `${actualizedCount} chambre(s) actualisée(s) en couleur, les autres restent en grisé.`
+          : `Toutes les chambres de cette date sont en grisé (en attente de mise à jour).`);
 
     banner.innerHTML = `
       <div class="daily-banner-left">
         <div class="daily-banner-icon-box" title="Planning d'une autre date">🗓️</div>
         <div class="daily-banner-content">
           <div class="daily-banner-badge-row">
-            <span class="daily-banner-badge">📅 PLANNING DU ${escapeHtml(dayName.toUpperCase())} ${escapeHtml(fullDate.toUpperCase())}</span>
+            <span class="daily-banner-badge">${badgeLabel}</span>
           </div>
           <div class="daily-banner-title">
             ${dateText}
           </div>
           <div class="daily-banner-subtitle">
-            Vous consultez le planning d'une date différente d'aujourd'hui.
+            ${subLabel}
           </div>
         </div>
       </div>
@@ -270,8 +314,13 @@ function goToToday() {
 
 function onDailyPlanningValidated(data) {
   if (data && data.date === selectedDate) {
-    currentDailyMeta = data.meta;
-    renderDailyUpdateBanner();
+    if (data.meta) currentDailyMeta = data.meta;
+    if (data.rooms && Array.isArray(data.rooms)) {
+      dailyRooms = data.rooms;
+    } else {
+      dailyRooms.forEach(r => r.is_actualized = 1);
+    }
+    renderDailyBoard();
   }
 }
 
@@ -294,12 +343,14 @@ function updateRoomCardDOM(card, room) {
   const isTablet = isTabletView();
   const status = room.status || 'libera';
   const cleanliness = room.cleanliness_status || 'a_faire';
+  const isActualized = (room.is_actualized === 1);
 
   const noteInput = card.querySelector('.room-notes-input');
   const isTyping = noteInput && document.activeElement === noteInput;
   const currentNoteVal = noteInput ? noteInput.value : (room.notes || '');
 
-  card.className = `daily-room-card status-card-${status} clean-${cleanliness}${isTablet ? ' is-tablet-card' : ''}`;
+  const actualizedClass = isActualized ? 'is-actualized' : 'is-not-actualized';
+  card.className = `daily-room-card ${actualizedClass} status-card-${status} clean-${cleanliness}${isTablet ? ' is-tablet-card' : ''}`;
   card.innerHTML = getDailyRoomCardInnerHtml(room, isTablet);
 
   if (isTyping) {
@@ -318,7 +369,9 @@ function createDailyRoomCardHtml(room) {
   const roomNum = room.room_number;
   const status = room.status || 'libera';
   const cleanliness = room.cleanliness_status || 'a_faire';
-  const cardStatusClass = `status-card-${status} clean-${cleanliness}${isTablet ? ' is-tablet-card' : ''}`;
+  const isActualized = (room.is_actualized === 1);
+  const actualizedClass = isActualized ? 'is-actualized' : 'is-not-actualized';
+  const cardStatusClass = `${actualizedClass} status-card-${status} clean-${cleanliness}${isTablet ? ' is-tablet-card' : ''}`;
 
   return `
     <div class="daily-room-card ${cardStatusClass}" id="daily-room-card-${roomNum}" data-room="${roomNum}">
@@ -338,6 +391,7 @@ function getDailyRoomCardInnerHtml(room, isTablet) {
   const isRoom5 = roomNum === 5;
   const needsExtraBed = isRoom5 && guests === 3;
   const isControlRequested = room.control_requested === 1;
+  const isActualized = (room.is_actualized === 1);
 
   if (isTablet) {
     // ----------------------------------------------------
@@ -350,31 +404,38 @@ function getDailyRoomCardInnerHtml(room, isTablet) {
           <span>🚪 Chambre ${roomNum}</span>
         </div>
         <div class="daily-room-top-badges">
-          ${cleanliness === 'deja_propre' ? '<span class="status-pill pill-propre">✨ Déjà Propre</span>' : ''}
-          ${cleanliness === 'a_faire' ? '<span class="status-pill pill-a-faire">⏳ À faire</span>' : ''}
-          ${cleanliness === 'termine' ? '<span class="status-pill pill-termine">✅ Terminé</span>' : ''}
-          ${access === 'client_sorti' ? '<span class="status-pill pill-accessible">🟢 Accès Libre</span>' : ''}
+          ${!isActualized ? '<span class="status-pill pill-unactualized">⚪ Non actualisé</span>' : ''}
+          ${isActualized && cleanliness === 'deja_propre' ? '<span class="status-pill pill-propre">✨ Déjà Propre</span>' : ''}
+          ${isActualized && cleanliness === 'a_faire' ? '<span class="status-pill pill-a-faire">⏳ À faire</span>' : ''}
+          ${isActualized && cleanliness === 'termine' ? '<span class="status-pill pill-termine">✅ Terminé</span>' : ''}
+          ${isActualized && access === 'client_sorti' ? '<span class="status-pill pill-accessible">🟢 Accès Libre</span>' : ''}
           ${isSeparati ? '<span class="bed-type-badge separati">🛏️🛏️ Lits Séparés</span>' : ''}
         </div>
       </div>
 
       <!-- 1. MOUVEMENT DU JOUR (Uniquement le badge actif) -->
       <div class="room-status-flags room-status-flags-tablet">
-        ${status === 'libera' ? `
-          <div class="flag-btn flag-libera active flag-readonly" title="Chambre Libre / Arrivée">
-            <span>🟢 Libre</span>
+        ${!isActualized ? `
+          <div class="flag-btn flag-readonly flag-unactualized" title="En attente de vérification par Roberto">
+            <span>⚪ En attente de Roberto</span>
           </div>
-        ` : ''}
-        ${status === 'partenza' ? `
-          <div class="flag-btn flag-partenza active flag-readonly" title="Départ / À blanc">
-            <span>🔴 Départ</span>
-          </div>
-        ` : ''}
-        ${status === 'restante' ? `
-          <div class="flag-btn flag-restante active flag-readonly" title="Recouche / Client reste">
-            <span>🟡 Recouche</span>
-          </div>
-        ` : ''}
+        ` : `
+          ${status === 'libera' ? `
+            <div class="flag-btn flag-libera active flag-readonly" title="Chambre Libre / Arrivée">
+              <span>🟢 Libre</span>
+            </div>
+          ` : ''}
+          ${status === 'partenza' ? `
+            <div class="flag-btn flag-partenza active flag-readonly" title="Départ / À blanc">
+              <span>🔴 Départ</span>
+            </div>
+          ` : ''}
+          ${status === 'restante' ? `
+            <div class="flag-btn flag-restante active flag-readonly" title="Recouche / Client reste">
+              <span>🟡 Recouche</span>
+            </div>
+          ` : ''}
+        `}
       </div>
 
       <!-- 2. ACCÈS EN TEMPS RÉEL (Uniquement le statut actif) -->
@@ -452,6 +513,12 @@ function getDailyRoomCardInnerHtml(room, isTablet) {
         <span>🚪 Chambre ${roomNum}</span>
       </div>
       <div class="daily-room-top-badges">
+        ${!isActualized ? `
+          <span class="status-pill pill-unactualized">⚪ Non actualisé</span>
+          <button type="button" class="btn-actualize-room" onclick="window.OrdersModule.actualizeRoom(${roomNum}, true)" title="Confirmer et valider cette chambre pour cette date">✓ Valider</button>
+        ` : `
+          <span class="status-pill pill-actualized">✓ Actualisé</span>
+        `}
         ${cleanliness === 'deja_propre' ? '<span class="status-pill pill-propre">✨ Déjà Propre</span>' : ''}
         ${cleanliness === 'a_faire' ? '<span class="status-pill pill-a-faire">⏳ À faire</span>' : ''}
         ${cleanliness === 'termine' ? '<span class="status-pill pill-termine">✅ Terminé</span>' : ''}
@@ -544,6 +611,22 @@ function getDailyRoomCardInnerHtml(room, isTablet) {
   `;
 }
 
+async function actualizeRoom(roomNum, actualized = true) {
+  const currentUser = (window.App && typeof window.App.getCurrentUser === 'function')
+    ? window.App.getCurrentUser()
+    : (localStorage.getItem('hk_user') || 'Roberto');
+  const room = dailyRooms.find(r => r.room_number === roomNum);
+  if (room) {
+    room.is_actualized = actualized ? 1 : 0;
+    const card = document.getElementById(`daily-room-card-${roomNum}`);
+    if (card) {
+      updateRoomCardDOM(card, room);
+    }
+  }
+  await saveRoomUpdate(roomNum, { is_actualized: actualized ? 1 : 0, updated_by: currentUser });
+  renderDailyUpdateBanner();
+}
+
 function bindRoomCardEvents(card) {
   const roomNum = parseInt(card.getAttribute('data-room'), 10);
   const currentUser = window.App ? window.App.getCurrentUser() : 'Roberto';
@@ -555,9 +638,11 @@ function bindRoomCardEvents(card) {
       const room = dailyRooms.find(r => r.room_number === roomNum);
       if (room) {
         room.status = newStatus;
+        room.is_actualized = 1;
         updateRoomCardDOM(card, room);
       }
-      await saveRoomUpdate(roomNum, { status: newStatus, updated_by: currentUser });
+      await saveRoomUpdate(roomNum, { status: newStatus, is_actualized: 1, updated_by: currentUser });
+      renderDailyUpdateBanner();
     });
   });
 
@@ -568,9 +653,11 @@ function bindRoomCardEvents(card) {
       const room = dailyRooms.find(r => r.room_number === roomNum);
       if (room) {
         room.access_status = newAccess;
+        room.is_actualized = 1;
         updateRoomCardDOM(card, room);
       }
-      await saveRoomUpdate(roomNum, { access_status: newAccess, updated_by: currentUser });
+      await saveRoomUpdate(roomNum, { access_status: newAccess, is_actualized: 1, updated_by: currentUser });
+      renderDailyUpdateBanner();
     });
   });
 
@@ -584,9 +671,11 @@ function bindRoomCardEvents(card) {
           newClean = 'a_faire';
         }
         room.cleanliness_status = newClean;
+        room.is_actualized = 1;
         updateRoomCardDOM(card, room);
       }
-      await saveRoomUpdate(roomNum, { cleanliness_status: newClean, updated_by: currentUser });
+      await saveRoomUpdate(roomNum, { cleanliness_status: newClean, is_actualized: 1, updated_by: currentUser });
+      renderDailyUpdateBanner();
     });
   });
 
@@ -597,9 +686,11 @@ function bindRoomCardEvents(card) {
       const room = dailyRooms.find(r => r.room_number === roomNum);
       if (room) {
         room.guests_count = guests;
+        room.is_actualized = 1;
         updateRoomCardDOM(card, room);
       }
-      await saveRoomUpdate(roomNum, { guests_count: guests, updated_by: currentUser });
+      await saveRoomUpdate(roomNum, { guests_count: guests, is_actualized: 1, updated_by: currentUser });
+      renderDailyUpdateBanner();
     });
   });
 
@@ -610,9 +701,11 @@ function bindRoomCardEvents(card) {
       const room = dailyRooms.find(r => r.room_number === roomNum);
       if (room) {
         room.beds_type = bedsType;
+        room.is_actualized = 1;
         updateRoomCardDOM(card, room);
       }
-      await saveRoomUpdate(roomNum, { beds_type: bedsType, updated_by: currentUser });
+      await saveRoomUpdate(roomNum, { beds_type: bedsType, is_actualized: 1, updated_by: currentUser });
+      renderDailyUpdateBanner();
     });
   });
 
@@ -621,16 +714,23 @@ function bindRoomCardEvents(card) {
   if (noteInput) {
     noteInput.addEventListener('input', () => {
       const text = noteInput.value;
+      const room = dailyRooms.find(r => r.room_number === roomNum);
+      if (room && !room.is_actualized) {
+        room.is_actualized = 1;
+        updateRoomCardDOM(card, room);
+      }
       if (saveNoteTimeouts[roomNum]) clearTimeout(saveNoteTimeouts[roomNum]);
       saveNoteTimeouts[roomNum] = setTimeout(async () => {
-        await saveRoomUpdate(roomNum, { notes: text, updated_by: currentUser });
+        await saveRoomUpdate(roomNum, { notes: text, is_actualized: 1, updated_by: currentUser });
+        renderDailyUpdateBanner();
       }, 700);
     });
 
     noteInput.addEventListener('blur', async () => {
       const text = noteInput.value;
       if (saveNoteTimeouts[roomNum]) clearTimeout(saveNoteTimeouts[roomNum]);
-      await saveRoomUpdate(roomNum, { notes: text, updated_by: currentUser });
+      await saveRoomUpdate(roomNum, { notes: text, is_actualized: 1, updated_by: currentUser });
+      renderDailyUpdateBanner();
     });
   }
 
@@ -1461,6 +1561,7 @@ function refreshAll() {
     renderDailyBoard,
     renderDailyUpdateBanner,
     validateTodayPlanning,
+    actualizeRoom,
     goToToday,
     onDailyPlanningValidated,
     refreshAll,
@@ -1489,5 +1590,6 @@ function refreshAll() {
   window.submitNewOrder = submitNewOrder;
   window.submitEditOrder = submitEditOrder;
   window.validateTodayPlanning = validateTodayPlanning;
+  window.actualizeRoom = actualizeRoom;
   window.goToToday = goToToday;
 })();

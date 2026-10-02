@@ -17,7 +17,7 @@ const io = new Server(server, {
 });
 
 const PORT = process.env.PORT || 8765;
-const CURRENT_APP_VERSION = 58;
+const CURRENT_APP_VERSION = 59;
 
 const uploadsDir = path.join(__dirname, 'public', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -275,9 +275,11 @@ app.post('/api/daily-rooms/:date/validate', (req, res) => {
   try {
     const { date } = req.params;
     const user = req.body && req.body.user ? req.body.user : 'Roberto';
-    const meta = db.touchDailyPlanning(date, user);
-    io.emit('daily_planning:validated', { date, meta });
-    res.json({ success: true, meta });
+    const rooms = db.validateAllRoomsForDate(date, user);
+    const meta = db.getDailyPlanningMeta(date);
+    io.emit('daily_planning:validated', { date, meta, rooms });
+    io.emit('rooms:updated', { date });
+    res.json({ success: true, meta, rooms });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

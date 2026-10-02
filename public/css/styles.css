@@ -2240,6 +2240,76 @@ body.is-pc .btn-chat-choices.pc-only {
   border-color: #4ade80 !important;
 }
 
+/* ⚪ STATUT NON ACTUALISÉ : FOND ET BORDURE GRIS NEUTRE (PRIORITÉ ABSOLUE SUR LES COULEURS) */
+.daily-room-card.is-not-actualized {
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+}
+
+.daily-room-card.is-not-actualized:hover {
+  background-color: #e2e8f0 !important;
+  border-color: #94a3b8 !important;
+}
+
+.daily-room-card.is-not-actualized .daily-room-number-badge {
+  color: #64748b;
+}
+
+/* Badge Non actualisé */
+.status-pill.pill-unactualized {
+  background-color: #e2e8f0;
+  color: #475569;
+  border: 1px solid #cbd5e1;
+  font-weight: 700;
+}
+
+/* Badge Actualisé */
+.status-pill.pill-actualized {
+  background-color: #dcfce7;
+  color: #166534;
+  border: 1px solid #86efac;
+  font-weight: 700;
+}
+
+/* Bouton rapide valider chambre */
+.btn-actualize-room {
+  background: #ffffff;
+  border: 1.5px solid #0284c7;
+  color: #0284c7;
+  border-radius: 6px;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.btn-actualize-room:hover {
+  background: #0284c7;
+  color: #ffffff;
+}
+
+/* Bannière actualisation en cours */
+.daily-update-banner.is-in-progress {
+  background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%) !important;
+  border: 2px solid #60a5fa !important;
+  box-shadow: 0 4px 16px rgba(59, 130, 246, 0.12) !important;
+}
+
+.daily-update-banner.is-in-progress .daily-banner-icon-box {
+  background: #3b82f6 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3) !important;
+}
+
+.daily-update-banner.is-in-progress .daily-banner-badge {
+  background: #bfdbfe !important;
+  color: #1d4ed8 !important;
+  border: 1px solid #93c5fd !important;
+}
+
 .daily-room-top {
   display: flex;
   align-items: center;

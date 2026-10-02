@@ -70,6 +70,7 @@ function initSchema() {
       access_status TEXT DEFAULT 'en_chambre',
       cleanliness_status TEXT DEFAULT 'a_faire',
       control_requested INTEGER DEFAULT 0,
+      is_actualized INTEGER DEFAULT 0,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_by TEXT DEFAULT '',
       UNIQUE(date, room_number)
@@ -203,6 +204,19 @@ function initSchema() {
 
   try {
     db.exec('ALTER TABLE daily_room_status ADD COLUMN control_requested INTEGER DEFAULT 0;');
+  } catch (e) {}
+
+  try {
+    db.exec('ALTER TABLE daily_room_status ADD COLUMN is_actualized INTEGER DEFAULT 0;');
+  } catch (e) {}
+
+  try {
+    db.exec(`
+      UPDATE daily_room_status 
+      SET is_actualized = 1 
+      WHERE (updated_by IS NOT NULL AND updated_by != '')
+         OR date IN (SELECT date FROM daily_planning_meta WHERE updated_at IS NOT NULL);
+    `);
   } catch (e) {}
 
   try {
@@ -478,8 +492,8 @@ function getDailyRoomStatus(dateStr) {
   if (existing.length < 5) {
     const existingRooms = new Set(existing.map(r => r.room_number));
     const insertStmt = db.prepare(`
-      INSERT OR IGNORE INTO daily_room_status (date, room_number, status, guests_count, extra_bed, beds_type, notes, access_status, cleanliness_status, control_requested)
-      VALUES (?, ?, 'libera', 2, 0, 'matrimoniale', '', 'en_chambre', 'a_faire', 0)
+      INSERT OR IGNORE INTO daily_room_status (date, room_number, status, guests_count, extra_bed, beds_type, notes, access_status, cleanliness_status, control_requested, is_actualized, updated_by)
+      VALUES (?, ?, 'libera', 2, 0, 'matrimoniale', '', 'en_chambre', 'a_faire', 0, 0, '')
     `);
     for (let r = 1; r <= 5; r++) {
       if (!existingRooms.has(r)) {
@@ -509,10 +523,13 @@ function updateDailyRoomStatus(dateStr, roomNumber, data) {
   const finalCleanliness = data.cleanliness_status !== undefined ? data.cleanliness_status : (current ? (current.cleanliness_status || 'a_faire') : 'a_faire');
   const finalControlRequested = data.control_requested !== undefined ? (data.control_requested ? 1 : 0) : (current ? (current.control_requested || 0) : 0);
   const finalUpdatedBy = data.updated_by || (current ? current.updated_by : '');
+  const finalActualized = data.is_actualized !== undefined 
+    ? (data.is_actualized ? 1 : 0) 
+    : 1; // Dès qu'une modification/action est apportée à la chambre, elle est actualisée
 
   db.prepare(`
-    INSERT INTO daily_room_status (date, room_number, status, guests_count, extra_bed, beds_type, notes, access_status, cleanliness_status, control_requested, updated_by, updated_at)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+    INSERT INTO daily_room_status (date, room_number, status, guests_count, extra_bed, beds_type, notes, access_status, cleanliness_status, control_requested, is_actualized, updated_by, updated_at)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
     ON CONFLICT(date, room_number) DO UPDATE SET
       status = excluded.status,
       guests_count = excluded.guests_count,
@@ -522,14 +539,26 @@ function updateDailyRoomStatus(dateStr, roomNumber, data) {
       access_status = excluded.access_status,
       cleanliness_status = excluded.cleanliness_status,
       control_requested = excluded.control_requested,
+      is_actualized = excluded.is_actualized,
       updated_by = excluded.updated_by,
       updated_at = CURRENT_TIMESTAMP
-  `).run(dateStr, parseInt(roomNumber), finalStatus, finalGuests, finalExtraBed, finalBedsType, finalNotes, finalAccess, finalCleanliness, finalControlRequested, finalUpdatedBy);
+  `).run(dateStr, parseInt(roomNumber), finalStatus, finalGuests, finalExtraBed, finalBedsType, finalNotes, finalAccess, finalCleanliness, finalControlRequested, finalActualized, finalUpdatedBy);
 
   // Mettre à jour automatiquement les métadonnées de dernière mise à jour du planning
   touchDailyPlanning(dateStr, finalUpdatedBy || 'Roberto');
 
   return db.prepare('SELECT * FROM daily_room_status WHERE date = ? AND room_number = ?').get(dateStr, roomNumber);
+}
+
+function validateAllRoomsForDate(dateStr, user = 'Roberto') {
+  getDailyRoomStatus(dateStr); // Assure l'existence des 5 chambres
+  db.prepare(`
+    UPDATE daily_room_status 
+    SET is_actualized = 1, updated_by = ?, updated_at = CURRENT_TIMESTAMP
+    WHERE date = ?
+  `).run(user, dateStr);
+  touchDailyPlanning(dateStr, user);
+  return db.prepare('SELECT * FROM daily_room_status WHERE date = ? ORDER BY room_number ASC').all(dateStr);
 }
 
 function getDailyPlanningMeta(dateStr) {
@@ -853,6 +882,7 @@ module.exports = {
   deleteOrder,
   getDailyRoomStatus,
   updateDailyRoomStatus,
+  validateAllRoomsForDate,
   getDailyPlanningMeta,
   touchDailyPlanning,
   getDeadlines,
