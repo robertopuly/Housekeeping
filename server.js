@@ -17,7 +17,7 @@ const io = new Server(server, {
 });
 
 const PORT = process.env.PORT || 8765;
-const CURRENT_APP_VERSION = 63;
+const CURRENT_APP_VERSION = 64;
 
 const uploadsDir = path.join(__dirname, 'public', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -281,6 +281,17 @@ app.post('/api/daily-rooms/:date/validate', (req, res) => {
     io.emit('daily_planning:validated', { date, meta, rooms, sender: user });
     io.emit('rooms:updated', { date });
     res.json({ success: true, meta, rooms });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/daily-rooms/notify-tablet', (req, res) => {
+  try {
+    const user = (req.body && req.body.user) ? req.body.user : 'Roberto';
+    const date = (req.body && req.body.date) ? req.body.date : new Date().toISOString().split('T')[0];
+    io.emit('daily_rooms:notify_tablet', { sender: user, date, timestamp: Date.now() });
+    res.json({ success: true, message: 'Notification sonore envoyée au tablet' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

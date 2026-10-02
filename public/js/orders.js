@@ -21,20 +21,80 @@
     return isMobileOrTablet || (user && user.toLowerCase().includes('adelcia'));
   }
 
-  function triggerHappySongOnTablet(info = {}) {
-    // Joue une chansonnette joyeuse de ~3 secondes sur la tablette quand Roberto envoie une actualisation
+  function showTabletAlertToast(message) {
+    let toast = document.getElementById('tablet-alert-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'tablet-alert-toast';
+      toast.className = 'tablet-alert-toast';
+      document.body.appendChild(toast);
+    }
+    toast.innerHTML = `<span class="tablet-alert-toast-icon">🔔</span><span>${escapeHtml(message)}</span>`;
+    toast.classList.add('show');
+
+    if (window._tabletToastTimeout) clearTimeout(window._tabletToastTimeout);
+    window._tabletToastTimeout = setTimeout(() => {
+      toast.classList.remove('show');
+    }, 4500);
+  }
+
+  function onTabletAlertReceived(data = {}) {
+    // Joue la chansonnette de 3 secondes uniquement sur le Tablet (ou session Adélcia)
     if (!isTabletDevice()) return;
-
-    // Si l'action a été émise sur cet appareil même il y a moins de 1.5s, ne pas s'auto-sonner
-    const now = Date.now();
-    if (now - lastLocalActionTimestamp < 1500) return;
-
-    // Éviter de superposer deux fois la musique si plusieurs pièces arrivent
-    if (now - lastHappySongTimestamp < 3500) return;
-    lastHappySongTimestamp = now;
 
     if (window.SoundEngine && typeof window.SoundEngine.playHappySongSound === 'function') {
       window.SoundEngine.playHappySongSound();
+    }
+
+    showTabletAlertToast("🔔 Roberto a mis à jour les chambres !");
+  }
+
+  async function notifyTabletWithSong() {
+    const currentUser = (window.App && typeof window.App.getCurrentUser === 'function')
+      ? window.App.getCurrentUser()
+      : (localStorage.getItem('hk_user') || 'Roberto');
+
+    if (window.SoundEngine && typeof window.SoundEngine.playSentSound === 'function') {
+      window.SoundEngine.playSentSound();
+    }
+
+    const btns = document.querySelectorAll('.btn-banner-notify-tablet, .btn-header-notify-tablet');
+    btns.forEach(b => {
+      b.disabled = true;
+      b.innerHTML = '⏳ Envoi...';
+    });
+
+    try {
+      const res = await fetch('/api/daily-rooms/notify-tablet', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user: currentUser, date: selectedDate })
+      });
+
+      if (res.ok) {
+        btns.forEach(b => {
+          b.innerHTML = '✅ Sonnerie envoyée !';
+          b.classList.add('btn-sent-success');
+        });
+        setTimeout(() => {
+          btns.forEach(b => {
+            b.disabled = false;
+            b.classList.remove('btn-sent-success');
+            b.innerHTML = '🔔 Prévenir Adélcia (Sonnerie)';
+          });
+        }, 2500);
+      } else {
+        btns.forEach(b => {
+          b.disabled = false;
+          b.innerHTML = '🔔 Prévenir Adélcia (Sonnerie)';
+        });
+      }
+    } catch (err) {
+      console.error('Erreur envoi sonnerie:', err);
+      btns.forEach(b => {
+        b.disabled = false;
+        b.innerHTML = '🔔 Prévenir Adélcia (Sonnerie)';
+      });
     }
   }
 
@@ -195,6 +255,9 @@ function renderDailyUpdateBanner() {
         </div>
         <div class="daily-banner-right">
           ${isRoberto ? `
+            <button type="button" class="btn-banner-action btn-banner-notify-tablet" onclick="window.OrdersModule.notifyTabletWithSong()" title="Envoyer la sonnerie d'alerte musicale de 3 secondes à Adélcia pour la prévenir des modifications">
+              🔔 Prévenir Adélcia (Sonnerie)
+            </button>
             <button type="button" class="btn-banner-action btn-banner-revalidate" onclick="window.OrdersModule.validateTodayPlanning()" title="Réactualiser l'horodatage de vérification">
               🔄 Réactualiser
             </button>
@@ -221,6 +284,9 @@ function renderDailyUpdateBanner() {
         </div>
         <div class="daily-banner-right">
           ${isRoberto ? `
+            <button type="button" class="btn-banner-action btn-banner-notify-tablet" onclick="window.OrdersModule.notifyTabletWithSong()" title="Envoyer la sonnerie d'alerte musicale de 3 secondes à Adélcia pour la prévenir des modifications">
+              🔔 Prévenir Adélcia (Sonnerie)
+            </button>
             <button type="button" class="btn-banner-action btn-banner-validate-now" onclick="window.OrdersModule.validateTodayPlanning()" title="Valider toutes les chambres restantes d'un coup">
               ✅ Tout valider (${actualizedCount}/${totalRooms})
             </button>
@@ -247,6 +313,9 @@ function renderDailyUpdateBanner() {
         </div>
         <div class="daily-banner-right">
           ${isRoberto ? `
+            <button type="button" class="btn-banner-action btn-banner-notify-tablet" onclick="window.OrdersModule.notifyTabletWithSong()" title="Envoyer la sonnerie d'alerte musicale de 3 secondes à Adélcia pour la prévenir des modifications">
+              🔔 Prévenir Adélcia (Sonnerie)
+            </button>
             <button type="button" class="btn-banner-action btn-banner-validate-now" onclick="window.OrdersModule.validateTodayPlanning()" title="Marquer le planning d'aujourd'hui comme vérifié">
               ✅ Valider le planning d'aujourd'hui
             </button>
@@ -301,6 +370,9 @@ function renderDailyUpdateBanner() {
           📅 Revenir à Aujourd'hui
         </button>
         ${isRoberto ? `
+          <button type="button" class="btn-banner-action btn-banner-notify-tablet" onclick="window.OrdersModule.notifyTabletWithSong()" title="Envoyer la sonnerie d'alerte musicale de 3 secondes à Adélcia pour la prévenir des modifications">
+            🔔 Prévenir Adélcia (Sonnerie)
+          </button>
           <button type="button" class="btn-banner-action btn-banner-revalidate" onclick="window.OrdersModule.validateTodayPlanning()" title="Valider le planning pour cette date">
             ✓ Valider cette date
           </button>
@@ -349,7 +421,6 @@ function onDailyPlanningValidated(data) {
       dailyRooms.forEach(r => r.is_actualized = 1);
     }
     renderDailyBoard();
-    triggerHappySongOnTablet(data);
   }
 }
 
@@ -977,11 +1048,6 @@ function onRoomStatusUpdated({ date, room, meta, sender }) {
     dailyRooms.push(room);
   }
   renderDailyBoard();
-
-  // Si la chambre a été actualisée, jouer la mélodie sur la tablette !
-  if (room && (room.is_actualized === 1 || room.is_actualized === '1')) {
-    triggerHappySongOnTablet({ sender, room });
-  }
 }
 
 function setupDailyBoardEvents() {
@@ -1661,7 +1727,8 @@ function refreshAll() {
     renderDailyUpdateBanner,
     validateTodayPlanning,
     actualizeRoom,
-    triggerHappySongOnTablet,
+    notifyTabletWithSong,
+    onTabletAlertReceived,
     goToToday,
     onDailyPlanningValidated,
     refreshAll,
@@ -1691,5 +1758,6 @@ function refreshAll() {
   window.submitEditOrder = submitEditOrder;
   window.validateTodayPlanning = validateTodayPlanning;
   window.actualizeRoom = actualizeRoom;
+  window.notifyTabletWithSong = notifyTabletWithSong;
   window.goToToday = goToToday;
 })();

@@ -8,9 +8,9 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <title>Gouvernante Hôtel - Gestion & Communication</title>
-  <link rel="stylesheet" href="css/styles.css?v=63">
+  <link rel="stylesheet" href="css/styles.css?v=64">
   <script>
-    window.APP_VERSION = 63;
+    window.APP_VERSION = 64;
     function getTodayIsoStr() {
       var d = new Date();
       var y = d.getFullYear();
@@ -528,6 +528,7 @@
               <button type="button" id="btn-daily-today" class="btn-daily-nav active" title="Aujourd'hui">Aujourd'hui</button>
               <button type="button" id="btn-daily-next" class="btn-daily-nav" title="Jour suivant">Demain ▶</button>
               <input type="date" id="daily-date-input" class="daily-date-picker" title="Sélectionner une date" />
+              <button type="button" id="btn-header-notify-tablet" class="btn-daily-nav btn-header-notify-tablet pc-only" onclick="window.OrdersModule.notifyTabletWithSong()" title="Envoyer la sonnerie d'alerte musicale de 3 secondes à Adélcia pour la prévenir des modifications">🔔 Alerter Adélcia</button>
             </div>
           </div>
 
@@ -1362,14 +1363,14 @@
 
   <!-- SCRIPTS -->
   <script src="/socket.io/socket.io.js"></script>
-  <script src="js/audio.js?v=63"></script>
-  <script src="js/socket.js?v=63"></script>
-  <script src="js/chat.js?v=63"></script>
-  <script src="js/orders.js?v=63"></script>
-  <script src="js/deadlines.js?v=63"></script>
-  <script src="js/shopping.js?v=63"></script>
-  <script src="js/expenses.js?v=63"></script>
-  <script src="js/leave.js?v=63"></script>
-  <script src="js/app.js?v=63"></script>
+  <script src="js/audio.js?v=64"></script>
+  <script src="js/socket.js?v=64"></script>
+  <script src="js/chat.js?v=64"></script>
+  <script src="js/orders.js?v=64"></script>
+  <script src="js/deadlines.js?v=64"></script>
+  <script src="js/shopping.js?v=64"></script>
+  <script src="js/expenses.js?v=64"></script>
+  <script src="js/leave.js?v=64"></script>
+  <script src="js/app.js?v=64"></script>
 </body>
 </html>

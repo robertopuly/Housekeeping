@@ -128,6 +128,12 @@ function initSocket() {
     }
   });
 
+  socket.on('daily_rooms:notify_tablet', (data) => {
+    if (window.OrdersModule && typeof window.OrdersModule.onTabletAlertReceived === 'function') {
+      window.OrdersModule.onTabletAlertReceived(data);
+    }
+  });
+
   // Événements Échéances
   socket.on('deadline:created', (item) => {
     if (window.DeadlinesModule) {

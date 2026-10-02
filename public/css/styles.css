@@ -2140,6 +2140,76 @@ body.is-pc .btn-chat-choices.pc-only {
   background-color: #e2e8f0;
 }
 
+.btn-banner-notify-tablet {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #ffffff;
+  box-shadow: 0 2px 8px rgba(245, 158, 11, 0.4);
+  font-weight: 800;
+  border: none;
+}
+
+.btn-banner-notify-tablet:hover {
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%);
+  box-shadow: 0 4px 12px rgba(245, 158, 11, 0.5);
+  transform: translateY(-1px);
+}
+
+.btn-banner-notify-tablet.btn-sent-success {
+  background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(16, 185, 129, 0.4) !important;
+}
+
+.btn-header-notify-tablet {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+  color: #ffffff !important;
+  border: none !important;
+  font-weight: 800 !important;
+  box-shadow: 0 2px 6px rgba(245, 158, 11, 0.35);
+}
+
+.btn-header-notify-tablet:hover {
+  background: linear-gradient(135deg, #d97706 0%, #b45309 100%) !important;
+  transform: translateY(-1px);
+}
+
+/* Toast popup notification on tablet */
+.tablet-alert-toast {
+  position: fixed;
+  top: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-50px);
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: #ffffff;
+  padding: 14px 24px;
+  border-radius: 16px;
+  font-size: 16px;
+  font-weight: 800;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.4), 0 0 0 2px #38bdf8;
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  opacity: 0;
+  transition: all 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  pointer-events: none;
+}
+
+.tablet-alert-toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}
+
+.tablet-alert-toast-icon {
+  font-size: 26px;
+  animation: bellRing 0.8s ease infinite alternate;
+}
+
+@keyframes bellRing {
+  0% { transform: rotate(-18deg); }
+  100% { transform: rotate(18deg); }
+}
+
 @media (max-width: 768px) {
   .daily-update-banner {
     padding: 12px;
