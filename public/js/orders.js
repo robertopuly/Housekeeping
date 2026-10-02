@@ -347,7 +347,6 @@ function updateRoomCardDOM(card, room) {
 
   const noteInput = card.querySelector('.room-notes-input');
   const isTyping = noteInput && document.activeElement === noteInput;
-  const currentNoteVal = noteInput ? noteInput.value : (room.notes || '');
 
   const actualizedClass = isActualized ? 'is-actualized' : 'is-not-actualized';
   if (isActualized) {
@@ -355,16 +354,30 @@ function updateRoomCardDOM(card, room) {
   } else {
     card.className = `daily-room-card ${actualizedClass}${isTablet ? ' is-tablet-card' : ''}`;
   }
-  card.innerHTML = getDailyRoomCardInnerHtml(room, isTablet);
 
+  // SI L'UTILISATEUR EST EN TRAIN D'ÉCRIRE DANS LE CHAMP NOTE :
+  // Ne JAMAIS détruire le DOM ni l'input ! Conserver la saisie et le focus intacts.
   if (isTyping) {
-    const newNoteInput = card.querySelector('.room-notes-input');
-    if (newNoteInput) {
-      newNoteInput.value = currentNoteVal;
-      newNoteInput.focus();
+    room.notes = noteInput.value;
+    const topBadges = card.querySelector('.daily-room-top-badges');
+    if (topBadges) {
+      if (isActualized) {
+        const unact = topBadges.querySelector('.pill-unactualized');
+        if (unact) unact.remove();
+        const valBtn = topBadges.querySelector('.btn-actualize-room');
+        if (valBtn) valBtn.remove();
+        if (!topBadges.querySelector('.pill-actualized')) {
+          const actPill = document.createElement('span');
+          actPill.className = 'status-pill pill-actualized';
+          actPill.textContent = '✓ Actualisé';
+          topBadges.prepend(actPill);
+        }
+      }
     }
+    return;
   }
 
+  card.innerHTML = getDailyRoomCardInnerHtml(room, isTablet);
   bindRoomCardEvents(card);
 }
 
@@ -721,22 +734,52 @@ function bindRoomCardEvents(card) {
     noteInput.addEventListener('input', () => {
       const text = noteInput.value;
       const room = dailyRooms.find(r => r.room_number === roomNum);
-      if (room && !room.is_actualized) {
-        room.is_actualized = 1;
-        updateRoomCardDOM(card, room);
+      if (room) {
+        room.notes = text;
+        if (!room.is_actualized) {
+          room.is_actualized = 1;
+          const status = room.status || 'libera';
+          const cleanliness = room.cleanliness_status || 'a_faire';
+          card.classList.remove('is-not-actualized');
+          card.classList.add('is-actualized', `status-card-${status}`, `clean-${cleanliness}`);
+
+          const topBadges = card.querySelector('.daily-room-top-badges');
+          if (topBadges) {
+            const unact = topBadges.querySelector('.pill-unactualized');
+            if (unact) unact.remove();
+            const valBtn = topBadges.querySelector('.btn-actualize-room');
+            if (valBtn) valBtn.remove();
+            if (!topBadges.querySelector('.pill-actualized')) {
+              const actPill = document.createElement('span');
+              actPill.className = 'status-pill pill-actualized';
+              actPill.textContent = '✓ Actualisé';
+              topBadges.prepend(actPill);
+            }
+          }
+          renderDailyUpdateBanner();
+        }
       }
       if (saveNoteTimeouts[roomNum]) clearTimeout(saveNoteTimeouts[roomNum]);
       saveNoteTimeouts[roomNum] = setTimeout(async () => {
         await saveRoomUpdate(roomNum, { notes: text, is_actualized: 1, updated_by: currentUser });
         renderDailyUpdateBanner();
-      }, 700);
+      }, 1000);
     });
 
     noteInput.addEventListener('blur', async () => {
       const text = noteInput.value;
       if (saveNoteTimeouts[roomNum]) clearTimeout(saveNoteTimeouts[roomNum]);
+      const room = dailyRooms.find(r => r.room_number === roomNum);
+      if (room) room.notes = text;
       await saveRoomUpdate(roomNum, { notes: text, is_actualized: 1, updated_by: currentUser });
       renderDailyUpdateBanner();
+    });
+
+    noteInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        noteInput.blur();
+      }
     });
   }
 
@@ -864,6 +907,13 @@ async function saveRoomUpdate(roomNum, changes) {
 
     if (res.ok) {
       const updated = await res.json();
+      const activeEl = document.activeElement;
+      if (activeEl && activeEl.classList.contains('room-notes-input')) {
+        const activeRoom = parseInt(activeEl.getAttribute('data-room'), 10);
+        if (activeRoom === roomNum) {
+          updated.notes = activeEl.value;
+        }
+      }
       onRoomStatusUpdated({ date: selectedDate, room: updated });
     }
   } catch (err) {
@@ -884,6 +934,14 @@ function onRoomStatusUpdated({ date, room, meta }) {
   }
   const idx = dailyRooms.findIndex(r => r.room_number === room.room_number);
   if (idx !== -1) {
+    // Si l'utilisateur est en train d'écrire dans la note de cette chambre, conserver sa saisie active
+    const activeEl = document.activeElement;
+    if (activeEl && activeEl.classList.contains('room-notes-input')) {
+      const activeRoom = parseInt(activeEl.getAttribute('data-room'), 10);
+      if (activeRoom === room.room_number) {
+        room.notes = activeEl.value;
+      }
+    }
     dailyRooms[idx] = room;
   } else {
     dailyRooms.push(room);
