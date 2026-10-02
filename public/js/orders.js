@@ -10,6 +10,33 @@
   let dailyRooms = [];
   let currentDailyMeta = null;
   let saveNoteTimeouts = {};
+  let lastHappySongTimestamp = 0;
+  let lastLocalActionTimestamp = 0;
+
+  function isTabletDevice() {
+    const user = (window.App && typeof window.App.getCurrentUser === 'function')
+      ? window.App.getCurrentUser()
+      : (localStorage.getItem('hk_user') || 'Roberto');
+    const isMobileOrTablet = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    return isMobileOrTablet || (user && user.toLowerCase().includes('adelcia'));
+  }
+
+  function triggerHappySongOnTablet(info = {}) {
+    // Joue une chansonnette joyeuse de ~3 secondes sur la tablette quand Roberto envoie une actualisation
+    if (!isTabletDevice()) return;
+
+    // Si l'action a été émise sur cet appareil même il y a moins de 1.5s, ne pas s'auto-sonner
+    const now = Date.now();
+    if (now - lastLocalActionTimestamp < 1500) return;
+
+    // Éviter de superposer deux fois la musique si plusieurs pièces arrivent
+    if (now - lastHappySongTimestamp < 3500) return;
+    lastHappySongTimestamp = now;
+
+    if (window.SoundEngine && typeof window.SoundEngine.playHappySongSound === 'function') {
+      window.SoundEngine.playHappySongSound();
+    }
+  }
 
   function escapeHtml(str) {
     if (str === null || str === undefined) return '';
@@ -284,6 +311,7 @@ function renderDailyUpdateBanner() {
 }
 
 async function validateTodayPlanning(targetDate = selectedDate) {
+  lastLocalActionTimestamp = Date.now();
   try {
     const user = (window.App && typeof window.App.getCurrentUser === 'function')
       ? window.App.getCurrentUser()
@@ -321,6 +349,7 @@ function onDailyPlanningValidated(data) {
       dailyRooms.forEach(r => r.is_actualized = 1);
     }
     renderDailyBoard();
+    triggerHappySongOnTablet(data);
   }
 }
 
@@ -898,6 +927,7 @@ function attachDailyRoomListeners() {
 }
 
 async function saveRoomUpdate(roomNum, changes) {
+  lastLocalActionTimestamp = Date.now();
   try {
     const res = await fetch(`/api/daily-rooms/${selectedDate}/${roomNum}`, {
       method: 'PUT',
@@ -921,7 +951,7 @@ async function saveRoomUpdate(roomNum, changes) {
   }
 }
 
-function onRoomStatusUpdated({ date, room, meta }) {
+function onRoomStatusUpdated({ date, room, meta, sender }) {
   if (date !== selectedDate) return;
   if (meta) {
     currentDailyMeta = meta;
@@ -947,6 +977,11 @@ function onRoomStatusUpdated({ date, room, meta }) {
     dailyRooms.push(room);
   }
   renderDailyBoard();
+
+  // Si la chambre a été actualisée, jouer la mélodie sur la tablette !
+  if (room && (room.is_actualized === 1 || room.is_actualized === '1')) {
+    triggerHappySongOnTablet({ sender, room });
+  }
 }
 
 function setupDailyBoardEvents() {
@@ -1626,6 +1661,7 @@ function refreshAll() {
     renderDailyUpdateBanner,
     validateTodayPlanning,
     actualizeRoom,
+    triggerHappySongOnTablet,
     goToToday,
     onDailyPlanningValidated,
     refreshAll,

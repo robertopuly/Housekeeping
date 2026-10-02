@@ -17,7 +17,7 @@ const io = new Server(server, {
 });
 
 const PORT = process.env.PORT || 8765;
-const CURRENT_APP_VERSION = 62;
+const CURRENT_APP_VERSION = 63;
 
 const uploadsDir = path.join(__dirname, 'public', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -264,7 +264,8 @@ app.put('/api/daily-rooms/:date/:roomNumber', (req, res) => {
     const { date, roomNumber } = req.params;
     const updated = db.updateDailyRoomStatus(date, Number(roomNumber), req.body);
     const meta = db.getDailyPlanningMeta(date);
-    io.emit('room_status:updated', { date, room: updated, meta });
+    const sender = (req.body && req.body.updated_by) ? req.body.updated_by : (updated.updated_by || 'Roberto');
+    io.emit('room_status:updated', { date, room: updated, meta, sender });
     res.json(updated);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -277,7 +278,7 @@ app.post('/api/daily-rooms/:date/validate', (req, res) => {
     const user = req.body && req.body.user ? req.body.user : 'Roberto';
     const rooms = db.validateAllRoomsForDate(date, user);
     const meta = db.getDailyPlanningMeta(date);
-    io.emit('daily_planning:validated', { date, meta, rooms });
+    io.emit('daily_planning:validated', { date, meta, rooms, sender: user });
     io.emit('rooms:updated', { date });
     res.json({ success: true, meta, rooms });
   } catch (err) {
