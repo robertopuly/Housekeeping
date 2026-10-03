@@ -17,7 +17,7 @@ const io = new Server(server, {
 });
 
 const PORT = process.env.PORT || 8765;
-const CURRENT_APP_VERSION = 71;
+const CURRENT_APP_VERSION = 72;
 
 const uploadsDir = path.join(__dirname, 'public', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -893,6 +893,62 @@ app.delete('/api/gallery/:id', (req, res) => {
     io.emit('gallery:deleted', { id: Number(id) });
     res.json({ success: true, id: Number(id) });
   } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// PROFILS UTILISATEURS & AVATARS
+app.get('/api/user/avatars', (req, res) => {
+  try {
+    const avatars = db.getAllUserAvatars();
+    res.json(avatars);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/user/avatar', (req, res) => {
+  try {
+    const { username, image } = req.body;
+    if (!username) return res.status(400).json({ error: 'Nom d\'utilisateur requis' });
+    const normUser = (username.toLowerCase() === 'adelcia' || username.toLowerCase() === 'adélcia') ? 'Adélcia' : 'Roberto';
+
+    if (!image) {
+      // Réinitialisation de l'avatar (suppression de la photo personnalisée)
+      db.setUserAvatar(normUser, '');
+      io.emit('user:avatar_updated', { username: normUser, avatar_url: '' });
+      return res.json({ success: true, username: normUser, avatar_url: '' });
+    }
+
+    const matches = image.match(/^data:image\/([a-zA-Z0-9+]+);base64,(.+)$/);
+    if (!matches) {
+      return res.status(400).json({ error: 'Format d\'image invalide' });
+    }
+
+    const ext = matches[1] === 'png' ? 'png' : 'jpg';
+    const base64Data = matches[2];
+    const buffer = Buffer.from(base64Data, 'base64');
+    const safeUser = normUser.toLowerCase().replace(/[^a-z0-9]/g, '');
+    const filename = `avatar_${safeUser}_${Date.now()}.${ext}`;
+    const filePath = path.join(uploadsDir, filename);
+
+    // Supprimer l'ancien avatar s'il existait
+    const oldAvatar = db.getUserAvatar(normUser);
+    if (oldAvatar && oldAvatar.startsWith('/uploads/')) {
+      const oldFp = path.join(uploadsDir, path.basename(oldAvatar));
+      if (fs.existsSync(oldFp)) {
+        try { fs.unlinkSync(oldFp); } catch (e) {}
+      }
+    }
+
+    fs.writeFileSync(filePath, buffer);
+    const avatarUrl = `/uploads/${filename}`;
+    db.setUserAvatar(normUser, avatarUrl);
+
+    io.emit('user:avatar_updated', { username: normUser, avatar_url: avatarUrl });
+    res.json({ success: true, username: normUser, avatar_url: avatarUrl });
+  } catch (err) {
+    console.error('Erreur enregistrement avatar:', err);
     res.status(500).json({ error: err.message });
   }
 });

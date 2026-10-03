@@ -155,6 +155,12 @@ function initSchema() {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
+    CREATE TABLE IF NOT EXISTS user_profiles (
+      username TEXT PRIMARY KEY,
+      avatar_url TEXT DEFAULT '',
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp);
     CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status, is_archived);
     CREATE INDEX IF NOT EXISTS idx_deadlines_date ON deadlines(due_date, is_completed);
@@ -998,6 +1004,41 @@ function deleteGalleryPhoto(id) {
   return item;
 }
 
+// PROFILS UTILISATEURS & AVATARS
+function getUserAvatar(username) {
+  if (!username) return '';
+  const normUser = (username.toLowerCase() === 'adelcia' || username.toLowerCase() === 'adélcia') ? 'Adélcia' : 'Roberto';
+  const stmt = db.prepare('SELECT avatar_url FROM user_profiles WHERE LOWER(username) = LOWER(?)');
+  const row = stmt.get(normUser);
+  return row ? (row.avatar_url || '') : '';
+}
+
+function setUserAvatar(username, avatarUrl) {
+  if (!username) return;
+  const normUser = (username.toLowerCase() === 'adelcia' || username.toLowerCase() === 'adélcia') ? 'Adélcia' : 'Roberto';
+  const stmt = db.prepare(`
+    INSERT INTO user_profiles (username, avatar_url, updated_at)
+    VALUES (?, ?, CURRENT_TIMESTAMP)
+    ON CONFLICT(username) DO UPDATE SET
+      avatar_url = excluded.avatar_url,
+      updated_at = CURRENT_TIMESTAMP
+  `);
+  stmt.run(normUser, avatarUrl || '');
+}
+
+function getAllUserAvatars() {
+  const stmt = db.prepare('SELECT username, avatar_url FROM user_profiles');
+  const rows = stmt.all();
+  const map = {};
+  for (const r of rows) {
+    if (r.username && r.avatar_url) {
+      map[r.username] = r.avatar_url;
+      map[r.username.toLowerCase()] = r.avatar_url;
+    }
+  }
+  return map;
+}
+
 module.exports = {
   db,
   getMessages,
@@ -1048,6 +1089,9 @@ module.exports = {
   getGalleryPhotos,
   getGalleryPhotoById,
   addGalleryPhoto,
-  deleteGalleryPhoto
+  deleteGalleryPhoto,
+  getUserAvatar,
+  setUserAvatar,
+  getAllUserAvatars
 };
 

@@ -18,6 +18,8 @@ function initApp() {
   if (window.LeaveModule) window.LeaveModule.initLeave();
   if (window.PresenceModule) window.PresenceModule.initPresence();
   if (window.GalleryModule) window.GalleryModule.initGallery();
+  loadUserAvatars();
+  initProfilePhotoEvents();
 
   const hash = window.location.hash.replace('#', '');
   if (hash === 'orders') switchTab('tab-orders');
@@ -74,23 +76,275 @@ function initUserChipClick() {
   const chip = document.querySelector('.user-chip-badge');
   if (!chip) return;
   chip.style.cursor = 'pointer';
-  chip.title = "Cliquer pour basculer d'utilisateur (Roberto / Adélcia)";
+  chip.title = "Cliquer pour modifier votre photo de profil";
   chip.addEventListener('click', () => {
-    const nextUser = (currentUser.toLowerCase() === 'roberto') ? 'Adélcia' : 'Roberto';
-    if (confirm(`Changer d'utilisateur vers ${nextUser} ?`)) {
-      localStorage.setItem('hk_user', nextUser);
-      const url = new URL(window.location.href);
-      url.searchParams.set('user', nextUser);
-      window.location.href = url.toString();
-    }
+    openProfilePhotoModal();
   });
+}
+
+let userAvatars = {};
+
+async function loadUserAvatars() {
+  try {
+    const stored = localStorage.getItem('hk_user_avatars');
+    if (stored) {
+      userAvatars = JSON.parse(stored);
+      updateUserUI();
+    }
+  } catch (e) {}
+
+  try {
+    const res = await fetch('/api/user/avatars');
+    if (res.ok) {
+      const data = await res.json();
+      userAvatars = Object.assign({}, userAvatars, data);
+      localStorage.setItem('hk_user_avatars', JSON.stringify(userAvatars));
+      updateUserUI();
+      if (window.ChatModule && typeof window.ChatModule.renderMessages === 'function') {
+        window.ChatModule.renderMessages();
+      }
+    }
+  } catch (err) {
+    console.warn('Erreur chargement avatars:', err);
+  }
+}
+
+function getUserAvatarUrl(username) {
+  if (!username) return '';
+  const norm = (username.toLowerCase() === 'adelcia' || username.toLowerCase() === 'adélcia') ? 'Adélcia' : 'Roberto';
+  return userAvatars[norm] || userAvatars[norm.toLowerCase()] || '';
 }
 
 function updateUserUI() {
   const nameEl = document.getElementById('current-user-name');
-  const avatarEl = document.getElementById('current-user-avatar');
+  const initialEl = document.getElementById('current-user-avatar-initial');
+  const imgEl = document.getElementById('current-user-avatar-img');
+  const avatarContainer = document.getElementById('current-user-avatar');
+
   if (nameEl) nameEl.textContent = currentUser;
-  if (avatarEl) avatarEl.textContent = currentUser.charAt(0).toUpperCase();
+
+  const avatarUrl = getUserAvatarUrl(currentUser);
+  if (avatarUrl) {
+    if (imgEl) {
+      imgEl.src = avatarUrl;
+      imgEl.style.display = 'block';
+    }
+    if (initialEl) initialEl.style.display = 'none';
+  } else {
+    if (imgEl) {
+      imgEl.src = '';
+      imgEl.style.display = 'none';
+    }
+    if (initialEl) {
+      initialEl.textContent = currentUser.charAt(0).toUpperCase();
+      initialEl.style.display = 'inline';
+    } else if (avatarContainer) {
+      avatarContainer.textContent = currentUser.charAt(0).toUpperCase();
+    }
+  }
+}
+
+function openProfilePhotoModal() {
+  const modal = document.getElementById('modal-profile-photo');
+  const titleEl = document.getElementById('modal-profile-title');
+  const previewImg = document.getElementById('profile-preview-img');
+  const previewInitial = document.getElementById('profile-preview-initial');
+  const btnReset = document.getElementById('btn-reset-profile-photo');
+
+  if (titleEl) titleEl.textContent = `👤 Photo de Profil - ${currentUser}`;
+
+  const currentUrl = getUserAvatarUrl(currentUser);
+  if (currentUrl) {
+    if (previewImg) {
+      previewImg.src = currentUrl;
+      previewImg.style.display = 'block';
+    }
+    if (previewInitial) previewInitial.style.display = 'none';
+    if (btnReset) btnReset.style.display = 'flex';
+  } else {
+    if (previewImg) {
+      previewImg.src = '';
+      previewImg.style.display = 'none';
+    }
+    if (previewInitial) {
+      previewInitial.textContent = currentUser.charAt(0).toUpperCase();
+      previewInitial.style.display = 'inline';
+    }
+    if (btnReset) btnReset.style.display = 'none';
+  }
+
+  if (modal) {
+    modal.style.setProperty('display', 'flex', 'important');
+    modal.classList.add('modal-active');
+  }
+}
+
+function closeProfilePhotoModal() {
+  const modal = document.getElementById('modal-profile-photo');
+  if (modal) {
+    modal.style.setProperty('display', 'none', 'important');
+    modal.classList.remove('modal-active');
+  }
+}
+
+function initProfilePhotoEvents() {
+  const fileInput = document.getElementById('profile-photo-file-input');
+  if (fileInput) {
+    fileInput.addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (file) {
+        handleProfilePhotoSelected(file);
+      }
+      fileInput.value = '';
+    });
+  }
+}
+
+function handleProfilePhotoSelected(file) {
+  if (!file || !file.type.startsWith('image/')) {
+    alert('Veuillez sélectionner un fichier image valide.');
+    return;
+  }
+
+  const btnChoose = document.getElementById('btn-choose-profile-photo');
+  if (btnChoose) {
+    btnChoose.disabled = true;
+    btnChoose.textContent = '⏳ Enregistrement...';
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(evt) {
+    const rawData = evt.target.result;
+    compressSquareImage(rawData, 600, 0.88, async function(compressedBase64) {
+      await uploadUserProfileAvatar(compressedBase64);
+      if (btnChoose) {
+        btnChoose.disabled = false;
+        btnChoose.innerHTML = '<span class="btn-icon">📷</span><span>Prendre une photo / Choisir une image</span>';
+      }
+    });
+  };
+  reader.onerror = function() {
+    alert('Erreur lors de la lecture du fichier image.');
+    if (btnChoose) {
+      btnChoose.disabled = false;
+      btnChoose.innerHTML = '<span class="btn-icon">📷</span><span>Prendre une photo / Choisir une image</span>';
+    }
+  };
+  reader.readAsDataURL(file);
+}
+
+function compressSquareImage(base64Src, targetSize, quality, callback) {
+  const img = new Image();
+  img.onload = function() {
+    const size = Math.min(img.width, img.height);
+    const startX = (img.width - size) / 2;
+    const startY = (img.height - size) / 2;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = targetSize;
+    canvas.height = targetSize;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, startX, startY, size, size, 0, 0, targetSize, targetSize);
+
+    const compressed = canvas.toDataURL('image/jpeg', quality);
+    callback(compressed);
+  };
+  img.onerror = function() {
+    callback(base64Src);
+  };
+  img.src = base64Src;
+}
+
+async function uploadUserProfileAvatar(base64Data) {
+  try {
+    const res = await fetch('/api/user/avatar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: currentUser,
+        image: base64Data
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Erreur enregistrement photo de profil');
+    }
+
+    const data = await res.json();
+    onAvatarUpdated(data);
+    closeProfilePhotoModal();
+
+    if (window.SoundEngine && typeof window.SoundEngine.playSentSound === 'function') {
+      window.SoundEngine.playSentSound();
+    }
+
+    showAppToast('✅ Photo de profil mise à jour !');
+  } catch (err) {
+    console.error('Erreur enregistrement avatar:', err);
+    alert('Impossible d\'enregistrer la photo: ' + err.message);
+  }
+}
+
+async function resetProfilePhoto() {
+  if (!confirm('Voulez-vous réinitialiser votre avatar et réutiliser l\'initiale par défaut ?')) {
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/user/avatar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username: currentUser,
+        image: ''
+      })
+    });
+
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || 'Erreur réinitialisation');
+    }
+
+    const data = await res.json();
+    onAvatarUpdated(data);
+    closeProfilePhotoModal();
+    showAppToast('🔄 Initiale par défaut rétablie.');
+  } catch (err) {
+    console.error('Erreur réinitialisation avatar:', err);
+    alert('Erreur: ' + err.message);
+  }
+}
+
+function onAvatarUpdated(data) {
+  if (!data || !data.username) return;
+  const norm = (data.username.toLowerCase() === 'adelcia' || data.username.toLowerCase() === 'adélcia') ? 'Adélcia' : 'Roberto';
+  userAvatars[norm] = data.avatar_url || '';
+  userAvatars[norm.toLowerCase()] = data.avatar_url || '';
+  try {
+    localStorage.setItem('hk_user_avatars', JSON.stringify(userAvatars));
+  } catch (e) {}
+
+  updateUserUI();
+
+  if (window.ChatModule && typeof window.ChatModule.renderMessages === 'function') {
+    window.ChatModule.renderMessages();
+  }
+}
+
+function showAppToast(msg) {
+  let toast = document.getElementById('app-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'app-toast';
+    toast.className = 'gallery-toast';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = msg;
+  toast.classList.add('visible');
+  setTimeout(() => {
+    toast.classList.remove('visible');
+  }, 2800);
 }
 
 function getPlatform() {
@@ -317,7 +571,12 @@ window.App = {
   getCurrentUser: () => currentUser,
   getActiveTab: () => activeTab,
   getPlatform,
-  switchTab
+  switchTab,
+  getUserAvatarUrl,
+  openProfilePhotoModal,
+  closeProfilePhotoModal,
+  resetProfilePhoto,
+  onAvatarUpdated
 };
 
 document.addEventListener('DOMContentLoaded', initApp);

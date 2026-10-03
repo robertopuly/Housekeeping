@@ -8,9 +8,9 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <title>Gouvernante Hôtel - Gestion & Communication</title>
-  <link rel="stylesheet" href="css/styles.css?v=71">
+  <link rel="stylesheet" href="css/styles.css?v=72">
   <script>
-    window.APP_VERSION = 71;
+    window.APP_VERSION = 72;
     function getTodayIsoStr() {
       var d = new Date();
       var y = d.getFullYear();
@@ -374,10 +374,16 @@
       </div>
 
       <div class="header-actions">
-        <!-- Badge Opérateur Actif (Non cliquable) -->
-        <div class="user-chip-badge" title="Opérateur Actif">
-          <span id="current-user-avatar" class="user-avatar-badge">R</span>
-          <span id="current-user-name">Roberto</span>
+        <!-- Badge Opérateur Actif (Cliquer pour changer photo de profil) -->
+        <div class="user-chip-badge" id="btn-open-user-profile" title="Cliquer pour changer votre photo de profil" role="button" tabindex="0">
+          <div id="current-user-avatar" class="user-avatar-badge">
+            <span id="current-user-avatar-initial">R</span>
+            <img id="current-user-avatar-img" class="user-avatar-img" src="" alt="Avatar" style="display: none;" />
+          </div>
+          <div class="user-chip-info">
+            <span id="current-user-name" class="current-user-name">Roberto</span>
+            <span class="user-chip-sub">Photo profil</span>
+          </div>
         </div>
 
         <!-- Sound Toggle -->
@@ -1298,6 +1304,48 @@
     </div>
   </div>
 
+  <!-- MODAL PHOTO DE PROFIL -->
+  <div id="modal-profile-photo" class="modal-backdrop" onclick="if(event.target===this)window.App.closeProfilePhotoModal()">
+    <div class="modal-box modal-box-profile">
+      <div class="modal-header">
+        <h2 id="modal-profile-title">👤 Photo de Profil</h2>
+        <button type="button" class="btn-close-modal" onclick="window.App.closeProfilePhotoModal()">&times;</button>
+      </div>
+      <div class="modal-body modal-body-profile">
+        <div class="profile-avatar-circle-wrapper">
+          <div id="profile-preview-avatar" class="profile-preview-avatar-circle">
+            <span id="profile-preview-initial">A</span>
+            <img id="profile-preview-img" src="" alt="Photo de profil" style="display: none;" />
+          </div>
+          <button type="button" class="btn-profile-badge-cam" onclick="document.getElementById('profile-photo-file-input').click();" title="Changer la photo">
+            📷
+          </button>
+        </div>
+
+        <p class="profile-modal-desc">
+          Ajoutez votre propre photo pour remplacer l'initiale sur la tablette et dans les messages.
+        </p>
+
+        <input type="file" id="profile-photo-file-input" accept="image/*" style="display: none;" />
+
+        <div class="profile-modal-actions-list">
+          <button type="button" id="btn-choose-profile-photo" class="btn btn-primary btn-profile-action" onclick="document.getElementById('profile-photo-file-input').click();">
+            <span class="btn-icon">📷</span>
+            <span>Prendre une photo / Choisir une image</span>
+          </button>
+
+          <button type="button" id="btn-reset-profile-photo" class="btn btn-secondary btn-profile-action" onclick="window.App.resetProfilePhoto();" style="display: none;">
+            <span class="btn-icon">🔄</span>
+            <span>Utiliser l'initiale par défaut</span>
+          </button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" style="width: 100%;" onclick="window.App.closeProfilePhotoModal()">Fermer</button>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL QUESTION À CHOIX MULTIPLES (PC ONLY) -->
   <div id="modal-chat-choice" class="modal-backdrop" onclick="if(event.target===this)closeChoiceModal()">
     <div class="modal-box">
@@ -1474,16 +1522,16 @@
 
   <!-- SCRIPTS -->
   <script src="/socket.io/socket.io.js"></script>
-  <script src="js/audio.js?v=71"></script>
-  <script src="js/socket.js?v=71"></script>
-  <script src="js/chat.js?v=71"></script>
-  <script src="js/orders.js?v=71"></script>
-  <script src="js/deadlines.js?v=71"></script>
-  <script src="js/shopping.js?v=71"></script>
-  <script src="js/expenses.js?v=71"></script>
-  <script src="js/leave.js?v=71"></script>
-  <script src="js/presence.js?v=71"></script>
-  <script src="js/gallery.js?v=71"></script>
-  <script src="js/app.js?v=71"></script>
+  <script src="js/audio.js?v=72"></script>
+  <script src="js/socket.js?v=72"></script>
+  <script src="js/chat.js?v=72"></script>
+  <script src="js/orders.js?v=72"></script>
+  <script src="js/deadlines.js?v=72"></script>
+  <script src="js/shopping.js?v=72"></script>
+  <script src="js/expenses.js?v=72"></script>
+  <script src="js/leave.js?v=72"></script>
+  <script src="js/presence.js?v=72"></script>
+  <script src="js/gallery.js?v=72"></script>
+  <script src="js/app.js?v=72"></script>
 </body>
 </html>

@@ -198,31 +198,77 @@ body {
 }
 
 .user-chip-badge {
-  background: var(--bg-header-light);
-  color: var(--text-light);
-  border: 1px solid #334155;
-  border-radius: 20px;
-  padding: 6px 12px;
-  font-size: 13px;
-  font-weight: 600;
+  background: rgba(30, 41, 59, 0.85);
+  color: #f8fafc;
+  border: 1.5px solid #475569;
+  border-radius: 28px;
+  padding: 4px 14px 4px 6px;
+  font-size: 13.5px;
+  font-weight: 700;
   display: flex;
   align-items: center;
-  gap: 6px;
-  min-height: 36px;
+  gap: 10px;
+  min-height: 46px;
+  cursor: pointer;
   user-select: none;
+  -webkit-user-select: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+}
+
+.user-chip-badge:hover {
+  background: #334155;
+  border-color: #38bdf8;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(56, 189, 248, 0.25);
+}
+
+.user-chip-badge:active {
+  transform: translateY(0);
 }
 
 .user-avatar-badge {
-  width: 22px;
-  height: 22px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
-  background: var(--primary);
-  color: #fff;
+  background: linear-gradient(135deg, #0284c7, #2563eb);
+  color: #ffffff;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
-  font-weight: 700;
+  font-size: 17px;
+  font-weight: 800;
+  border: 2px solid #38bdf8;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
+  flex-shrink: 0;
+  position: relative;
+}
+
+.user-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
+}
+
+.user-chip-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.current-user-name {
+  font-size: 13.5px;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.user-chip-sub {
+  font-size: 10.5px;
+  color: #38bdf8;
+  font-weight: 600;
 }
 
 /* ==========================================================================
@@ -381,17 +427,28 @@ body {
 }
 
 .msg-avatar {
-  width: 32px;
-  height: 32px;
+  width: 38px;
+  height: 38px;
   border-radius: 50%;
-  background-color: #6366f1;
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-weight: 700;
-  font-size: 13px;
+  font-weight: 800;
+  font-size: 15px;
   flex-shrink: 0;
+  border: 1.5px solid rgba(255, 255, 255, 0.4);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  overflow: hidden;
+}
+
+.msg-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
 }
 
 .bubble {
@@ -6452,6 +6509,108 @@ body.is-pc section.tab-panel.pc-only:not(.active) {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
+
+/* Modal Photo de Profil */
+.modal-box-profile {
+  max-width: 420px;
+  width: 90%;
+  border-radius: 18px;
+  text-align: center;
+  overflow: hidden;
+}
+
+.modal-body-profile {
+  padding: 24px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.profile-avatar-circle-wrapper {
+  position: relative;
+  width: 124px;
+  height: 124px;
+  margin: 0 auto;
+}
+
+.profile-preview-avatar-circle {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #0284c7, #2563eb);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 52px;
+  font-weight: 800;
+  border: 4px solid #38bdf8;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  user-select: none;
+}
+
+.profile-preview-avatar-circle img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 50%;
+  display: block;
+}
+
+.btn-profile-badge-cam {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: #2563eb;
+  color: #ffffff;
+  border: 2.5px solid #ffffff;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-profile-badge-cam:hover {
+  background: #1d4ed8;
+  transform: scale(1.1);
+}
+
+.profile-modal-desc {
+  font-size: 13.5px;
+  color: #64748b;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.profile-modal-actions-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.btn-profile-action {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
 
 
 

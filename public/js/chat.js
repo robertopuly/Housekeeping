@@ -378,6 +378,16 @@ function parseMessageDate(raw) {
   return new Date(s);
 }
 
+function renderMsgAvatar(sender, extraClass = '') {
+  const norm = (sender && (sender.toLowerCase() === 'adelcia' || sender.toLowerCase() === 'adélcia')) ? 'Adélcia' : 'Roberto';
+  const url = (window.App && typeof window.App.getUserAvatarUrl === 'function') ? window.App.getUserAvatarUrl(norm) : '';
+  if (url) {
+    return `<div class="msg-avatar ${extraClass}"><img src="${escapeHtml(url)}" alt="${escapeHtml(norm)}" class="msg-avatar-img" /></div>`;
+  }
+  const char = (norm || 'A').charAt(0).toUpperCase();
+  return `<div class="msg-avatar ${extraClass}">${escapeHtml(char)}</div>`;
+}
+
 function renderMessages() {
   const container = document.getElementById('chat-messages');
   if (!container) return;
@@ -421,7 +431,7 @@ function renderMessages() {
       const deletedIcon = isUnreadDeleted ? '⏳🚫' : '🚫';
       html += `
         <div class="message ${isMe ? 'message-out' : 'message-in'} message-deleted ${isUnreadDeleted ? 'message-deleted-unread' : ''}">
-          ${!isMe ? `<div class="msg-avatar msg-avatar-deleted">${escapeHtml((msg.sender || 'A').charAt(0).toUpperCase())}</div>` : ''}
+          ${!isMe ? renderMsgAvatar(msg.sender, 'msg-avatar-deleted') : ''}
           <div class="bubble bubble-deleted ${isUnreadDeleted ? 'bubble-deleted-unread' : ''}">
             <span class="deleted-icon">${deletedIcon}</span>
             <span class="deleted-text">${escapeHtml(deletedLabel)}</span>
@@ -512,7 +522,7 @@ function renderMessages() {
         const ephemeralBadge = (msg.is_ephemeral === 1) ? '<span class="ephemeral-timer-badge" title="Message éphémère (s\'efface 1h après l\'envoi)">⏳ 1h</span>' : '';
         html += `
           <div class="message message-in message-clickable ${msg.is_ephemeral === 1 ? 'message-ephemeral' : ''}" data-msg-id="${msg.id}">
-            <div class="msg-avatar">${escapeHtml((msg.sender || 'A').charAt(0).toUpperCase())}</div>
+            ${renderMsgAvatar(msg.sender)}
             <div class="bubble bubble-in ${bubbleEmojiClass} ${bubblePhotoClass}">
               <div class="msg-sender">${escapeHtml(msg.sender)}</div>
               ${replyHtml}
@@ -1154,7 +1164,7 @@ function renderTypingIndicator() {
   if (liveDraft) {
     const formattedDraft = escapeHtml(liveDraft).replace(/\n/g, '<br>');
     indicatorEl.innerHTML = `
-      <div class="msg-avatar typing-avatar">${escapeHtml(avatarChar)}</div>
+      ${renderMsgAvatar(names[0], 'typing-avatar')}
       <div class="typing-bubble typing-bubble-with-preview">
         <div class="typing-header">
           <span class="typing-text">${textLabel} :</span>
@@ -1174,7 +1184,7 @@ function renderTypingIndicator() {
     `;
   } else {
     indicatorEl.innerHTML = `
-      <div class="msg-avatar typing-avatar">${escapeHtml(avatarChar)}</div>
+      ${renderMsgAvatar(names[0], 'typing-avatar')}
       <div class="typing-bubble">
         <span class="typing-text">${textLabel}</span>
         <span class="typing-dots">

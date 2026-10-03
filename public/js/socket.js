@@ -208,6 +208,13 @@ function initSocket() {
       window.PresenceModule.onPageViewStatus(data);
     }
   });
+
+  // Mise à jour de la photo de profil / avatar
+  socket.on('user:avatar_updated', (data) => {
+    if (window.App && typeof window.App.onAvatarUpdated === 'function') {
+      window.App.onAvatarUpdated(data);
+    }
+  });
 }
 
 function updateConnectionStatus(isOnline) {
