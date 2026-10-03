@@ -4,14 +4,31 @@
 (function() {
   let photos = [];
   let activePhoto = null;
-  let holdTimer = null;
-  let isHoldTriggered = false;
-  let touchStartPos = { x: 0, y: 0 };
-  const HOLD_DURATION_MS = 2000; // 2 secondes requises pour l'action
 
   function initGallery() {
     setupFileInput();
     setupModalEvents();
+    preventContextMenu();
+  }
+
+  function preventContextMenu() {
+    // Empêche systématiquement le menu contextuel natif du système/navigateur (Android/iOS)
+    const galleryPanel = document.getElementById('tab-gallery');
+    if (galleryPanel) {
+      galleryPanel.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }, { capture: true });
+    }
+    const modalAction = document.getElementById('modal-gallery-action');
+    if (modalAction) {
+      modalAction.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
+      }, { capture: true });
+    }
   }
 
   function setupFileInput() {
@@ -131,160 +148,44 @@
       const caption = photo.caption ? escapeHtml(photo.caption) : '';
 
       return `
-        <div class="gallery-card" data-photo-id="${photo.id}" tabindex="0" role="button" aria-label="Photo du ${dt.dateStr} à ${dt.timeStr}">
-          <div class="gallery-card-thumb-wrap">
+        <div class="gallery-card" data-photo-id="${photo.id}">
+          <!-- Zone aperçu image (toucher ouvre la boîte d'options/agrandissement) -->
+          <div class="gallery-card-thumb-wrap" onclick="window.GalleryModule.openActionModalById(${photo.id})" title="Toucher pour afficher les options">
             <img src="${escapeHtml(photo.image_url)}" alt="Photo ${photo.id}" class="gallery-thumb-img" loading="lazy" />
             
-            <!-- Indicateur visuel du maintien de 2 secondes -->
-            <div class="gallery-hold-overlay">
-              <div class="gallery-hold-circle">
-                <svg class="hold-progress-svg" viewBox="0 0 40 40">
-                  <circle class="hold-circle-bg" cx="20" cy="20" r="17"></circle>
-                  <circle class="hold-circle-bar" cx="20" cy="20" r="17"></circle>
-                </svg>
-                <span class="hold-text-seconds">2s</span>
-              </div>
-              <span class="hold-instruction-label">Maintenez 2s</span>
+            <div class="gallery-thumb-overlay-hint">
+              <span class="gallery-thumb-hint-badge">🔍 Options & Agrandir</span>
             </div>
-
-            <!-- Bouton rapide d'options pour desktop ou clic direct -->
-            <button type="button" class="gallery-card-quick-menu" title="Options de la photo" onclick="event.stopPropagation(); window.GalleryModule.openActionModalById(${photo.id});">
-              ⚙️
-            </button>
           </div>
 
+          <!-- Pied de carte avec date/heure et boutons d'action directs -->
           <div class="gallery-card-footer">
             <div class="gallery-card-datetime">
               <span class="gallery-datetime-icon">🕒</span>
               <span class="gallery-datetime-text">${dt.relativeOrDate} à ${dt.timeStr}</span>
             </div>
+            
             <div class="gallery-card-subline">
               <span class="gallery-card-author">👤 ${author}</span>
               ${caption ? `<span class="gallery-card-caption-pill" title="${caption}">💬 ${caption}</span>` : ''}
+            </div>
+
+            <!-- BOUTONS D'ACTION DIRECTS À UN TOUCHE (SANS LONG-PRESS) -->
+            <div class="gallery-card-actions-row">
+              <button type="button" class="btn-card-action btn-card-chat" title="Envoyer directement dans la messagerie" onclick="event.stopPropagation(); window.GalleryModule.sendPhotoToChat(${photo.id});">
+                <span class="btn-card-action-icon">💬</span>
+                <span>Envoyer</span>
+              </button>
+
+              <button type="button" class="btn-card-action btn-card-delete" title="Supprimer la photo" onclick="event.stopPropagation(); window.GalleryModule.deletePhoto(${photo.id});">
+                <span class="btn-card-action-icon">🗑️</span>
+                <span>Supprimer</span>
+              </button>
             </div>
           </div>
         </div>
       `;
     }).join('');
-
-    attachCardInteractions();
-  }
-
-  function attachCardInteractions() {
-    const cards = document.querySelectorAll('.gallery-card');
-
-    cards.forEach(card => {
-      const photoId = parseInt(card.getAttribute('data-photo-id'), 10);
-      const photo = photos.find(p => p.id === photoId);
-      if (!photo) return;
-
-      let holdStartTimestamp = 0;
-      let hasMovedSignificantly = false;
-
-      const startHold = (clientX, clientY) => {
-        isHoldTriggered = false;
-        hasMovedSignificantly = false;
-        touchStartPos = { x: clientX, y: clientY };
-        holdStartTimestamp = Date.now();
-
-        card.classList.add('is-holding');
-
-        if (holdTimer) clearTimeout(holdTimer);
-        holdTimer = setTimeout(() => {
-          isHoldTriggered = true;
-          card.classList.remove('is-holding');
-          triggerHapticSuccess();
-          openActionModal(photo);
-        }, HOLD_DURATION_MS);
-      };
-
-      const cancelHold = (openLightboxIfQuickTap = false) => {
-        if (holdTimer) {
-          clearTimeout(holdTimer);
-          holdTimer = null;
-        }
-        card.classList.remove('is-holding');
-
-        if (!isHoldTriggered && openLightboxIfQuickTap && !hasMovedSignificantly) {
-          const duration = Date.now() - holdStartTimestamp;
-          // Un appui court (< 400ms) sans déplacement ouvre la photo en plein écran
-          if (duration < 400 && typeof window.openImageLightbox === 'function') {
-            const dt = formatZurichDateTime(photo.created_at);
-            window.openImageLightbox(
-              photo.image_url,
-              photo.captured_by || 'Tablette',
-              dt.dateStr + ' ' + dt.timeStr,
-              photo.caption || ''
-            );
-          }
-        }
-      };
-
-      const handleMove = (clientX, clientY) => {
-        const dx = Math.abs(clientX - touchStartPos.x);
-        const dy = Math.abs(clientY - touchStartPos.y);
-        // Si l'utilisateur défile l'écran (déplacement > 10px), annuler le timer 2s
-        if (dx > 10 || dy > 10) {
-          hasMovedSignificantly = true;
-          cancelHold(false);
-        }
-      };
-
-      // Événements Touch (Tablette / Mobile)
-      card.addEventListener('touchstart', (e) => {
-        if (e.touches && e.touches.length === 1) {
-          startHold(e.touches[0].clientX, e.touches[0].clientY);
-        }
-      }, { passive: true });
-
-      card.addEventListener('touchmove', (e) => {
-        if (e.touches && e.touches.length === 1) {
-          handleMove(e.touches[0].clientX, e.touches[0].clientY);
-        }
-      }, { passive: true });
-
-      card.addEventListener('touchend', () => {
-        cancelHold(true);
-      });
-
-      card.addEventListener('touchcancel', () => {
-        cancelHold(false);
-      });
-
-      // Événements Souris / Pointer (PC)
-      card.addEventListener('mousedown', (e) => {
-        if (e.button === 0) { // clic gauche uniquement
-          startHold(e.clientX, e.clientY);
-        }
-      });
-
-      card.addEventListener('mousemove', (e) => {
-        handleMove(e.clientX, e.clientY);
-      });
-
-      card.addEventListener('mouseup', () => {
-        cancelHold(true);
-      });
-
-      card.addEventListener('mouseleave', () => {
-        cancelHold(false);
-      });
-
-      // Empêcher le menu contextuel par défaut sur appui long pour les navigateurs tactiles
-      card.addEventListener('contextmenu', (e) => {
-        if (isHoldTriggered) {
-          e.preventDefault();
-        }
-      });
-    });
-  }
-
-  function triggerHapticSuccess() {
-    if ('vibrate' in navigator && typeof navigator.vibrate === 'function') {
-      try {
-        navigator.vibrate([60, 40, 60]);
-      } catch (e) {}
-    }
   }
 
   function openActionModal(photo) {

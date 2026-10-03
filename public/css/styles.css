@@ -6132,7 +6132,8 @@ body.is-pc section.tab-panel.pc-only:not(.active) {
   cursor: pointer;
   user-select: none;
   -webkit-user-select: none;
-  -webkit-touch-callout: none;
+  -webkit-touch-callout: none !important;
+  touch-action: pan-y manipulation !important;
   transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
   position: relative;
 }
@@ -6143,20 +6144,14 @@ body.is-pc section.tab-panel.pc-only:not(.active) {
   transform: translateY(-2px);
 }
 
-/* État pendant le maintien de 2 secondes */
-.gallery-card.is-holding {
-  border-color: #f59e0b !important;
-  box-shadow: 0 0 0 4px rgba(245, 158, 11, 0.45), 0 8px 20px rgba(0, 0, 0, 0.15) !important;
-  transform: scale(0.97) !important;
-  transition: transform 0.15s ease-out;
-}
-
 .gallery-card-thumb-wrap {
   position: relative;
   width: 100%;
   aspect-ratio: 4 / 3;
   background: #0f172a;
   overflow: hidden;
+  cursor: pointer;
+  -webkit-touch-callout: none !important;
 }
 
 .gallery-thumb-img {
@@ -6164,6 +6159,9 @@ body.is-pc section.tab-panel.pc-only:not(.active) {
   height: 100%;
   object-fit: cover;
   display: block;
+  pointer-events: none !important; /* Empêche le navigateur d'afficher le menu contextuel natif de sauvegarde d'image */
+  -webkit-touch-callout: none !important;
+  -webkit-user-drag: none !important;
   transition: transform 0.3s ease;
 }
 
@@ -6171,108 +6169,26 @@ body.is-pc section.tab-panel.pc-only:not(.active) {
   transform: scale(1.02);
 }
 
-/* Overlay visuel de progression 2 secondes */
-.gallery-hold-overlay {
+.gallery-thumb-overlay-hint {
   position: absolute;
-  inset: 0;
-  background: rgba(15, 23, 42, 0.65);
-  backdrop-filter: blur(2px);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  opacity: 0;
+  bottom: 8px;
+  left: 8px;
   pointer-events: none;
-  transition: opacity 0.15s ease;
-  z-index: 4;
+  z-index: 2;
 }
 
-.gallery-card.is-holding .gallery-hold-overlay {
-  opacity: 1;
-}
-
-.gallery-hold-circle {
-  position: relative;
-  width: 52px;
-  height: 52px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.hold-progress-svg {
-  width: 100%;
-  height: 100%;
-  transform: rotate(-90deg);
-}
-
-.hold-circle-bg {
-  fill: none;
-  stroke: rgba(255, 255, 255, 0.25);
-  stroke-width: 4;
-}
-
-.hold-circle-bar {
-  fill: none;
-  stroke: #f59e0b;
-  stroke-width: 4;
-  stroke-linecap: round;
-  stroke-dasharray: 107;
-  stroke-dashoffset: 107;
-}
-
-.gallery-card.is-holding .hold-circle-bar {
-  animation: holdProgressAnimation 2s linear forwards;
-}
-
-@keyframes holdProgressAnimation {
-  from {
-    stroke-dashoffset: 107;
-  }
-  to {
-    stroke-dashoffset: 0;
-  }
-}
-
-.hold-text-seconds {
-  position: absolute;
-  font-size: 13px;
-  font-weight: 800;
-  color: #ffffff;
-}
-
-.hold-instruction-label {
-  font-size: 12px;
-  font-weight: 700;
-  color: #fef3c7;
-  letter-spacing: 0.3px;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
-}
-
-.gallery-card-quick-menu {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  background: rgba(15, 23, 42, 0.65);
+.gallery-thumb-hint-badge {
+  background: rgba(15, 23, 42, 0.75);
   backdrop-filter: blur(4px);
-  border: 1px solid rgba(255, 255, 255, 0.25);
   color: #ffffff;
-  display: flex;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  font-size: 14px;
-  cursor: pointer;
-  z-index: 3;
-  transition: all 0.2s ease;
-}
-
-.gallery-card-quick-menu:hover {
-  background: rgba(15, 23, 42, 0.9);
-  transform: scale(1.1);
+  gap: 4px;
 }
 
 .gallery-card-footer {
@@ -6280,7 +6196,7 @@ body.is-pc section.tab-panel.pc-only:not(.active) {
   background: #ffffff;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 8px;
 }
 
 .gallery-card-datetime {
@@ -6321,6 +6237,65 @@ body.is-pc section.tab-panel.pc-only:not(.active) {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Rangée de boutons d'action rapide sous chaque photo */
+.gallery-card-actions-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.btn-card-action {
+  flex: 1;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 12.5px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  cursor: pointer;
+  border: none;
+  transition: all 0.15s ease;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none !important;
+  touch-action: manipulation !important;
+}
+
+.btn-card-action:active {
+  transform: scale(0.96);
+}
+
+.btn-card-chat {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1.5px solid #bfdbfe;
+}
+
+.btn-card-chat:hover {
+  background: #2563eb;
+  color: #ffffff;
+  border-color: #2563eb;
+}
+
+.btn-card-delete {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1.5px solid #fecaca;
+}
+
+.btn-card-delete:hover {
+  background: #dc2626;
+  color: #ffffff;
+  border-color: #dc2626;
+}
+
+.btn-card-action-icon {
+  font-size: 14px;
 }
 
 /* Modal Actions Photo Galerie */
