@@ -1624,6 +1624,7 @@ function closeImageLightbox() {
 window.closePhotoPreviewModal = closePhotoPreviewModal;
 window.submitPhotoMessage = submitPhotoMessage;
 window.closeImageLightbox = closeImageLightbox;
+window.openImageLightbox = openImageLightbox;
 const EMOJI_CATEGORIES = {
   hotel: [
     '🏨', '🛏️', '🚪', '🔑', '🧹', '🧽', '🧼', '🧺', '🚿', '🚽',

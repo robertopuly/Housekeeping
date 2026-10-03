@@ -184,6 +184,19 @@ function initSocket() {
     }
   });
 
+  // Événements Galerie Photos
+  socket.on('gallery:created', (photo) => {
+    if (window.GalleryModule && typeof window.GalleryModule.onPhotoCreated === 'function') {
+      window.GalleryModule.onPhotoCreated(photo);
+    }
+  });
+
+  socket.on('gallery:deleted', (data) => {
+    if (window.GalleryModule && typeof window.GalleryModule.onPhotoDeleted === 'function') {
+      window.GalleryModule.onPhotoDeleted(data.id);
+    }
+  });
+
   // Présence des utilisateurs
   socket.on('users:online', (users) => {
     console.log('Utilisateurs en ligne:', users);

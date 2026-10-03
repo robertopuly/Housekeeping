@@ -17,6 +17,7 @@ function initApp() {
   if (window.ExpensesModule) window.ExpensesModule.initExpenses();
   if (window.LeaveModule) window.LeaveModule.initLeave();
   if (window.PresenceModule) window.PresenceModule.initPresence();
+  if (window.GalleryModule) window.GalleryModule.initGallery();
 
   const hash = window.location.hash.replace('#', '');
   if (hash === 'orders') switchTab('tab-orders');
@@ -24,6 +25,7 @@ function initApp() {
   else if (hash === 'deadlines') switchTab('tab-deadlines');
   else if (hash === 'shopping') switchTab('tab-shopping');
   else if (hash === 'leave' || hash === 'conges' || hash === 'vacances') switchTab('tab-leave');
+  else if (hash === 'gallery' || hash === 'photos') switchTab('tab-gallery');
   else if (hash === 'expenses' && getPlatform() === 'PC') switchTab('tab-expenses');
   else switchTab('tab-chat');
 }
@@ -163,6 +165,11 @@ function switchTab(tabId) {
     window.location.hash = 'expenses';
     if (window.ExpensesModule && typeof window.ExpensesModule.loadExpenses === 'function') {
       window.ExpensesModule.loadExpenses();
+    }
+  } else if (tabId === 'tab-gallery') {
+    window.location.hash = 'gallery';
+    if (window.GalleryModule && typeof window.GalleryModule.loadGallery === 'function') {
+      window.GalleryModule.loadGallery();
     }
   }
 }

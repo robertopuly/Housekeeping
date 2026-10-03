@@ -17,7 +17,7 @@ const io = new Server(server, {
 });
 
 const PORT = process.env.PORT || 8765;
-const CURRENT_APP_VERSION = 69;
+const CURRENT_APP_VERSION = 70;
 
 const uploadsDir = path.join(__dirname, 'public', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -100,6 +100,10 @@ app.post('/api/messages', (req, res) => {
         fs.writeFileSync(filePath, Buffer.from(base64Data, 'base64'));
         imageUrl = `/uploads/${filename}`;
         msgType = 'image';
+        try {
+          const galleryItem = db.addGalleryPhoto(filename, imageUrl, sender, text || '');
+          io.emit('gallery:created', galleryItem);
+        } catch (gErr) {}
       } catch (imgErr) {
         console.error('Erreur enregistrement photo:', imgErr);
       }
@@ -814,6 +818,80 @@ app.get('/api/page-views', (req, res) => {
   try {
     const user = req.query.user || 'Adélcia';
     res.json(getPagePresenceSummary(user));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// ==========================================================================
+// GALERIE PHOTOS
+// ==========================================================================
+app.get('/api/gallery', (req, res) => {
+  try {
+    const photos = db.getGalleryPhotos();
+    res.json(photos);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/gallery', (req, res) => {
+  try {
+    const { image, sender, caption } = req.body;
+    if (!image) {
+      return res.status(400).json({ error: 'Image requise' });
+    }
+    const matches = image.match(/^data:image\/([a-zA-Z0-9+]+);base64,(.+)$/);
+    let ext = 'jpg';
+    let base64Data = image;
+    if (matches && matches.length === 3) {
+      ext = matches[1] === 'jpeg' ? 'jpg' : matches[1];
+      base64Data = matches[2];
+    }
+    const filename = `photo_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
+    const filePath = path.join(uploadsDir, filename);
+    fs.writeFileSync(filePath, Buffer.from(base64Data, 'base64'));
+    const imageUrl = `/uploads/${filename}`;
+    const photo = db.addGalleryPhoto(filename, imageUrl, sender || 'Adélcia', caption || '');
+    io.emit('gallery:created', photo);
+    res.status(201).json(photo);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/gallery/:id/send-to-chat', (req, res) => {
+  try {
+    const { id } = req.params;
+    const photo = db.getGalleryPhotoById(Number(id));
+    if (!photo) return res.status(404).json({ error: 'Photo non trouvée' });
+
+    const sender = req.body.sender || photo.captured_by || 'Adélcia';
+    const text = req.body.text || photo.caption || '📷 Photo';
+
+    const msg = db.addMessage(sender, text, 'image', null, photo.image_url);
+    io.emit('chat:message', msg);
+    res.json({ success: true, message: msg });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.delete('/api/gallery/:id', (req, res) => {
+  try {
+    const { id } = req.params;
+    const deleted = db.deleteGalleryPhoto(Number(id));
+    if (!deleted) return res.status(404).json({ error: 'Photo non trouvée' });
+
+    // Supprimer le fichier du disque si présent
+    if (deleted.filename) {
+      const filePath = path.join(uploadsDir, deleted.filename);
+      if (fs.existsSync(filePath)) {
+        try { fs.unlinkSync(filePath); } catch (e) {}
+      }
+    }
+    io.emit('gallery:deleted', { id: Number(id) });
+    res.json({ success: true, id: Number(id) });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

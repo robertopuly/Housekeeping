@@ -8,9 +8,9 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <title>Gouvernante Hôtel - Gestion & Communication</title>
-  <link rel="stylesheet" href="css/styles.css?v=69">
+  <link rel="stylesheet" href="css/styles.css?v=70">
   <script>
-    window.APP_VERSION = 69;
+    window.APP_VERSION = 70;
     function getTodayIsoStr() {
       var d = new Date();
       var y = d.getFullYear();
@@ -429,6 +429,12 @@
         <span id="leave-badge" class="badge badge-pulse" style="display: none;">0</span>
       </button>
 
+      <button type="button" class="nav-tab-btn" data-tab="tab-gallery" role="tab" aria-selected="false" id="nav-btn-gallery">
+        <span class="tab-icon">📸</span>
+        <span>Galerie</span>
+        <span id="gallery-badge" class="badge badge-pulse" style="display: none;">0</span>
+      </button>
+
       <button type="button" class="nav-tab-btn pc-only" data-tab="tab-expenses" role="tab" aria-selected="false" id="nav-btn-expenses">
         <span class="tab-icon">📊</span>
         <span>Dépenses & Achats</span>
@@ -835,6 +841,49 @@
 
       </div>
     </section>
+
+    <!-- TAB 8: GALERIE PHOTOS -->
+    <section id="tab-gallery" class="tab-panel" role="tabpanel">
+      <div class="gallery-container">
+        
+        <!-- HEADER DE LA GALERIE -->
+        <div class="gallery-header-bar">
+          <div class="gallery-header-info">
+            <div class="gallery-title-row">
+              <h2>📸 Galerie Photos</h2>
+              <span id="gallery-total-count" class="gallery-count-badge">0 photo</span>
+            </div>
+            <p class="gallery-header-desc">
+              Toutes les photos prises depuis la tablette ou partagées dans la messagerie.
+              <span class="gallery-header-tip">💡 <strong>Astuce :</strong> Maintenez une photo pendant <strong>2 secondes</strong> pour la supprimer ou l'envoyer dans la messagerie.</span>
+            </p>
+          </div>
+
+          <div class="gallery-header-actions">
+            <input type="file" id="gallery-file-input" accept="image/*" capture="environment" style="display: none;" />
+            <button type="button" id="btn-gallery-capture" class="btn-action-primary btn-gallery-capture">
+              <span class="btn-icon">📷</span>
+              <span>Prendre une photo / Ajouter</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- GRILLE DES PHOTOS -->
+        <div id="gallery-grid" class="gallery-grid">
+          <!-- Rempli par gallery.js -->
+        </div>
+
+        <!-- ÉTAT VIDE -->
+        <div id="gallery-empty-state" class="empty-state" style="display: none;">
+          <div class="empty-icon">📸</div>
+          <div class="empty-title">Aucune photo dans la galerie</div>
+          <div class="empty-desc">
+            Prenez votre première photo avec la tablette en cliquant sur le bouton <strong>"Prendre une photo / Ajouter"</strong> ci-dessus, ou envoyez une photo dans le chat.
+          </div>
+        </div>
+
+      </div>
+    </section>
   </main>
 
   <!-- MODAL NOUVEL ORDRE -->
@@ -1201,6 +1250,54 @@
     </div>
   </div>
 
+  <!-- MODAL ACTIONS PHOTO GALERIE (MAINTIEN 2S) -->
+  <div id="modal-gallery-action" class="modal-backdrop" onclick="if(event.target===this)window.GalleryModule.closeActionModal()">
+    <div class="modal-box modal-box-gallery-action">
+      <div class="modal-header">
+        <h2>📸 Options de la Photo</h2>
+        <button type="button" id="btn-close-modal-gallery" class="btn-close-modal">&times;</button>
+      </div>
+      <div class="modal-body modal-body-gallery-action">
+        <div class="gallery-action-preview-wrap">
+          <img id="gallery-action-preview-img" src="" alt="Aperçu photo" class="gallery-action-preview-img" />
+          <div class="gallery-action-meta-box">
+            <span id="gallery-action-meta-date" class="gallery-action-meta-text">📅 Date</span>
+            <span id="gallery-action-meta-author" class="gallery-action-meta-text">👤 Auteur</span>
+          </div>
+        </div>
+
+        <div class="gallery-action-buttons-group">
+          <button type="button" id="btn-gallery-modal-send" class="btn btn-gallery-send">
+            <span class="btn-action-icon">💬</span>
+            <div class="btn-action-label-wrap">
+              <strong>Envoyer dans la messagerie</strong>
+              <small>Transmet la photo instantanément dans le chat</small>
+            </div>
+          </button>
+
+          <button type="button" id="btn-gallery-modal-delete" class="btn btn-gallery-delete">
+            <span class="btn-action-icon">🗑️</span>
+            <div class="btn-action-label-wrap">
+              <strong>Supprimer la photo</strong>
+              <small>Retire définitivement la photo de la galerie</small>
+            </div>
+          </button>
+
+          <button type="button" id="btn-gallery-modal-fullscreen" class="btn btn-gallery-fullscreen">
+            <span class="btn-action-icon">🔍</span>
+            <div class="btn-action-label-wrap">
+              <strong>Agrandir en plein écran</strong>
+              <small>Afficher la photo en haute résolution</small>
+            </div>
+          </button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" id="btn-gallery-modal-cancel" class="btn btn-secondary" style="width: 100%;">Fermer</button>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL QUESTION À CHOIX MULTIPLES (PC ONLY) -->
   <div id="modal-chat-choice" class="modal-backdrop" onclick="if(event.target===this)closeChoiceModal()">
     <div class="modal-box">
@@ -1377,15 +1474,16 @@
 
   <!-- SCRIPTS -->
   <script src="/socket.io/socket.io.js"></script>
-  <script src="js/audio.js?v=69"></script>
-  <script src="js/socket.js?v=69"></script>
-  <script src="js/chat.js?v=69"></script>
-  <script src="js/orders.js?v=69"></script>
-  <script src="js/deadlines.js?v=69"></script>
-  <script src="js/shopping.js?v=69"></script>
-  <script src="js/expenses.js?v=69"></script>
-  <script src="js/leave.js?v=69"></script>
-  <script src="js/presence.js?v=69"></script>
-  <script src="js/app.js?v=69"></script>
+  <script src="js/audio.js?v=70"></script>
+  <script src="js/socket.js?v=70"></script>
+  <script src="js/chat.js?v=70"></script>
+  <script src="js/orders.js?v=70"></script>
+  <script src="js/deadlines.js?v=70"></script>
+  <script src="js/shopping.js?v=70"></script>
+  <script src="js/expenses.js?v=70"></script>
+  <script src="js/leave.js?v=70"></script>
+  <script src="js/presence.js?v=70"></script>
+  <script src="js/gallery.js?v=70"></script>
+  <script src="js/app.js?v=70"></script>
 </body>
 </html>

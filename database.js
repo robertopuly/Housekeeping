@@ -146,6 +146,15 @@ function initSchema() {
       PRIMARY KEY (user, page)
     );
 
+    CREATE TABLE IF NOT EXISTS gallery_photos (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      filename TEXT NOT NULL,
+      image_url TEXT NOT NULL UNIQUE,
+      captured_by TEXT DEFAULT 'Adélcia',
+      caption TEXT DEFAULT '',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
     CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp);
     CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status, is_archived);
     CREATE INDEX IF NOT EXISTS idx_deadlines_date ON deadlines(due_date, is_completed);
@@ -155,7 +164,22 @@ function initSchema() {
     CREATE INDEX IF NOT EXISTS idx_expenses_request_date ON expenses(request_date);
     CREATE INDEX IF NOT EXISTS idx_leave_start_date ON leave_requests(start_date);
     CREATE INDEX IF NOT EXISTS idx_page_views_user ON page_views(user, page);
+    CREATE INDEX IF NOT EXISTS idx_gallery_created_at ON gallery_photos(created_at DESC);
   `);
+
+  try {
+    db.exec(`
+      INSERT OR IGNORE INTO gallery_photos (filename, image_url, captured_by, caption, created_at)
+      SELECT 
+        substr(image_url, 10),
+        image_url,
+        sender,
+        CASE WHEN text = '📷 Photo' THEN '' ELSE text END,
+        timestamp
+      FROM messages
+      WHERE (type = 'image' OR image_url != '') AND is_deleted = 0 AND image_url LIKE '/uploads/%';
+    `);
+  } catch (e) {}
 
   try {
     db.exec('ALTER TABLE messages ADD COLUMN reply_to_id INTEGER DEFAULT NULL;');
@@ -949,6 +973,31 @@ function getPageView(user, page) {
   return db.prepare('SELECT * FROM page_views WHERE user = ? AND page = ?').get(normUser, page);
 }
 
+// GALERIE PHOTOS
+function getGalleryPhotos() {
+  return db.prepare('SELECT * FROM gallery_photos ORDER BY created_at DESC, id DESC').all();
+}
+
+function getGalleryPhotoById(id) {
+  return db.prepare('SELECT * FROM gallery_photos WHERE id = ?').get(id);
+}
+
+function addGalleryPhoto(filename, imageUrl, capturedBy, caption = '') {
+  const normUser = (capturedBy && (capturedBy.toLowerCase() === 'adelcia' || capturedBy.toLowerCase() === 'adélcia')) ? 'Adélcia' : capturedBy || 'Adélcia';
+  const result = db.prepare(`
+    INSERT INTO gallery_photos (filename, image_url, captured_by, caption, created_at)
+    VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
+  `).run(filename, imageUrl, normUser, caption || '');
+  return getGalleryPhotoById(result.lastInsertRowid);
+}
+
+function deleteGalleryPhoto(id) {
+  const item = getGalleryPhotoById(id);
+  if (!item) return null;
+  db.prepare('DELETE FROM gallery_photos WHERE id = ?').run(id);
+  return item;
+}
+
 module.exports = {
   db,
   getMessages,
@@ -995,6 +1044,10 @@ module.exports = {
   markLeaveRequestAsSent,
   recordPageView,
   getPageViews,
-  getPageView
+  getPageView,
+  getGalleryPhotos,
+  getGalleryPhotoById,
+  addGalleryPhoto,
+  deleteGalleryPhoto
 };
 
