@@ -160,7 +160,59 @@
       const d = parts.find(p => p.type === 'day').value;
       return `${y}-${m}-${d}`;
     } catch (e) {
-      return getTodayStr();
+      const d = new Date();
+      return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+  }
+
+  function getTodayStr() {
+    return getZurichDateStr(new Date());
+  }
+
+  function parseDateSafe(raw) {
+    if (!raw) return new Date();
+    if (raw instanceof Date) return raw;
+    const s = String(raw).trim();
+    if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/.test(s)) {
+      return new Date(s.replace(' ', 'T') + 'Z');
+    }
+    if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(s)) {
+      return new Date(s + 'Z');
+    }
+    return new Date(s);
+  }
+
+  function formatRelativeUpdateDateTime(rawDate) {
+    if (!rawDate) return '';
+    const dateObj = parseDateSafe(rawDate);
+    if (!dateObj || isNaN(dateObj.getTime())) return '';
+
+    const updateIso = getZurichDateStr(dateObj);
+    const todayIso = getZurichDateStr(new Date());
+
+    const [tY, tM, tD] = todayIso.split('-').map(Number);
+    const dYesterday = new Date(tY, tM - 1, tD, 12, 0, 0);
+    dYesterday.setDate(dYesterday.getDate() - 1);
+    const yesterdayIso = getZurichDateStr(dYesterday);
+
+    const timeStr = dateObj.toLocaleTimeString('fr-FR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'Europe/Zurich'
+    });
+
+    if (updateIso === todayIso) {
+      return `Aujourd'hui à ${timeStr}`;
+    } else if (updateIso === yesterdayIso) {
+      return `Hier à ${timeStr}`;
+    } else {
+      const fullDate = dateObj.toLocaleDateString('fr-FR', {
+        day: 'numeric',
+        month: 'long',
+        year: 'numeric',
+        timeZone: 'Europe/Zurich'
+      });
+      return `Le ${fullDate} à ${timeStr}`;
     }
   }
 
@@ -172,14 +224,6 @@ async function initOrders() {
     loadDailyRooms(selectedDate),
     loadOrders()
   ]);
-}
-
-function getTodayStr() {
-  const d = new Date();
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
 }
 
 function formatDateDisplay(dateStr) {
@@ -267,15 +311,11 @@ function renderDailyUpdateBanner() {
   const isPartiallyActualized = (actualizedCount > 0 && actualizedCount < totalRooms);
 
   const hasMeta = currentDailyMeta && currentDailyMeta.updated_at;
-  let updateDate = null;
-  let timeStr = '';
-  let dateStr = '';
   let author = 'Roberto';
+  let relativeUpdateStr = '';
 
   if (hasMeta) {
-    updateDate = parseDateSafe(currentDailyMeta.updated_at);
-    timeStr = updateDate.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Zurich' });
-    dateStr = updateDate.toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric', timeZone: 'Europe/Zurich' });
+    relativeUpdateStr = formatRelativeUpdateDateTime(currentDailyMeta.updated_at);
     author = currentDailyMeta.updated_by || 'Roberto';
   }
 
@@ -292,7 +332,7 @@ function renderDailyUpdateBanner() {
               <span class="daily-banner-badge">✓ PLANNING DU JOUR À JOUR (${actualizedCount}/${totalRooms} VÉRIFIÉES)</span>
             </div>
             <div class="daily-banner-title">
-              Dernière mise à jour : <strong>Aujourd'hui à ${timeStr || 'ce matin'}</strong> <span class="daily-banner-author">par ${escapeHtml(author)}</span>
+              Dernière mise à jour : <strong>${relativeUpdateStr || 'Aujourd\'hui'}</strong> <span class="daily-banner-author">par ${escapeHtml(author)}</span>
             </div>
             <div class="daily-banner-subtitle">
               Toutes les informations, statuts des 5 chambres, départs et arrivées sont vérifiés et actualisés pour aujourd'hui.
@@ -321,7 +361,7 @@ function renderDailyUpdateBanner() {
               <span class="daily-banner-badge">🔄 ACTUALISATION EN COURS : ${actualizedCount} / ${totalRooms} CHAMBRES VÉRIFIÉES</span>
             </div>
             <div class="daily-banner-title">
-              Mise à jour partielle par ${escapeHtml(author)}
+              Mise à jour partielle ${relativeUpdateStr ? `(${relativeUpdateStr})` : ''} <span class="daily-banner-author">par ${escapeHtml(author)}</span>
             </div>
             <div class="daily-banner-subtitle">
               ${actualizedCount} chambre(s) actualisée(s) en couleur. ${totalRooms - actualizedCount} chambre(s) encore en grisé (en attente de vérification).
@@ -373,7 +413,7 @@ function renderDailyUpdateBanner() {
     // CAS 2 : On consulte une AUTRE DATE (Hier, Demain, etc.)
     const { dayName, fullDate } = formatDateDisplay(selectedDate);
     const dateText = hasMeta
-      ? `Dernière modification : le <strong>${dateStr} à ${timeStr}</strong> <span class="daily-banner-author">par ${escapeHtml(author)}</span>`
+      ? `Dernière modification : <strong>${relativeUpdateStr}</strong> <span class="daily-banner-author">par ${escapeHtml(author)}</span>`
       : `Aucune modification enregistrée pour cette date.`;
 
     if (allActualized) {
@@ -558,20 +598,27 @@ function getBlinkData(room, fieldName) {
 }
 
 let blinkWatcherInterval = null;
+let lastBannerTick = Date.now();
 function startBlinkWatcher() {
   if (blinkWatcherInterval) return;
   blinkWatcherInterval = setInterval(() => {
-    const blinkingEls = document.querySelectorAll('[data-blink-until]');
-    if (!blinkingEls || blinkingEls.length === 0) return;
     const now = Date.now();
-    blinkingEls.forEach(el => {
-      const until = Number(el.getAttribute('data-blink-until'));
-      if (until && now >= until) {
-        el.classList.remove('field-blink', 'field-blink-input');
-        el.removeAttribute('data-blink-until');
-        el.removeAttribute('data-blink-field');
-      }
-    });
+    const blinkingEls = document.querySelectorAll('[data-blink-until]');
+    if (blinkingEls && blinkingEls.length > 0) {
+      blinkingEls.forEach(el => {
+        const until = Number(el.getAttribute('data-blink-until'));
+        if (until && now >= until) {
+          el.classList.remove('field-blink', 'field-blink-input');
+          el.removeAttribute('data-blink-until');
+          el.removeAttribute('data-blink-field');
+        }
+      });
+    }
+    // Toutes les 30 secondes, rafraîchir l'horodatage relatif du bandeau (ex: Hier -> Le ...)
+    if (now - lastBannerTick >= 30000) {
+      lastBannerTick = now;
+      renderDailyUpdateBanner();
+    }
   }, 2000);
 }
 
@@ -1275,19 +1322,6 @@ function renderOrders() {
 
   container.innerHTML = displayItems.map(order => createOrderCardHtml(order)).join('');
   attachOrderCardListeners();
-}
-
-function parseDateSafe(raw) {
-  if (!raw) return new Date();
-  if (raw instanceof Date) return raw;
-  const s = String(raw).trim();
-  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}/.test(s)) {
-    return new Date(s.replace(' ', 'T') + 'Z');
-  }
-  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}$/.test(s)) {
-    return new Date(s + 'Z');
-  }
-  return new Date(s);
 }
 
 function createOrderCardHtml(order) {
