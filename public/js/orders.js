@@ -55,6 +55,13 @@
     }
 
     showTabletAlertToast("🔔 Roberto a mis à jour les chambres !");
+    if (typeof showImmediateRoomUpdatePopUp === 'function') {
+      showImmediateRoomUpdatePopUp({
+        sender: data.user || 'Roberto',
+        date: data.date || selectedDate,
+        isValidation: false
+      });
+    }
   }
 
   async function checkMissedTabletNotification() {
@@ -253,7 +260,18 @@ async function loadDailyRooms(dateStr) {
         return r;
       });
       currentDailyMeta = data.meta || null;
-      renderDailyBoard();
+      if (typeof isChambresTabActive === 'function' && isChambresTabActive()) {
+        if (typeof onChambresTabOpened === 'function') {
+          onChambresTabOpened();
+        } else {
+          renderDailyBoard();
+        }
+      } else {
+        renderDailyBoard();
+        if (typeof checkForUnseenRoomModifications === 'function') {
+          checkForUnseenRoomModifications();
+        }
+      }
     }
   } catch (err) {
     console.error('Erreur chargement planning quotidien des chambres:', err);
@@ -508,6 +526,17 @@ function onDailyPlanningValidated(data) {
     }
     renderDailyBoard();
   }
+  const valSender = (data && data.sender) || (data && data.meta && data.meta.updated_by) || 'Roberto';
+  if (typeof shouldShowImmediatePopUp === 'function' && shouldShowImmediatePopUp(valSender)) {
+    if (typeof showImmediateRoomUpdatePopUp === 'function') {
+      showImmediateRoomUpdatePopUp({
+        date: (data && data.date) || selectedDate,
+        sender: valSender,
+        meta: data && data.meta,
+        isValidation: true
+      });
+    }
+  }
 }
 
 function isTabletView() {
@@ -575,26 +604,301 @@ function updateRoomCardDOM(card, room) {
   bindRoomCardEvents(card);
 }
 
-const FIVE_MINUTES_MS = 5 * 60 * 1000;
+const THREE_MINUTES_MS = 3 * 60 * 1000;
+
+function isChambresTabActive() {
+  const activeTab = (window.App && typeof window.App.getActiveTab === 'function')
+    ? window.App.getActiveTab()
+    : '';
+  const panel = document.getElementById('tab-rooms');
+  return activeTab === 'tab-rooms' || (panel && panel.classList.contains('active'));
+}
+
+function getSeenMap() {
+  try {
+    const raw = localStorage.getItem('hk_rooms_seen_fields');
+    return raw ? JSON.parse(raw) : {};
+  } catch (e) {
+    return {};
+  }
+}
+
+function saveSeenMap(map) {
+  try {
+    const now = Date.now();
+    const cleaned = {};
+    for (const k in map) {
+      if (now - map[k] < 48 * 60 * 60 * 1000) {
+        cleaned[k] = map[k];
+      }
+    }
+    localStorage.setItem('hk_rooms_seen_fields', JSON.stringify(cleaned));
+  } catch (e) {}
+}
+
+function getFieldModKey(date, roomNumber, fieldName, modTs) {
+  return `hk_seen_${date}_r${roomNumber}_${fieldName}_${modTs}`;
+}
+
+function getFieldBlinkInfo(room, fieldName) {
+  if (!room || !room.field_timestamps) return { isBlinking: false, until: 0 };
+  const modTs = Number(room.field_timestamps[fieldName]);
+  if (!modTs || isNaN(modTs)) return { isBlinking: false, until: 0 };
+
+  const now = Date.now();
+  // Modification prise en compte si survenue au cours des dernières 24 heures
+  if (now - modTs > 24 * 60 * 60 * 1000 || now < modTs - 60000) {
+    return { isBlinking: false, until: 0 };
+  }
+
+  const modKey = getFieldModKey(selectedDate, room.room_number, fieldName, modTs);
+  const seenMap = getSeenMap();
+  let firstSeen = seenMap[modKey];
+
+  if (!firstSeen) {
+    if (isChambresTabActive()) {
+      firstSeen = now;
+      seenMap[modKey] = firstSeen;
+      saveSeenMap(seenMap);
+    } else {
+      // Pas encore vu car l'utilisateur n'est pas sur l'onglet Chambres : attend l'ouverture
+      return { isBlinking: false, until: 0, pending: true };
+    }
+  }
+
+  const remaining = (firstSeen + THREE_MINUTES_MS) - now;
+  if (remaining > 0) {
+    return { isBlinking: true, until: firstSeen + THREE_MINUTES_MS, remaining };
+  }
+  return { isBlinking: false, until: 0 };
+}
 
 function isFieldRecentlyModified(room, fieldName) {
-  if (!room || !room.field_timestamps) return false;
-  let ts = room.field_timestamps[fieldName];
-  if (!ts) return false;
-  ts = Number(ts);
-  const age = Date.now() - ts;
-  return age >= 0 && age < FIVE_MINUTES_MS;
+  return getFieldBlinkInfo(room, fieldName).isBlinking;
 }
 
 function getBlinkClass(room, fieldName, isInput = false) {
-  if (!isFieldRecentlyModified(room, fieldName)) return '';
+  const info = getFieldBlinkInfo(room, fieldName);
+  if (!info.isBlinking) return '';
   return isInput ? ' field-blink-input' : ' field-blink';
 }
 
 function getBlinkData(room, fieldName) {
-  if (!isFieldRecentlyModified(room, fieldName)) return '';
-  const ts = Number(room.field_timestamps[fieldName]);
-  return ` data-blink-until="${ts + FIVE_MINUTES_MS}" data-blink-field="${fieldName}"`;
+  const info = getFieldBlinkInfo(room, fieldName);
+  if (!info.isBlinking) return '';
+  return ` data-blink-until="${info.until}" data-blink-field="${fieldName}"`;
+}
+
+function showRoomsBadge() {
+  const badge = document.getElementById('rooms-badge');
+  if (badge) badge.style.display = 'inline-flex';
+}
+
+function clearRoomsBadge() {
+  const badge = document.getElementById('rooms-badge');
+  if (badge) badge.style.display = 'none';
+}
+
+function checkForUnseenRoomModifications() {
+  if (isChambresTabActive()) {
+    clearRoomsBadge();
+    return;
+  }
+  const seenMap = getSeenMap();
+  const now = Date.now();
+  let hasPending = false;
+  if (Array.isArray(dailyRooms)) {
+    for (const room of dailyRooms) {
+      if (room && room.field_timestamps) {
+        for (const field in room.field_timestamps) {
+          const modTs = Number(room.field_timestamps[field]);
+          if (modTs && (now - modTs < 24 * 60 * 60 * 1000) && (now >= modTs - 60000)) {
+            const modKey = getFieldModKey(selectedDate, room.room_number, field, modTs);
+            if (!seenMap[modKey]) {
+              hasPending = true;
+              break;
+            }
+          }
+        }
+      }
+      if (hasPending) break;
+    }
+  }
+  if (hasPending) {
+    showRoomsBadge();
+  } else {
+    clearRoomsBadge();
+  }
+}
+
+function onChambresTabOpened() {
+  clearRoomsBadge();
+  const seenMap = getSeenMap();
+  let changed = false;
+  const now = Date.now();
+
+  if (Array.isArray(dailyRooms)) {
+    dailyRooms.forEach(room => {
+      if (room && room.field_timestamps) {
+        for (const field in room.field_timestamps) {
+          const modTs = Number(room.field_timestamps[field]);
+          if (modTs && (now - modTs < 24 * 60 * 60 * 1000) && (now >= modTs - 60000)) {
+            const modKey = getFieldModKey(selectedDate, room.room_number, field, modTs);
+            if (!seenMap[modKey]) {
+              seenMap[modKey] = now;
+              changed = true;
+            }
+          }
+        }
+      }
+    });
+  }
+
+  if (changed) {
+    saveSeenMap(seenMap);
+  }
+
+  renderDailyBoard();
+}
+
+let pendingAlertRoomNumber = null;
+
+function shouldShowImmediatePopUp(sender) {
+  const currentUser = (window.App && typeof window.App.getCurrentUser === 'function')
+    ? window.App.getCurrentUser()
+    : (localStorage.getItem('hk_user') || 'Roberto');
+  
+  if (sender && currentUser && sender.trim().toLowerCase() === currentUser.trim().toLowerCase()) {
+    return false;
+  }
+  return true;
+}
+
+function getRoomFriendlyDescription(room) {
+  if (!room) return 'Les statuts des chambres ont été actualisés.';
+  const statusLabels = {
+    'libera': 'Libre',
+    'partenza': 'Départ',
+    'restante': 'Recouche',
+    'occupata': 'Occupée',
+    'fermata': 'Arrêtée',
+    'arrivo': 'Arrivée'
+  };
+  const accessLabels = {
+    'client_sorti': 'Client sorti',
+    'en_chambre': 'En chambre',
+    'ne_pas_deranger': 'Ne pas déranger'
+  };
+  const cleanLabels = {
+    'a_faire': 'À faire',
+    'deja_propre': 'Déjà propre',
+    'en_cours': 'En cours',
+    'termine': 'Terminé',
+    'prioritaire': 'Prioritaire',
+    'recouche': 'Recouche',
+    'a_fond': 'À fond'
+  };
+
+  const roomTitle = `<strong>Chambre ${room.room_number}</strong>`;
+  const items = [];
+  if (room.access_status && accessLabels[room.access_status]) {
+    items.push(accessLabels[room.access_status]);
+  }
+  if (room.status && statusLabels[room.status]) {
+    items.push(statusLabels[room.status]);
+  }
+  if (room.cleanliness_status && cleanLabels[room.cleanliness_status]) {
+    items.push(cleanLabels[room.cleanliness_status]);
+  }
+  if (room.notes && room.notes.trim()) {
+    items.push(`<em>« ${escapeHtml(room.notes.trim())} »</em>`);
+  }
+
+  return `${roomTitle} : ${items.length ? items.join(' • ') : 'Statut mis à jour'}`;
+}
+
+function showImmediateRoomUpdatePopUp({ room, date, sender, meta, isValidation = false }) {
+  const modal = document.getElementById('modal-room-update-alert');
+  if (!modal) return;
+
+  const senderName = sender || (meta && meta.updated_by) || (room && room.updated_by) || 'Roberto';
+  const titleEl = document.getElementById('room-alert-title');
+  const timeEl = document.getElementById('room-alert-time');
+  const detailsEl = document.getElementById('room-alert-details');
+
+  let nowZurichStr = '';
+  try {
+    nowZurichStr = new Intl.DateTimeFormat('fr-FR', {
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: 'Europe/Zurich'
+    }).format(new Date());
+  } catch (e) {
+    const d = new Date();
+    nowZurichStr = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  }
+
+  if (titleEl) {
+    titleEl.textContent = `Mise à jour par ${senderName}`;
+  }
+  if (timeEl) {
+    timeEl.textContent = `Aujourd'hui à ${nowZurichStr}`;
+  }
+
+  if (detailsEl) {
+    if (isValidation) {
+      const dateFormatted = formatDateDisplay(date || selectedDate).fullDate;
+      detailsEl.innerHTML = `<strong>Planning validé</strong><br>Le planning complet des chambres du <strong>${dateFormatted}</strong> a été validé.`;
+      pendingAlertRoomNumber = null;
+    } else if (room) {
+      pendingAlertRoomNumber = room.room_number;
+      detailsEl.innerHTML = getRoomFriendlyDescription(room);
+    } else {
+      detailsEl.innerHTML = `Les statuts des chambres ont été actualisés.`;
+      pendingAlertRoomNumber = null;
+    }
+  }
+
+  // Sonnerie immédiate
+  if (window.SoundEngine && typeof window.SoundEngine.playHappySongSound === 'function') {
+    window.SoundEngine.playHappySongSound();
+  }
+
+  // Badge clignotant sur l'onglet Chambres
+  showRoomsBadge();
+
+  // Affichage du pop-up modal
+  modal.style.setProperty('display', 'flex', 'important');
+}
+
+function dismissRoomAlert() {
+  const modal = document.getElementById('modal-room-update-alert');
+  if (modal) {
+    modal.style.display = 'none';
+  }
+}
+
+function dismissRoomAlertAndOpenChambres() {
+  const targetRoom = pendingAlertRoomNumber;
+  dismissRoomAlert();
+  if (window.App && typeof window.App.switchTab === 'function') {
+    window.App.switchTab('tab-rooms');
+  } else {
+    const tabBtn = document.getElementById('nav-btn-rooms');
+    if (tabBtn) tabBtn.click();
+  }
+  onChambresTabOpened();
+
+  if (targetRoom) {
+    setTimeout(() => {
+      const card = document.getElementById(`daily-room-card-${targetRoom}`);
+      if (card) {
+        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        card.classList.add('card-highlight-pulse');
+        setTimeout(() => card.classList.remove('card-highlight-pulse'), 3000);
+      }
+    }, 180);
+  }
 }
 
 let blinkWatcherInterval = null;
@@ -619,7 +923,7 @@ function startBlinkWatcher() {
       lastBannerTick = now;
       renderDailyUpdateBanner();
     }
-  }, 2000);
+  }, 1000);
 }
 
 function createDailyRoomCardHtml(room) {
@@ -840,7 +1144,12 @@ function bindRoomCardEvents(card) {
   const markFieldUpdated = (targetRoom, field) => {
     if (!targetRoom) return;
     if (!targetRoom.field_timestamps) targetRoom.field_timestamps = {};
-    targetRoom.field_timestamps[field] = Date.now();
+    const now = Date.now();
+    targetRoom.field_timestamps[field] = now;
+    const modKey = getFieldModKey(selectedDate, targetRoom.room_number, field, now);
+    const seenMap = getSeenMap();
+    seenMap[modKey] = now;
+    saveSeenMap(seenMap);
   };
 
   // 1. Boutons Statut (Libre / Départ / Recouche) - Uniquement si interactifs (PC)
@@ -946,7 +1255,7 @@ function bindRoomCardEvents(card) {
         if (room.notes !== text) {
           markFieldUpdated(room, 'notes');
           noteInput.classList.add('field-blink-input');
-          noteInput.setAttribute('data-blink-until', Date.now() + FIVE_MINUTES_MS);
+          noteInput.setAttribute('data-blink-until', Date.now() + THREE_MINUTES_MS);
           noteInput.setAttribute('data-blink-field', 'notes');
         }
         room.notes = text;
@@ -988,7 +1297,7 @@ function bindRoomCardEvents(card) {
         if (room.notes !== text) {
           markFieldUpdated(room, 'notes');
           noteInput.classList.add('field-blink-input');
-          noteInput.setAttribute('data-blink-until', Date.now() + FIVE_MINUTES_MS);
+          noteInput.setAttribute('data-blink-until', Date.now() + THREE_MINUTES_MS);
           noteInput.setAttribute('data-blink-field', 'notes');
         }
         room.notes = text;
@@ -1190,6 +1499,20 @@ async function saveRoomUpdate(roomNum, changes) {
 }
 
 function onRoomStatusUpdated({ date, room, meta, sender }) {
+  const updateSender = sender || (room && room.updated_by) || (meta && meta.updated_by) || 'Roberto';
+
+  if (typeof shouldShowImmediatePopUp === 'function' && shouldShowImmediatePopUp(updateSender)) {
+    if (typeof showImmediateRoomUpdatePopUp === 'function') {
+      showImmediateRoomUpdatePopUp({
+        room,
+        date: date || selectedDate,
+        sender: updateSender,
+        meta,
+        isValidation: false
+      });
+    }
+  }
+
   if (date !== selectedDate) return;
   if (meta) {
     currentDailyMeta = meta;
@@ -1220,7 +1543,11 @@ function onRoomStatusUpdated({ date, room, meta, sender }) {
   } else {
     dailyRooms.push(room);
   }
+
   renderDailyBoard();
+  if (typeof checkForUnseenRoomModifications === 'function') {
+    checkForUnseenRoomModifications();
+  }
 }
 
 function setupDailyBoardEvents() {
@@ -1909,7 +2236,13 @@ function refreshAll() {
     clearOrdersBlink,
     getSelectedDate: () => selectedDate,
     submitNewOrder,
-    submitEditOrder
+    submitEditOrder,
+    onChambresTabOpened,
+    showImmediateRoomUpdatePopUp,
+    dismissRoomAlert,
+    dismissRoomAlertAndOpenChambres,
+    showRoomsBadge,
+    clearRoomsBadge
   };
 
   window.setOrdersFilter = setFilter;

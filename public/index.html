@@ -8,9 +8,9 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <title>Gouvernante Hôtel - Gestion & Communication</title>
-  <link rel="stylesheet" href="css/styles.css?v=72">
+  <link rel="stylesheet" href="css/styles.css?v=73">
   <script>
-    window.APP_VERSION = 72;
+    window.APP_VERSION = 73;
     function getTodayIsoStr() {
       var d = new Date();
       var y = d.getFullYear();
@@ -415,6 +415,7 @@
       <button type="button" class="nav-tab-btn" data-tab="tab-rooms" role="tab" aria-selected="false" id="nav-btn-rooms">
         <span class="tab-icon">🛏️</span>
         <span>Chambres</span>
+        <span id="rooms-badge" class="badge badge-pulse" style="display: none;">!</span>
       </button>
 
       <button type="button" class="nav-tab-btn" data-tab="tab-deadlines" role="tab" aria-selected="false">
@@ -1346,6 +1347,35 @@
     </div>
   </div>
 
+  <!-- MODAL NOTIFICATION IMMÉDIATE MISE À JOUR CHAMBRES -->
+  <div id="modal-room-update-alert" class="modal-backdrop" onclick="if(event.target===this)window.OrdersModule.dismissRoomAlert()">
+    <div class="modal-box modal-box-room-alert">
+      <div class="modal-header">
+        <h2>🔔 Mise à jour des Chambres</h2>
+        <button type="button" class="btn-close-modal" onclick="window.OrdersModule.dismissRoomAlert()">&times;</button>
+      </div>
+      <div class="modal-body modal-body-room-alert">
+        <div class="room-alert-icon-ring">
+          <span class="room-alert-big-icon">🛏️</span>
+        </div>
+        <div class="room-alert-content-wrap">
+          <h3 id="room-alert-title" class="room-alert-title">Mise à jour par Roberto</h3>
+          <p id="room-alert-time" class="room-alert-time">Aujourd'hui</p>
+          <div id="room-alert-details" class="room-alert-details-box">
+            <!-- Rempli dynamiquement -->
+          </div>
+          <p class="room-alert-hint">
+            Les options modifiées clignotent pendant 3 minutes dès l'ouverture des Chambres.
+          </p>
+        </div>
+      </div>
+      <div class="modal-footer modal-footer-room-alert">
+        <button type="button" class="btn btn-secondary" onclick="window.OrdersModule.dismissRoomAlert()">Fermer</button>
+        <button type="button" class="btn btn-primary btn-goto-rooms" onclick="window.OrdersModule.dismissRoomAlertAndOpenChambres()">🚪 Voir les Chambres</button>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL QUESTION À CHOIX MULTIPLES (PC ONLY) -->
   <div id="modal-chat-choice" class="modal-backdrop" onclick="if(event.target===this)closeChoiceModal()">
     <div class="modal-box">
@@ -1522,16 +1552,16 @@
 
   <!-- SCRIPTS -->
   <script src="/socket.io/socket.io.js"></script>
-  <script src="js/audio.js?v=72"></script>
-  <script src="js/socket.js?v=72"></script>
-  <script src="js/chat.js?v=72"></script>
-  <script src="js/orders.js?v=72"></script>
-  <script src="js/deadlines.js?v=72"></script>
-  <script src="js/shopping.js?v=72"></script>
-  <script src="js/expenses.js?v=72"></script>
-  <script src="js/leave.js?v=72"></script>
-  <script src="js/presence.js?v=72"></script>
-  <script src="js/gallery.js?v=72"></script>
-  <script src="js/app.js?v=72"></script>
+  <script src="js/audio.js?v=73"></script>
+  <script src="js/socket.js?v=73"></script>
+  <script src="js/chat.js?v=73"></script>
+  <script src="js/orders.js?v=73"></script>
+  <script src="js/deadlines.js?v=73"></script>
+  <script src="js/shopping.js?v=73"></script>
+  <script src="js/expenses.js?v=73"></script>
+  <script src="js/leave.js?v=73"></script>
+  <script src="js/presence.js?v=73"></script>
+  <script src="js/gallery.js?v=73"></script>
+  <script src="js/app.js?v=73"></script>
 </body>
 </html>

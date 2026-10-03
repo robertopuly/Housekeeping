@@ -401,9 +401,14 @@ function switchTab(tabId) {
     }
   } else if (tabId === 'tab-rooms') {
     window.location.hash = 'rooms';
-    if (window.OrdersModule && typeof window.OrdersModule.loadDailyRooms === 'function') {
-      const curDate = window.OrdersModule.getSelectedDate ? window.OrdersModule.getSelectedDate() : undefined;
-      window.OrdersModule.loadDailyRooms(curDate);
+    if (window.OrdersModule) {
+      if (typeof window.OrdersModule.onChambresTabOpened === 'function') {
+        window.OrdersModule.onChambresTabOpened();
+      }
+      if (typeof window.OrdersModule.loadDailyRooms === 'function') {
+        const curDate = window.OrdersModule.getSelectedDate ? window.OrdersModule.getSelectedDate() : undefined;
+        window.OrdersModule.loadDailyRooms(curDate);
+      }
     }
   } else if (tabId === 'tab-deadlines') {
     window.location.hash = 'deadlines';
