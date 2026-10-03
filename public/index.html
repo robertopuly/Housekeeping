@@ -8,9 +8,9 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <title>Gouvernante Hôtel - Gestion & Communication</title>
-  <link rel="stylesheet" href="css/styles.css?v=68">
+  <link rel="stylesheet" href="css/styles.css?v=69">
   <script>
-    window.APP_VERSION = 68;
+    window.APP_VERSION = 69;
     function getTodayIsoStr() {
       var d = new Date();
       var y = d.getFullYear();
@@ -493,6 +493,9 @@
     <!-- TAB 2: ORDRES DE SERVICE -->
     <section id="tab-orders" class="tab-panel" role="tabpanel">
       <div class="tab-content-scroll">
+        <!-- BANDEAU DE PRÉSENCE D'ADÉLCIA (POUR ROBERTO) -->
+        <div id="adelcia-presence-orders" class="adelcia-presence-banner" style="display: none;"></div>
+
         <!-- SECTION ORDRES DE SERVICE -->
         <div class="orders-section-header">
           <div class="orders-section-title">
@@ -522,6 +525,9 @@
       <div class="tab-content-scroll">
         <!-- PLANNING QUOTIDIEN CHAMBRES -->
         <div class="daily-board-wrapper">
+          <!-- BANDEAU DE PRÉSENCE D'ADÉLCIA (POUR ROBERTO) -->
+          <div id="adelcia-presence-rooms" class="adelcia-presence-banner" style="display: none;"></div>
+
           <div class="daily-board-header">
             <div class="daily-board-title-group">
               <div class="daily-board-dayname" id="daily-day-name">Aujourd'hui</div>
@@ -548,9 +554,12 @@
       </div>
     </section>
 
-    <!-- TAB 3: ÉCHÉANCES / CHECKLIST TÂCHES -->
+    <!-- TAB 4: ÉCHÉANCES / CHECKLIST TÂCHES -->
     <section id="tab-deadlines" class="tab-panel" role="tabpanel">
       <div class="tab-content-scroll">
+        <!-- BANDEAU DE PRÉSENCE D'ADÉLCIA (POUR ROBERTO) -->
+        <div id="adelcia-presence-deadlines" class="adelcia-presence-banner" style="display: none;"></div>
+
         <div class="tab-toolbar" style="border-radius: var(--border-radius-sm); margin-bottom: 12px;">
           <div id="deadlines-filter-bar" class="filter-bar">
             <button type="button" class="filter-btn active" data-filter="prochaines_10j" onclick="setDeadlinesFilter('prochaines_10j')">⏳ Prochains 10 jours</button>
@@ -1368,14 +1377,15 @@
 
   <!-- SCRIPTS -->
   <script src="/socket.io/socket.io.js"></script>
-  <script src="js/audio.js?v=68"></script>
-  <script src="js/socket.js?v=68"></script>
-  <script src="js/chat.js?v=68"></script>
-  <script src="js/orders.js?v=68"></script>
-  <script src="js/deadlines.js?v=68"></script>
-  <script src="js/shopping.js?v=68"></script>
-  <script src="js/expenses.js?v=68"></script>
-  <script src="js/leave.js?v=68"></script>
-  <script src="js/app.js?v=68"></script>
+  <script src="js/audio.js?v=69"></script>
+  <script src="js/socket.js?v=69"></script>
+  <script src="js/chat.js?v=69"></script>
+  <script src="js/orders.js?v=69"></script>
+  <script src="js/deadlines.js?v=69"></script>
+  <script src="js/shopping.js?v=69"></script>
+  <script src="js/expenses.js?v=69"></script>
+  <script src="js/leave.js?v=69"></script>
+  <script src="js/presence.js?v=69"></script>
+  <script src="js/app.js?v=69"></script>
 </body>
 </html>

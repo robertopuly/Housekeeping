@@ -17,6 +17,9 @@ function initSocket() {
     if (window.OrdersModule && typeof window.OrdersModule.checkMissedTabletNotification === 'function') {
       window.OrdersModule.checkMissedTabletNotification();
     }
+    if (window.PresenceModule && typeof window.PresenceModule.onSocketConnected === 'function') {
+      window.PresenceModule.onSocketConnected();
+    }
   });
 
   socket.on('disconnect', () => {
@@ -184,6 +187,13 @@ function initSocket() {
   // Présence des utilisateurs
   socket.on('users:online', (users) => {
     console.log('Utilisateurs en ligne:', users);
+  });
+
+  // Suivi consultation des pages par Adélcia
+  socket.on('page_view:status', (data) => {
+    if (window.PresenceModule && typeof window.PresenceModule.onPageViewStatus === 'function') {
+      window.PresenceModule.onPageViewStatus(data);
+    }
   });
 }
 

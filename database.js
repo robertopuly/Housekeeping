@@ -139,6 +139,13 @@ function initSchema() {
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
 
+    CREATE TABLE IF NOT EXISTS page_views (
+      user TEXT NOT NULL,
+      page TEXT NOT NULL,
+      last_viewed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      PRIMARY KEY (user, page)
+    );
+
     CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp);
     CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status, is_archived);
     CREATE INDEX IF NOT EXISTS idx_deadlines_date ON deadlines(due_date, is_completed);
@@ -147,6 +154,7 @@ function initSchema() {
     CREATE INDEX IF NOT EXISTS idx_shopping_checked ON shopping_items(is_checked);
     CREATE INDEX IF NOT EXISTS idx_expenses_request_date ON expenses(request_date);
     CREATE INDEX IF NOT EXISTS idx_leave_start_date ON leave_requests(start_date);
+    CREATE INDEX IF NOT EXISTS idx_page_views_user ON page_views(user, page);
   `);
 
   try {
@@ -915,6 +923,32 @@ function markLeaveRequestAsSent(id) {
   return getLeaveRequestById(id);
 }
 
+// SUIVI DE LA CONSULTATION DES PAGES (PRÉSENCE EN TEMPS RÉEL & DERNIÈRE VUE)
+function recordPageView(user, page) {
+  const normUser = (user && (user.toLowerCase() === 'adelcia' || user.toLowerCase() === 'adélcia')) ? 'Adélcia' : user;
+  db.prepare(`
+    INSERT INTO page_views (user, page, last_viewed_at)
+    VALUES (?, ?, CURRENT_TIMESTAMP)
+    ON CONFLICT(user, page) DO UPDATE SET
+      last_viewed_at = CURRENT_TIMESTAMP
+  `).run(normUser, page);
+
+  return db.prepare('SELECT * FROM page_views WHERE user = ? AND page = ?').get(normUser, page);
+}
+
+function getPageViews(user) {
+  if (user) {
+    const normUser = (user.toLowerCase() === 'adelcia' || user.toLowerCase() === 'adélcia') ? 'Adélcia' : user;
+    return db.prepare('SELECT * FROM page_views WHERE user = ?').all(normUser);
+  }
+  return db.prepare('SELECT * FROM page_views').all();
+}
+
+function getPageView(user, page) {
+  const normUser = (user && (user.toLowerCase() === 'adelcia' || user.toLowerCase() === 'adélcia')) ? 'Adélcia' : user;
+  return db.prepare('SELECT * FROM page_views WHERE user = ? AND page = ?').get(normUser, page);
+}
+
 module.exports = {
   db,
   getMessages,
@@ -958,6 +992,9 @@ module.exports = {
   addLeaveRequest,
   updateLeaveRequest,
   deleteLeaveRequest,
-  markLeaveRequestAsSent
+  markLeaveRequestAsSent,
+  recordPageView,
+  getPageViews,
+  getPageView
 };
 

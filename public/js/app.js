@@ -16,6 +16,7 @@ function initApp() {
   if (window.ShoppingModule) window.ShoppingModule.initShopping();
   if (window.ExpensesModule) window.ExpensesModule.initExpenses();
   if (window.LeaveModule) window.LeaveModule.initLeave();
+  if (window.PresenceModule) window.PresenceModule.initPresence();
 
   const hash = window.location.hash.replace('#', '');
   if (hash === 'orders') switchTab('tab-orders');
@@ -119,6 +120,11 @@ function switchTab(tabId) {
     const isActive = panel.id === tabId;
     panel.classList.toggle('active', isActive);
   });
+
+  // Notifica présence Adélcia
+  if (window.PresenceModule && typeof window.PresenceModule.handleTabChange === 'function') {
+    window.PresenceModule.handleTabChange(tabId);
+  }
 
   // Notifica moduli
   if (tabId === 'tab-chat') {

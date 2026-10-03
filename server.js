@@ -17,7 +17,7 @@ const io = new Server(server, {
 });
 
 const PORT = process.env.PORT || 8765;
-const CURRENT_APP_VERSION = 68;
+const CURRENT_APP_VERSION = 69;
 
 const uploadsDir = path.join(__dirname, 'public', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -777,8 +777,47 @@ app.post('/api/leave-requests/:id/send', (req, res) => {
   }
 });
 
-// USERS PRESENCE
+// USERS & PAGES PRESENCE
 const onlineUsers = new Map();
+const activePageViews = new Map(); // socket.id -> { user, page, lastActive }
+
+function isUserViewingPage(user, page) {
+  const normUser = (user && (user.toLowerCase() === 'adelcia' || user.toLowerCase() === 'adélcia')) ? 'Adélcia' : user;
+  for (const info of activePageViews.values()) {
+    if (info.user === normUser && info.page === page) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function getPagePresenceSummary(user = 'Adélcia') {
+  const normUser = (user && (user.toLowerCase() === 'adelcia' || user.toLowerCase() === 'adélcia')) ? 'Adélcia' : user;
+  const dbRows = db.getPageViews(normUser);
+  const dbMap = {};
+  dbRows.forEach(r => { dbMap[r.page] = r.last_viewed_at; });
+
+  const pages = ['rooms', 'deadlines', 'orders'];
+  const summary = {};
+  pages.forEach(p => {
+    summary[p] = {
+      user: normUser,
+      page: p,
+      is_viewing: isUserViewingPage(normUser, p),
+      last_viewed_at: dbMap[p] || null
+    };
+  });
+  return summary;
+}
+
+app.get('/api/page-views', (req, res) => {
+  try {
+    const user = req.query.user || 'Adélcia';
+    res.json(getPagePresenceSummary(user));
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 io.on('connection', (socket) => {
   socket.emit('app:version', { version: CURRENT_APP_VERSION });
@@ -796,7 +835,61 @@ io.on('connection', (socket) => {
     socket.broadcast.emit('chat:typing', data);
   });
 
+  // SUIVI CONSULTATION DES PAGES (ADÉLCIA)
+  socket.on('page_view:enter', ({ user, page }) => {
+    if (!user || !page) return;
+    const normUser = (user.toLowerCase() === 'adelcia' || user.toLowerCase() === 'adélcia') ? 'Adélcia' : user;
+    activePageViews.set(socket.id, { user: normUser, page, lastActive: Date.now() });
+    const row = db.recordPageView(normUser, page);
+    io.emit('page_view:status', {
+      user: normUser,
+      page,
+      is_viewing: true,
+      last_viewed_at: row ? row.last_viewed_at : new Date().toISOString()
+    });
+  });
+
+  socket.on('page_view:heartbeat', ({ user, page }) => {
+    if (!user || !page) return;
+    const normUser = (user.toLowerCase() === 'adelcia' || user.toLowerCase() === 'adélcia') ? 'Adélcia' : user;
+    activePageViews.set(socket.id, { user: normUser, page, lastActive: Date.now() });
+    const row = db.recordPageView(normUser, page);
+    io.emit('page_view:status', {
+      user: normUser,
+      page,
+      is_viewing: true,
+      last_viewed_at: row ? row.last_viewed_at : new Date().toISOString()
+    });
+  });
+
+  socket.on('page_view:leave', ({ user, page }) => {
+    const current = activePageViews.get(socket.id);
+    if (current) {
+      activePageViews.delete(socket.id);
+      const row = db.recordPageView(current.user, current.page);
+      const stillViewing = isUserViewingPage(current.user, current.page);
+      io.emit('page_view:status', {
+        user: current.user,
+        page: current.page,
+        is_viewing: stillViewing,
+        last_viewed_at: row ? row.last_viewed_at : new Date().toISOString()
+      });
+    }
+  });
+
   socket.on('disconnect', () => {
+    const current = activePageViews.get(socket.id);
+    if (current) {
+      activePageViews.delete(socket.id);
+      const row = db.recordPageView(current.user, current.page);
+      const stillViewing = isUserViewingPage(current.user, current.page);
+      io.emit('page_view:status', {
+        user: current.user,
+        page: current.page,
+        is_viewing: stillViewing,
+        last_viewed_at: row ? row.last_viewed_at : new Date().toISOString()
+      });
+    }
     onlineUsers.delete(socket.id);
     io.emit('users:online', Array.from(onlineUsers.values()));
   });
