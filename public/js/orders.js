@@ -50,17 +50,27 @@
       localStorage.setItem('hk_last_played_alert_id', String(data.id));
     }
 
+    // 1. Notifica musicale immediata
     if (window.SoundEngine && typeof window.SoundEngine.playHappySongSound === 'function') {
       window.SoundEngine.playHappySongSound();
     }
 
-    showTabletAlertToast("🔔 Roberto a mis à jour les chambres !");
-    if (typeof showImmediateRoomUpdatePopUp === 'function') {
-      showImmediateRoomUpdatePopUp({
-        sender: data.user || 'Roberto',
-        date: data.date || selectedDate,
-        isValidation: false
-      });
+    // 2. Toast in alto
+    showTabletAlertToast("Mise à jour des Chambres par Roberto");
+
+    // 3. Attiva il timestamp dell'invio manuale
+    const alertTs = Number((data && (data.timestamp || data.id)) || Date.now());
+    localStorage.setItem('hk_last_alert_ts', String(alertTs));
+
+    // Se Adélcia è già su Chambres, avvia subito il lampeggio per 3 minuti
+    if (typeof isChambresTabActive === 'function' && isChambresTabActive()) {
+      if (typeof onChambresTabOpened === 'function') {
+        onChambresTabOpened();
+      }
+    } else {
+      if (typeof showRoomsBadge === 'function') {
+        showRoomsBadge();
+      }
     }
   }
 
@@ -118,6 +128,16 @@
       });
 
       if (res.ok) {
+        const json = await res.json().catch(() => ({}));
+        const alertTs = (json && json.notification && json.notification.timestamp)
+          ? Number(json.notification.timestamp)
+          : Date.now();
+        localStorage.setItem('hk_last_alert_ts', String(alertTs));
+        if (typeof isChambresTabActive === 'function' && isChambresTabActive()) {
+          if (typeof onChambresTabOpened === 'function') {
+            onChambresTabOpened();
+          }
+        }
         btns.forEach(b => {
           b.innerHTML = '✅ Sonnerie envoyée !';
           b.classList.add('btn-sent-success');
@@ -223,10 +243,28 @@
     }
   }
 
+async function syncLatestAlertTimestamp() {
+  try {
+    const res = await fetch('/api/daily-rooms/latest-tablet-notification');
+    if (res.ok) {
+      const data = await res.json();
+      const notif = data && data.notification;
+      if (notif && notif.timestamp) {
+        const serverTs = Number(notif.timestamp);
+        const localTs = Number(localStorage.getItem('hk_last_alert_ts') || 0);
+        if (serverTs > localTs) {
+          localStorage.setItem('hk_last_alert_ts', String(serverTs));
+        }
+      }
+    }
+  } catch (e) {}
+}
+
 async function initOrders() {
   startBlinkWatcher();
   setupDailyBoardEvents();
   setupOrderEvents();
+  await syncLatestAlertTimestamp();
   await Promise.all([
     loadDailyRooms(selectedDate),
     loadOrders()
@@ -526,17 +564,6 @@ function onDailyPlanningValidated(data) {
     }
     renderDailyBoard();
   }
-  const valSender = (data && data.sender) || (data && data.meta && data.meta.updated_by) || 'Roberto';
-  if (typeof shouldShowImmediatePopUp === 'function' && shouldShowImmediatePopUp(valSender)) {
-    if (typeof showImmediateRoomUpdatePopUp === 'function') {
-      showImmediateRoomUpdatePopUp({
-        date: (data && data.date) || selectedDate,
-        sender: valSender,
-        meta: data && data.meta,
-        isValidation: true
-      });
-    }
-  }
 }
 
 function isTabletView() {
@@ -640,6 +667,10 @@ function getFieldModKey(date, roomNumber, fieldName, modTs) {
   return `hk_seen_${date}_r${roomNumber}_${fieldName}_${modTs}`;
 }
 
+function getLastAlertTs() {
+  return Number(localStorage.getItem('hk_last_alert_ts') || 0);
+}
+
 function getFieldBlinkInfo(room, fieldName) {
   if (!room || !room.field_timestamps) return { isBlinking: false, until: 0 };
   const modTs = Number(room.field_timestamps[fieldName]);
@@ -648,6 +679,15 @@ function getFieldBlinkInfo(room, fieldName) {
   const now = Date.now();
   // Modification prise en compte si survenue au cours des dernières 24 heures
   if (now - modTs > 24 * 60 * 60 * 1000 || now < modTs - 60000) {
+    return { isBlinking: false, until: 0 };
+  }
+
+  // Ne clignote QUE si un envoi manuel ("Prévenir Adélcia") a eu lieu après ou lors de cette modification
+  const lastAlertTs = getLastAlertTs();
+  if (!lastAlertTs || modTs > lastAlertTs + 5000) {
+    return { isBlinking: false, until: 0 };
+  }
+  if (now - lastAlertTs > 24 * 60 * 60 * 1000) {
     return { isBlinking: false, until: 0 };
   }
 
@@ -704,6 +744,12 @@ function checkForUnseenRoomModifications() {
     clearRoomsBadge();
     return;
   }
+  const lastAlertTs = getLastAlertTs();
+  if (!lastAlertTs || Date.now() - lastAlertTs > 24 * 60 * 60 * 1000) {
+    clearRoomsBadge();
+    return;
+  }
+
   const seenMap = getSeenMap();
   const now = Date.now();
   let hasPending = false;
@@ -712,7 +758,7 @@ function checkForUnseenRoomModifications() {
       if (room && room.field_timestamps) {
         for (const field in room.field_timestamps) {
           const modTs = Number(room.field_timestamps[field]);
-          if (modTs && (now - modTs < 24 * 60 * 60 * 1000) && (now >= modTs - 60000)) {
+          if (modTs && (now - modTs < 24 * 60 * 60 * 1000) && (modTs <= lastAlertTs + 5000)) {
             const modKey = getFieldModKey(selectedDate, room.room_number, field, modTs);
             if (!seenMap[modKey]) {
               hasPending = true;
@@ -736,13 +782,14 @@ function onChambresTabOpened() {
   const seenMap = getSeenMap();
   let changed = false;
   const now = Date.now();
+  const lastAlertTs = getLastAlertTs();
 
-  if (Array.isArray(dailyRooms)) {
+  if (lastAlertTs && (now - lastAlertTs < 24 * 60 * 60 * 1000) && Array.isArray(dailyRooms)) {
     dailyRooms.forEach(room => {
       if (room && room.field_timestamps) {
         for (const field in room.field_timestamps) {
           const modTs = Number(room.field_timestamps[field]);
-          if (modTs && (now - modTs < 24 * 60 * 60 * 1000) && (now >= modTs - 60000)) {
+          if (modTs && (now - modTs < 24 * 60 * 60 * 1000) && (modTs <= lastAlertTs + 5000)) {
             const modKey = getFieldModKey(selectedDate, room.room_number, field, modTs);
             if (!seenMap[modKey]) {
               seenMap[modKey] = now;
@@ -759,146 +806,6 @@ function onChambresTabOpened() {
   }
 
   renderDailyBoard();
-}
-
-let pendingAlertRoomNumber = null;
-
-function shouldShowImmediatePopUp(sender) {
-  const currentUser = (window.App && typeof window.App.getCurrentUser === 'function')
-    ? window.App.getCurrentUser()
-    : (localStorage.getItem('hk_user') || 'Roberto');
-  
-  if (sender && currentUser && sender.trim().toLowerCase() === currentUser.trim().toLowerCase()) {
-    return false;
-  }
-  return true;
-}
-
-function getRoomFriendlyDescription(room) {
-  if (!room) return 'Les statuts des chambres ont été actualisés.';
-  const statusLabels = {
-    'libera': 'Libre',
-    'partenza': 'Départ',
-    'restante': 'Recouche',
-    'occupata': 'Occupée',
-    'fermata': 'Arrêtée',
-    'arrivo': 'Arrivée'
-  };
-  const accessLabels = {
-    'client_sorti': 'Client sorti',
-    'en_chambre': 'En chambre',
-    'ne_pas_deranger': 'Ne pas déranger'
-  };
-  const cleanLabels = {
-    'a_faire': 'À faire',
-    'deja_propre': 'Déjà propre',
-    'en_cours': 'En cours',
-    'termine': 'Terminé',
-    'prioritaire': 'Prioritaire',
-    'recouche': 'Recouche',
-    'a_fond': 'À fond'
-  };
-
-  const roomTitle = `<strong>Chambre ${room.room_number}</strong>`;
-  const items = [];
-  if (room.access_status && accessLabels[room.access_status]) {
-    items.push(accessLabels[room.access_status]);
-  }
-  if (room.status && statusLabels[room.status]) {
-    items.push(statusLabels[room.status]);
-  }
-  if (room.cleanliness_status && cleanLabels[room.cleanliness_status]) {
-    items.push(cleanLabels[room.cleanliness_status]);
-  }
-  if (room.notes && room.notes.trim()) {
-    items.push(`<em>« ${escapeHtml(room.notes.trim())} »</em>`);
-  }
-
-  return `${roomTitle} : ${items.length ? items.join(' • ') : 'Statut mis à jour'}`;
-}
-
-function showImmediateRoomUpdatePopUp({ room, date, sender, meta, isValidation = false }) {
-  const modal = document.getElementById('modal-room-update-alert');
-  if (!modal) return;
-
-  const senderName = sender || (meta && meta.updated_by) || (room && room.updated_by) || 'Roberto';
-  const titleEl = document.getElementById('room-alert-title');
-  const timeEl = document.getElementById('room-alert-time');
-  const detailsEl = document.getElementById('room-alert-details');
-
-  let nowZurichStr = '';
-  try {
-    nowZurichStr = new Intl.DateTimeFormat('fr-FR', {
-      hour: '2-digit',
-      minute: '2-digit',
-      timeZone: 'Europe/Zurich'
-    }).format(new Date());
-  } catch (e) {
-    const d = new Date();
-    nowZurichStr = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
-  }
-
-  if (titleEl) {
-    titleEl.textContent = `Mise à jour par ${senderName}`;
-  }
-  if (timeEl) {
-    timeEl.textContent = `Aujourd'hui à ${nowZurichStr}`;
-  }
-
-  if (detailsEl) {
-    if (isValidation) {
-      const dateFormatted = formatDateDisplay(date || selectedDate).fullDate;
-      detailsEl.innerHTML = `<strong>Planning validé</strong><br>Le planning complet des chambres du <strong>${dateFormatted}</strong> a été validé.`;
-      pendingAlertRoomNumber = null;
-    } else if (room) {
-      pendingAlertRoomNumber = room.room_number;
-      detailsEl.innerHTML = getRoomFriendlyDescription(room);
-    } else {
-      detailsEl.innerHTML = `Les statuts des chambres ont été actualisés.`;
-      pendingAlertRoomNumber = null;
-    }
-  }
-
-  // Sonnerie immédiate
-  if (window.SoundEngine && typeof window.SoundEngine.playHappySongSound === 'function') {
-    window.SoundEngine.playHappySongSound();
-  }
-
-  // Badge clignotant sur l'onglet Chambres
-  showRoomsBadge();
-
-  // Affichage du pop-up modal
-  modal.style.setProperty('display', 'flex', 'important');
-}
-
-function dismissRoomAlert() {
-  const modal = document.getElementById('modal-room-update-alert');
-  if (modal) {
-    modal.style.display = 'none';
-  }
-}
-
-function dismissRoomAlertAndOpenChambres() {
-  const targetRoom = pendingAlertRoomNumber;
-  dismissRoomAlert();
-  if (window.App && typeof window.App.switchTab === 'function') {
-    window.App.switchTab('tab-rooms');
-  } else {
-    const tabBtn = document.getElementById('nav-btn-rooms');
-    if (tabBtn) tabBtn.click();
-  }
-  onChambresTabOpened();
-
-  if (targetRoom) {
-    setTimeout(() => {
-      const card = document.getElementById(`daily-room-card-${targetRoom}`);
-      if (card) {
-        card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        card.classList.add('card-highlight-pulse');
-        setTimeout(() => card.classList.remove('card-highlight-pulse'), 3000);
-      }
-    }, 180);
-  }
 }
 
 let blinkWatcherInterval = null;
@@ -1499,20 +1406,6 @@ async function saveRoomUpdate(roomNum, changes) {
 }
 
 function onRoomStatusUpdated({ date, room, meta, sender }) {
-  const updateSender = sender || (room && room.updated_by) || (meta && meta.updated_by) || 'Roberto';
-
-  if (typeof shouldShowImmediatePopUp === 'function' && shouldShowImmediatePopUp(updateSender)) {
-    if (typeof showImmediateRoomUpdatePopUp === 'function') {
-      showImmediateRoomUpdatePopUp({
-        room,
-        date: date || selectedDate,
-        sender: updateSender,
-        meta,
-        isValidation: false
-      });
-    }
-  }
-
   if (date !== selectedDate) return;
   if (meta) {
     currentDailyMeta = meta;
@@ -2238,9 +2131,6 @@ function refreshAll() {
     submitNewOrder,
     submitEditOrder,
     onChambresTabOpened,
-    showImmediateRoomUpdatePopUp,
-    dismissRoomAlert,
-    dismissRoomAlertAndOpenChambres,
     showRoomsBadge,
     clearRoomsBadge
   };
