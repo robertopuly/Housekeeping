@@ -44,10 +44,12 @@
 
     if (data && data.id) {
       const lastId = localStorage.getItem('hk_last_played_alert_id');
-      if (lastId && String(lastId) === String(data.id)) {
-        return; // Déjà joué, évite le doublon
+      const lastPlayedTime = Number(localStorage.getItem('hk_last_played_alert_time') || 0);
+      if (lastId && String(lastId) === String(data.id) && (Date.now() - lastPlayedTime < 5000)) {
+        return; // Évite un doublon réseau immédiat du même événement
       }
       localStorage.setItem('hk_last_played_alert_id', String(data.id));
+      localStorage.setItem('hk_last_played_alert_time', String(Date.now()));
     }
 
     // 1. Notifica musicale immediata

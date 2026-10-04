@@ -1,6 +1,10 @@
-// audio.js - Synthétiseur sonore Web Audio API
+// audio.js - Synthétiseur sonore Web Audio API & Moteur Audio Infaillible
 let audioCtx = null;
 let isAudioInitialized = false;
+let silentOscillator = null;
+let happySongAudioBuffer = null;
+let isLoadingHappySong = false;
+let isDomAudioUnlocked = false;
 
 function getAudioContext() {
   if (!audioCtx) {
@@ -10,26 +14,119 @@ function getAudioContext() {
     }
   }
   if (audioCtx && audioCtx.state === 'suspended') {
-    audioCtx.resume();
+    audioCtx.resume().catch(() => {});
   }
   return audioCtx;
 }
 
-function initAudio() {
-  if (isAudioInitialized) return;
+// Maintient l'AudioContext en état 'running' en permanence avec un oscillateur inaudible (0.00001 gain)
+// Évite que Chrome/Android ne suspende le contexte audio au bout de quelques secondes d'inactivité
+function ensureAudioContextRunning() {
   const ctx = getAudioContext();
-  if (ctx) {
-    if (ctx.state === 'suspended') {
-      ctx.resume();
+  if (!ctx) return null;
+  if (ctx.state === 'suspended') {
+    ctx.resume().catch(() => {});
+  }
+  if (!silentOscillator && ctx.state === 'running') {
+    try {
+      silentOscillator = ctx.createOscillator();
+      const silentGain = ctx.createGain();
+      silentGain.gain.setValueAtTime(0.00001, ctx.currentTime);
+      silentOscillator.connect(silentGain);
+      silentGain.connect(ctx.destination);
+      silentOscillator.start();
+    } catch (e) {}
+  }
+  return ctx;
+}
+
+// Décode happy-song.wav une seule fois en mémoire AudioBuffer pour lecture instantanée (0ms, 0 blocage)
+async function loadHappySongBuffer() {
+  if (happySongAudioBuffer || isLoadingHappySong) return;
+  isLoadingHappySong = true;
+  try {
+    const ctx = getAudioContext();
+    if (!ctx) {
+      isLoadingHappySong = false;
+      return;
     }
-    isAudioInitialized = true;
+    const res = await fetch('/audio/happy-song.wav');
+    if (res.ok) {
+      const arrayBuffer = await res.arrayBuffer();
+      ctx.decodeAudioData(arrayBuffer, (buffer) => {
+        happySongAudioBuffer = buffer;
+        isLoadingHappySong = false;
+      }, (err) => {
+        console.warn('Decode happy song error:', err);
+        isLoadingHappySong = false;
+      });
+    } else {
+      isLoadingHappySong = false;
+    }
+  } catch (e) {
+    isLoadingHappySong = false;
   }
 }
 
-// Déverrouillage audio au premier toucher tactile / clic
+// Déverrouille les éléments audio du DOM dès la première interaction utilisateur
+function unlockDomAudioElements() {
+  const keepAliveEl = document.getElementById('audio-silence-keepalive');
+  if (keepAliveEl && keepAliveEl.paused) {
+    keepAliveEl.volume = 0.001;
+    const p = keepAliveEl.play();
+    if (p !== undefined) {
+      p.catch(() => {});
+    }
+  }
+
+  const happyEl = document.getElementById('audio-happy-song');
+  if (happyEl && !isDomAudioUnlocked) {
+    happyEl.volume = 0.001;
+    const p = happyEl.play();
+    if (p !== undefined) {
+      p.then(() => {
+        happyEl.pause();
+        happyEl.currentTime = 0;
+        happyEl.volume = 1.0;
+        isDomAudioUnlocked = true;
+      }).catch(() => {});
+    }
+  }
+}
+
+function handleUserInteraction() {
+  initAudio();
+  ensureAudioContextRunning();
+  unlockDomAudioElements();
+  loadHappySongBuffer();
+}
+
+function initAudio() {
+  const ctx = ensureAudioContextRunning();
+  if (ctx) {
+    isAudioInitialized = true;
+    loadHappySongBuffer();
+  }
+  unlockDomAudioElements();
+}
+
+// Déverrouillage permanent au moindre contact tactile / clic ou reprise de visibilité
 ['touchstart', 'touchend', 'pointerdown', 'click', 'keydown'].forEach((evt) => {
-  document.addEventListener(evt, () => initAudio(), { once: true, passive: true });
+  document.addEventListener(evt, handleUserInteraction, { passive: true });
 });
+
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    handleUserInteraction();
+  }
+});
+
+// Pré-chargement immédiat au chargement du script
+if (document.readyState === 'complete' || document.readyState === 'interactive') {
+  loadHappySongBuffer();
+} else {
+  window.addEventListener('DOMContentLoaded', () => loadHappySongBuffer());
+}
 
 function isMuted() {
   return localStorage.getItem('hk_muted') === 'true';
@@ -255,25 +352,14 @@ function playDisappointedDessertSound() {
 let keepAliveAudio = null;
 
 function startAudioKeepAlive() {
-  if (keepAliveAudio) return;
-  try {
-    keepAliveAudio = new Audio('/audio/silence.wav');
-    keepAliveAudio.loop = true;
-    keepAliveAudio.volume = 0.01;
-    const p = keepAliveAudio.play();
-    if (p !== undefined) {
-      p.catch(() => {});
-    }
-  } catch (e) {}
+  unlockDomAudioElements();
+  ensureAudioContextRunning();
 }
 
 // Synthétiseur Web Audio de secours pour la chansonnette
 function playHappySongSynth() {
-  const ctx = getAudioContext();
+  const ctx = ensureAudioContextRunning();
   if (!ctx) return;
-  if (ctx.state === 'suspended') {
-    ctx.resume().catch(() => {});
-  }
 
   try {
     const now = ctx.currentTime;
@@ -347,25 +433,44 @@ function playHappySongSynth() {
 function playHappySongSound() {
   if (isMuted()) return;
 
-  // 1. Essai prioritaire : HTML5 Audio avec le fichier WAV (haute fidélité et accès direct aux enceintes)
-  try {
-    const audioEl = new Audio('/audio/happy-song.wav?v=' + (window.APP_VERSION || Date.now()));
-    audioEl.volume = 1.0;
-    const playPromise = audioEl.play();
-    if (playPromise !== undefined) {
-      playPromise.then(() => {
-        // Lecture HTML5 lancée avec succès
-      }).catch(err => {
-        console.warn('HTML5 audio play blocked/error, fallback to Web Audio API:', err);
-        playHappySongSynth();
-      });
+  const ctx = ensureAudioContextRunning();
+
+  // 1. Priorité 1 : Buffer mémoire décodé Web Audio (infaillible, instantané, sans restriction autoplay)
+  if (ctx && happySongAudioBuffer && ctx.state === 'running') {
+    try {
+      const source = ctx.createBufferSource();
+      source.buffer = happySongAudioBuffer;
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(1.0, ctx.currentTime);
+      source.connect(gain);
+      gain.connect(ctx.destination);
+      source.start(0);
       return;
+    } catch (e) {
+      console.warn('Web Audio buffer playback error, fallback to element:', e);
+    }
+  }
+
+  // 2. Priorité 2 : Élément DOM pré-déverrouillé
+  try {
+    const domAudio = document.getElementById('audio-happy-song');
+    if (domAudio) {
+      domAudio.currentTime = 0;
+      domAudio.volume = 1.0;
+      const playPromise = domAudio.play();
+      if (playPromise !== undefined) {
+        playPromise.catch((err) => {
+          console.warn('DOM audio blocked, fallback to synth:', err);
+          playHappySongSynth();
+        });
+        return;
+      }
     }
   } catch (err) {
     console.warn('HTML5 audio exception:', err);
   }
 
-  // 2. Fallback de secours : Synthétiseur Web Audio
+  // 3. Fallback de secours : Synthétiseur Web Audio en temps réel
   playHappySongSynth();
 }
 
