@@ -290,9 +290,19 @@ app.post('/api/messages/reset', (req, res) => {
     const newMessages = db.resetAllMessages();
     try {
       if (fs.existsSync(uploadsDir)) {
+        let galleryFilenames = new Set();
+        try {
+          const gallery = db.getGalleryPhotos();
+          if (Array.isArray(gallery)) {
+            gallery.forEach(p => { if (p.filename) galleryFilenames.add(p.filename); });
+          }
+        } catch (e) {}
+
         const files = fs.readdirSync(uploadsDir);
         for (const file of files) {
           if (file === '.gitkeep') continue;
+          if (file.startsWith('avatar_')) continue;
+          if (galleryFilenames.has(file)) continue;
           try {
             fs.unlinkSync(path.join(uploadsDir, file));
           } catch (e) {}

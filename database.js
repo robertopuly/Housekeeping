@@ -297,10 +297,6 @@ function initSchema() {
     insertQR.run(defaultReplies[i].text, defaultReplies[i].label, i);
   }
 
-  const msgCheck = db.prepare('SELECT COUNT(*) as count FROM messages').get();
-  if (!msgCheck || msgCheck.count === 0) {
-    db.prepare('INSERT INTO messages (sender, text) VALUES (?, ?)').run('Système', 'Bienvenue sur l\'application Housekeeping ! La synchronisation en temps réel est active.');
-  }
 
   // Initialisation des produits les plus courants pour la liste des courses
   const shoppingCheck = db.prepare('SELECT COUNT(*) as count FROM shopping_items').get();
@@ -436,11 +432,10 @@ function markMessagesAsRead(byUser = '') {
 
 function resetAllMessages() {
   db.exec('DELETE FROM messages;');
-  db.prepare('INSERT INTO messages (sender, text) VALUES (?, ?)').run(
-    'Système',
-    'Bienvenue sur l\'application Housekeeping ! La synchronisation en temps réel est active.'
-  );
-  return db.prepare('SELECT * FROM messages ORDER BY id ASC').all();
+  try {
+    db.exec('DELETE FROM sqlite_sequence WHERE name = "messages";');
+  } catch (e) {}
+  return [];
 }
 
 function getQuickReplies() {
