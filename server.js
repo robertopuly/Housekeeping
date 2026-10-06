@@ -17,7 +17,7 @@ const io = new Server(server, {
 });
 
 const PORT = process.env.PORT || 8765;
-const CURRENT_APP_VERSION = 75;
+const CURRENT_APP_VERSION = 76;
 
 const uploadsDir = path.join(__dirname, 'public', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -29,8 +29,8 @@ if (!fs.existsSync(uploadsDir)) {
 }
 
 app.use(cors());
-app.use(express.json({ limit: '25mb' }));
-app.use(express.urlencoded({ extended: true, limit: '25mb' }));
+app.use(express.json({ limit: '100mb' }));
+app.use(express.urlencoded({ extended: true, limit: '100mb' }));
 app.use(express.static(path.join(__dirname, 'public'), {
   etag: false,
   lastModified: false,
@@ -63,6 +63,47 @@ app.get('/api/status', (req, res) => {
   });
 });
 
+// UPLOAD MÉDIA (VIDÉO / PHOTO) VIA BINAIRE BRUT
+app.post('/api/upload-media', express.raw({ type: ['video/*', 'image/*', 'application/octet-stream'], limit: '100mb' }), (req, res) => {
+  try {
+    const contentType = req.headers['content-type'] || 'video/mp4';
+    const originalName = req.headers['x-file-name'] ? decodeURIComponent(req.headers['x-file-name']) : '';
+    let ext = 'mp4';
+    if (contentType.includes('webm')) ext = 'webm';
+    else if (contentType.includes('quicktime') || contentType.includes('mov')) ext = 'mov';
+    else if (contentType.includes('3gpp')) ext = '3gp';
+    else if (contentType.includes('ogg')) ext = 'ogv';
+    else if (contentType.includes('png')) ext = 'png';
+    else if (contentType.includes('jpeg') || contentType.includes('jpg')) ext = 'jpg';
+    else if (originalName) {
+      const parsedExt = path.extname(originalName).replace('.', '').toLowerCase();
+      if (parsedExt) ext = parsedExt;
+    }
+
+    const prefix = contentType.startsWith('image/') ? 'photo' : 'video';
+    const filename = `${prefix}_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
+    const filePath = path.join(uploadsDir, filename);
+
+    if (Buffer.isBuffer(req.body) && req.body.length > 0) {
+      fs.writeFileSync(filePath, req.body);
+    } else {
+      return res.status(400).json({ error: 'Fichier média vide ou invalide' });
+    }
+
+    const mediaUrl = `/uploads/${filename}`;
+    res.json({
+      success: true,
+      filename,
+      media_url: mediaUrl,
+      video_url: mediaUrl,
+      image_url: mediaUrl
+    });
+  } catch (err) {
+    console.error('Erreur upload-media:', err);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // MESSAGES
 app.get('/api/messages', (req, res) => {
   try {
@@ -75,15 +116,16 @@ app.get('/api/messages', (req, res) => {
 
 app.post('/api/messages', (req, res) => {
   try {
-    const { sender, text, type, reply_to, image } = req.body;
+    const { sender, text, type, reply_to, image, video, video_url } = req.body;
     if (!sender) {
       return res.status(400).json({ error: 'Mittente obbligatorio' });
     }
-    if (!text && !image) {
-      return res.status(400).json({ error: 'Testo o immagine obbligatori' });
+    if (!text && !image && !video && !video_url) {
+      return res.status(400).json({ error: 'Testo, immagine o video obbligatori' });
     }
 
     let imageUrl = '';
+    let videoUrl = video_url || '';
     let msgType = type || 'text';
 
     if (image && typeof image === 'string') {
@@ -109,6 +151,28 @@ app.post('/api/messages', (req, res) => {
       }
     }
 
+    if (video && typeof video === 'string') {
+      try {
+        const matches = video.match(/^data:video\/([a-zA-Z0-9+]+);base64,(.+)$/);
+        let ext = 'mp4';
+        let base64Data = video;
+        if (matches && matches.length === 3) {
+          ext = matches[1] === 'quicktime' ? 'mov' : (matches[1] === 'webm' ? 'webm' : 'mp4');
+          base64Data = matches[2];
+        }
+        const filename = `video_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
+        const filePath = path.join(uploadsDir, filename);
+        fs.writeFileSync(filePath, Buffer.from(base64Data, 'base64'));
+        videoUrl = `/uploads/${filename}`;
+        msgType = 'video';
+      } catch (vidErr) {
+        console.error('Erreur enregistrement vidéo base64:', vidErr);
+      }
+    } else if (video_url) {
+      videoUrl = video_url;
+      msgType = 'video';
+    }
+
     let qType = req.body.question_type || '';
     let qStatus = (qType === 'yes_no' || qType === 'choice') ? 'pending' : '';
     let qOptions = '';
@@ -125,7 +189,7 @@ app.post('/api/messages', (req, res) => {
     }
     const rewardAnimation = req.body.reward_animation === 1 || req.body.reward_animation === true || req.body.reward_animation === '1';
 
-    const msg = db.addMessage(sender, text || '', msgType, reply_to || null, imageUrl, qType, qStatus, qOptions, '', isEphemeral ? 1 : 0, expiresAt, rewardAnimation ? 1 : 0);
+    const msg = db.addMessage(sender, text || '', msgType, reply_to || null, imageUrl, qType, qStatus, qOptions, '', isEphemeral ? 1 : 0, expiresAt, rewardAnimation ? 1 : 0, videoUrl);
     io.emit('chat:message', msg);
     res.status(201).json(msg);
   } catch (err) {

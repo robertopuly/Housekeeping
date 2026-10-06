@@ -8,9 +8,9 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <title>Gouvernante Hôtel - Gestion & Communication</title>
-  <link rel="stylesheet" href="css/styles.css?v=75">
+  <link rel="stylesheet" href="css/styles.css?v=76">
   <script>
-    window.APP_VERSION = 75;
+    window.APP_VERSION = 76;
     function getTodayIsoStr() {
       var d = new Date();
       var y = d.getFullYear();
@@ -489,9 +489,11 @@
         <!-- Input Chat -->
         <form id="chat-form" class="chat-input-bar">
           <button type="button" id="btn-emoji-toggle" class="btn-emoji" title="Insérer un émoji" aria-label="Émoticônes">😊</button>
-          <button type="button" id="btn-chat-photo" class="btn-chat-photo" title="Prendre une photo ou ajouter une image" aria-label="Prendre une photo">📷</button>
+          <button type="button" id="btn-chat-photo" class="btn-chat-photo" title="Appareil photo & Vidéo (prendre photo ou filmer vidéo)" aria-label="Appareil photo et vidéo">📷</button>
           <button type="button" id="btn-ephemeral-toggle" class="btn-ephemeral-toggle" title="Activer / Désactiver les messages éphémères (1 heure)" aria-label="Messages éphémères">⏳</button>
           <input type="file" id="chat-photo-input" accept="image/*" capture="environment" style="display: none;" />
+          <input type="file" id="chat-video-input" accept="video/*" capture="environment" style="display: none;" />
+          <input type="file" id="chat-media-input" accept="image/*,video/*" style="display: none;" />
           <input type="text" id="chat-input" class="chat-input" placeholder="Écrire un message..." autocomplete="off" />
           <label class="chat-flag-yesno-label pc-only" id="label-flag-yesno" title="Demander une réponse Oui / Non à Adélcia">
             <input type="checkbox" id="chat-flag-yesno" />
@@ -1216,23 +1218,64 @@
     </div>
   </div>
 
-  <!-- MODAL APERÇU ET COMMENTAIRE PHOTO -->
+  <!-- MODAL SÉLECTION APPAREIL PHOTO & VIDÉO -->
+  <div id="modal-camera-picker" class="modal-backdrop" onclick="if(event.target===this)closeCameraPickerModal()">
+    <div class="modal-box modal-box-camera-picker">
+      <div class="modal-header">
+        <h2>📷 Appareil photo & Vidéo</h2>
+        <button type="button" class="btn-close-modal" onclick="closeCameraPickerModal()">&times;</button>
+      </div>
+      <div class="modal-body modal-camera-picker-body">
+        <p class="modal-camera-picker-desc">Que souhaitez-vous partager dans les messages ?</p>
+        <div class="camera-picker-grid">
+          <button type="button" class="btn-cam-picker-option" id="btn-picker-photo" onclick="triggerChatPhotoCapture()">
+            <div class="cam-picker-icon-circle cam-icon-photo">📷</div>
+            <div class="cam-picker-info">
+              <strong>Prendre une Photo</strong>
+              <span>Prendre un cliché instantané avec l'appareil</span>
+            </div>
+          </button>
+
+          <button type="button" class="btn-cam-picker-option" id="btn-picker-video" onclick="triggerChatVideoCapture()">
+            <div class="cam-picker-icon-circle cam-icon-video">🎥</div>
+            <div class="cam-picker-info">
+              <strong>Enregistrer une Vidéo</strong>
+              <span>Filmer une courte vidéo avec la caméra</span>
+            </div>
+          </button>
+
+          <button type="button" class="btn-cam-picker-option" id="btn-picker-gallery" onclick="triggerChatMediaFile()">
+            <div class="cam-picker-icon-circle cam-icon-gallery">📁</div>
+            <div class="cam-picker-info">
+              <strong>Galerie / Fichiers</strong>
+              <span>Choisir une photo ou vidéo existante</span>
+            </div>
+          </button>
+        </div>
+        <button type="button" class="btn-camera-picker-cancel" onclick="closeCameraPickerModal()">✕ Annuler</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL APERÇU ET COMMENTAIRE PHOTO & VIDÉO -->
   <div id="modal-photo-preview" class="modal-backdrop" onclick="if(event.target===this)closePhotoPreviewModal()">
     <div class="modal-box modal-box-photo">
       <div class="modal-header">
-        <h2>📷 Envoyer une Photo</h2>
+        <h2 id="media-preview-modal-title">📷 Envoyer une Photo</h2>
       </div>
-      <form id="form-photo-preview" onsubmit="submitPhotoMessage(event); return false;">
+      <form id="form-photo-preview" onsubmit="submitMediaMessage(event); return false;">
         <div class="modal-body">
           <div class="photo-preview-container">
-            <img id="photo-preview-img" src="" alt="Aperçu de la photo" />
+            <img id="photo-preview-img" src="" alt="Aperçu de la photo" style="display: none;" />
+            <video id="video-preview-player" controls playsinline preload="metadata" style="display: none;"></video>
           </div>
+          <div id="media-preview-badge" class="media-preview-badge" style="display: none;"></div>
           <div class="photo-preview-actions-center">
             <button type="button" class="btn-photo-cancel-center" onclick="closePhotoPreviewModal()" title="Fermer et retourner aux messages" aria-label="Fermer">✕ Annuler</button>
-            <button type="submit" id="btn-submit-photo" class="btn-photo-send-center" title="Envoyer la photo">📤 Envoyer la Photo</button>
+            <button type="submit" id="btn-submit-photo" class="btn-photo-send-center" title="Envoyer">📤 Envoyer la Photo</button>
           </div>
           <div class="form-group" style="margin-top: 10px;">
-            <label for="photo-caption-input">💬 Commentaire / Explication de la photo :</label>
+            <label for="photo-caption-input" id="media-caption-label">💬 Commentaire / Explication de la photo :</label>
             <textarea id="photo-caption-input" class="form-control photo-caption-textarea" placeholder="Ex. Chambre 3 : rideau déchiré, tache sur le matelas..."></textarea>
           </div>
         </div>
@@ -1240,12 +1283,13 @@
     </div>
   </div>
 
-  <!-- MODAL LIGHTBOX PLEIN ÉCRAN POUR LES PHOTOS -->
+  <!-- MODAL LIGHTBOX PLEIN ÉCRAN POUR LES PHOTOS & VIDÉOS -->
   <div id="modal-image-lightbox" class="lightbox-backdrop" onclick="closeImageLightbox()">
     <button type="button" class="btn-close-lightbox" onclick="closeImageLightbox()" title="Fermer (Échap)">✕ Fermer</button>
     <div class="lightbox-content" onclick="event.stopPropagation()">
       <div class="lightbox-img-wrapper">
-        <img id="lightbox-full-img" src="" alt="Photo agrandie" />
+        <img id="lightbox-full-img" src="" alt="Photo agrandie" style="display: none;" />
+        <video id="lightbox-full-video" controls playsinline style="display: none;"></video>
       </div>
       <div class="lightbox-info-bar">
         <div class="lightbox-sender-box">
@@ -1527,16 +1571,16 @@
 
   <!-- SCRIPTS -->
   <script src="/socket.io/socket.io.js"></script>
-  <script src="js/audio.js?v=75"></script>
-  <script src="js/socket.js?v=75"></script>
-  <script src="js/chat.js?v=75"></script>
-  <script src="js/orders.js?v=75"></script>
-  <script src="js/deadlines.js?v=75"></script>
-  <script src="js/shopping.js?v=75"></script>
-  <script src="js/expenses.js?v=75"></script>
-  <script src="js/leave.js?v=75"></script>
-  <script src="js/presence.js?v=75"></script>
-  <script src="js/gallery.js?v=75"></script>
-  <script src="js/app.js?v=75"></script>
+  <script src="js/audio.js?v=76"></script>
+  <script src="js/socket.js?v=76"></script>
+  <script src="js/chat.js?v=76"></script>
+  <script src="js/orders.js?v=76"></script>
+  <script src="js/deadlines.js?v=76"></script>
+  <script src="js/shopping.js?v=76"></script>
+  <script src="js/expenses.js?v=76"></script>
+  <script src="js/leave.js?v=76"></script>
+  <script src="js/presence.js?v=76"></script>
+  <script src="js/gallery.js?v=76"></script>
+  <script src="js/app.js?v=76"></script>
 </body>
 </html>

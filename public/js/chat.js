@@ -457,8 +457,9 @@ function renderMessages() {
       const isOnlyEmoji = emojiInfo.isOnly && emojiInfo.count > 0 && emojiInfo.count <= 10;
       const hasReply = !!replyText;
       const hasImage = !!msg.image_url;
-      const bubbleEmojiClass = (isOnlyEmoji && !hasReply && !hasImage) ? 'bubble-emoji-only' : '';
-      const bubblePhotoClass = hasImage ? 'bubble-has-photo' : '';
+      const hasVideo = !!msg.video_url;
+      const bubbleEmojiClass = (isOnlyEmoji && !hasReply && !hasImage && !hasVideo) ? 'bubble-emoji-only' : '';
+      const bubbleMediaClass = hasImage ? 'bubble-has-photo' : (hasVideo ? 'bubble-has-video' : '');
 
       let photoHtml = '';
       if (hasImage) {
@@ -470,7 +471,16 @@ function renderMessages() {
         `;
       }
 
-      const showText = msg.text && (!hasImage || msg.text !== '📷 Photo');
+      let videoHtml = '';
+      if (hasVideo) {
+        videoHtml = `
+          <div class="msg-video-wrapper" data-video-url="${escapeHtml(msg.video_url)}" data-sender="${escapeHtml(msg.sender)}" data-time="${timeStr}" data-caption="${escapeHtml(msg.text || '')}">
+            <video src="${escapeHtml(msg.video_url)}" class="msg-video-player" controls playsinline preload="metadata"></video>
+          </div>
+        `;
+      }
+
+      const showText = msg.text && (!hasImage || msg.text !== '📷 Photo') && (!hasVideo || msg.text !== '🎥 Vidéo');
       const isYesNoQuestion = (msg.question_type === 'yes_no');
       const yesNoCardHtml = isYesNoQuestion ? renderYesNoQuestionHtml(msg, isMe, currentUser) : '';
       const isChoiceQuestion = (msg.question_type === 'choice');
@@ -495,6 +505,8 @@ function renderMessages() {
         }
       }
 
+      const captionClass = hasImage ? 'msg-text-photo-caption' : (hasVideo ? 'msg-text-video-caption' : '');
+
       if (isMe) {
         const isRead = msg.is_read === 1;
         const statusIcon = isRead ? '✓✓' : '✓';
@@ -504,10 +516,11 @@ function renderMessages() {
 
         html += `
           <div class="message message-out message-clickable ${msg.is_ephemeral === 1 ? 'message-ephemeral' : ''}" data-msg-id="${msg.id}">
-            <div class="bubble bubble-out ${bubbleEmojiClass} ${bubblePhotoClass}">
+            <div class="bubble bubble-out ${bubbleEmojiClass} ${bubbleMediaClass}">
               ${replyHtml}
               ${photoHtml}
-              ${showText ? `<div class="msg-text ${isOnlyEmoji ? 'msg-text-only-emoji' : ''} ${hasImage ? 'msg-text-photo-caption' : ''}">${formatChatMessage(textToFormat, true, emojiInfo)}</div>` : ''}
+              ${videoHtml}
+              ${showText ? `<div class="msg-text ${isOnlyEmoji ? 'msg-text-only-emoji' : ''} ${captionClass}">${formatChatMessage(textToFormat, true, emojiInfo)}</div>` : ''}
               ${yesNoCardHtml}
               ${choiceCardHtml}
               <div class="msg-meta">
@@ -523,11 +536,12 @@ function renderMessages() {
         html += `
           <div class="message message-in message-clickable ${msg.is_ephemeral === 1 ? 'message-ephemeral' : ''}" data-msg-id="${msg.id}">
             ${renderMsgAvatar(msg.sender)}
-            <div class="bubble bubble-in ${bubbleEmojiClass} ${bubblePhotoClass}">
+            <div class="bubble bubble-in ${bubbleEmojiClass} ${bubbleMediaClass}">
               <div class="msg-sender">${escapeHtml(msg.sender)}</div>
               ${replyHtml}
               ${photoHtml}
-              ${showText ? `<div class="msg-text ${isOnlyEmoji ? 'msg-text-only-emoji' : ''} ${hasImage ? 'msg-text-photo-caption' : ''}">${formatChatMessage(textToFormat, false, emojiInfo)}</div>` : ''}
+              ${videoHtml}
+              ${showText ? `<div class="msg-text ${isOnlyEmoji ? 'msg-text-only-emoji' : ''} ${captionClass}">${formatChatMessage(textToFormat, false, emojiInfo)}</div>` : ''}
               ${yesNoCardHtml}
               ${choiceCardHtml}
               <div class="msg-meta">
@@ -558,7 +572,14 @@ function attachPhotoClickEvents() {
       const sender = wrapper.getAttribute('data-sender');
       const time = wrapper.getAttribute('data-time');
       const caption = wrapper.getAttribute('data-caption');
-      openImageLightbox(imgUrl, sender, time, caption);
+      openImageLightbox(imgUrl, sender, time, caption, false);
+    });
+  });
+
+  // Éviter que les contrôles de lecture vidéo ouvrent le menu d'action
+  container.querySelectorAll('.msg-video-wrapper video').forEach(vid => {
+    vid.addEventListener('click', (e) => {
+      e.stopPropagation();
     });
   });
 }
@@ -586,6 +607,8 @@ function openMessageActionsModal(msg) {
   if (preview) {
     if (msg.image_url) {
       preview.innerHTML = `<strong>${escapeHtml(msg.sender)}:</strong> 📷 [Photo] ${msg.text && msg.text !== '📷 Photo' ? `"${escapeHtml(msg.text)}"` : ''}`;
+    } else if (msg.video_url) {
+      preview.innerHTML = `<strong>${escapeHtml(msg.sender)}:</strong> 🎥 [Vidéo] ${msg.text && msg.text !== '🎥 Vidéo' ? `"${escapeHtml(msg.text)}"` : ''}`;
     } else {
       preview.innerHTML = `<strong>${escapeHtml(msg.sender)}:</strong> "${escapeHtml(msg.text)}"`;
     }
@@ -647,10 +670,16 @@ function setupMessageActionEvents() {
 }
 
 function setReplyTo(msg) {
+  let repText = msg.text;
+  if (!repText || repText === '📷 Photo' || repText === '🎥 Vidéo') {
+    if (msg.video_url) repText = '🎥 [Vidéo]';
+    else if (msg.image_url) repText = '📷 [Photo]';
+  }
+
   currentReply = {
     id: msg.id,
     sender: msg.sender,
-    text: msg.text
+    text: repText
   };
 
   const bar = document.getElementById('chat-reply-bar');
@@ -659,7 +688,7 @@ function setReplyTo(msg) {
   const input = document.getElementById('chat-input');
 
   if (senderEl) senderEl.textContent = msg.sender;
-  if (textEl) textEl.textContent = msg.text;
+  if (textEl) textEl.textContent = repText;
   if (bar) bar.style.display = 'flex';
 
   if (input) input.focus();
@@ -1245,6 +1274,7 @@ function onMessageDeleted(data) {
     msg.text = text;
     msg.reply_to_text = '';
     msg.image_url = '';
+    msg.video_url = '';
     msg.is_ephemeral = 0;
     msg.expires_at = null;
   }
@@ -1402,15 +1432,21 @@ function setupChatEvents() {
     });
   }
 
-  // Bouton photo & input fichier
+  // Bouton photo / vidéo & inputs fichiers
   const btnPhoto = document.getElementById('btn-chat-photo');
-  const fileInput = document.getElementById('chat-photo-input');
-  if (btnPhoto && fileInput) {
-    btnPhoto.addEventListener('click', () => {
-      fileInput.click();
-    });
+  const photoInput = document.getElementById('chat-photo-input');
+  const videoInput = document.getElementById('chat-video-input');
+  const mediaInput = document.getElementById('chat-media-input');
 
-    fileInput.addEventListener('change', (e) => {
+  if (btnPhoto) {
+    btnPhoto.addEventListener('click', (e) => {
+      e.preventDefault();
+      openCameraPickerModal();
+    });
+  }
+
+  if (photoInput) {
+    photoInput.addEventListener('change', (e) => {
       const file = e.target.files && e.target.files[0];
       if (file) {
         handlePhotoSelected(file);
@@ -1418,13 +1454,37 @@ function setupChatEvents() {
     });
   }
 
-  // Raccourci Entrée dans le commentaire photo
+  if (videoInput) {
+    videoInput.addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (file) {
+        handleVideoSelected(file);
+      }
+    });
+  }
+
+  if (mediaInput) {
+    mediaInput.addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (file) {
+        if (file.type.startsWith('video/') || /\.(mp4|mov|webm|3gp|m4v|mkv)$/i.test(file.name)) {
+          handleVideoSelected(file);
+        } else if (file.type.startsWith('image/')) {
+          handlePhotoSelected(file);
+        } else {
+          alert('Veuillez sélectionner un fichier photo ou vidéo valide.');
+        }
+      }
+    });
+  }
+
+  // Raccourci Entrée dans le commentaire photo / vidéo
   const captionInput = document.getElementById('photo-caption-input');
   if (captionInput) {
     captionInput.addEventListener('keydown', (e) => {
       if (e.key === 'Enter' && !e.shiftKey) {
         e.preventDefault();
-        submitPhotoMessage(e);
+        submitMediaMessage(e);
       }
     });
   }
@@ -1432,6 +1492,7 @@ function setupChatEvents() {
   // Fermeture des modales avec Échap
   document.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
+      closeCameraPickerModal();
       closePhotoPreviewModal();
       closeImageLightbox();
       closeMessageActionsModal();
@@ -1440,9 +1501,55 @@ function setupChatEvents() {
 }
 
 /* ==========================================================================
-   PHOTO CAPTURE & LIGHTBOX MODULE
+   PHOTO & VIDEO CAPTURE & LIGHTBOX MODULE
    ========================================================================== */
 let pendingPhotoBase64 = null;
+let pendingVideoFile = null;
+let pendingVideoObjectUrl = null;
+let activeMediaType = 'none'; // 'photo' | 'video'
+
+function openCameraPickerModal() {
+  const modal = document.getElementById('modal-camera-picker');
+  if (modal) {
+    modal.style.setProperty('display', 'flex', 'important');
+    modal.classList.add('modal-active');
+  }
+}
+
+function closeCameraPickerModal() {
+  const modal = document.getElementById('modal-camera-picker');
+  if (modal) {
+    modal.style.setProperty('display', 'none', 'important');
+    modal.classList.remove('modal-active');
+  }
+}
+
+function triggerChatPhotoCapture() {
+  closeCameraPickerModal();
+  const input = document.getElementById('chat-photo-input');
+  if (input) {
+    input.value = '';
+    input.click();
+  }
+}
+
+function triggerChatVideoCapture() {
+  closeCameraPickerModal();
+  const input = document.getElementById('chat-video-input');
+  if (input) {
+    input.value = '';
+    input.click();
+  }
+}
+
+function triggerChatMediaFile() {
+  closeCameraPickerModal();
+  const input = document.getElementById('chat-media-input');
+  if (input) {
+    input.value = '';
+    input.click();
+  }
+}
 
 function handlePhotoSelected(file) {
   if (!file || !file.type.startsWith('image/')) {
@@ -1455,10 +1562,45 @@ function handlePhotoSelected(file) {
     const rawData = evt.target.result;
     compressImage(rawData, 1600, 1600, 0.85, function(compressedBase64) {
       pendingPhotoBase64 = compressedBase64;
-      openPhotoPreviewModal(compressedBase64);
+      pendingVideoFile = null;
+      activeMediaType = 'photo';
+      openMediaPreviewModal({
+        type: 'photo',
+        src: compressedBase64
+      });
     });
   };
   reader.readAsDataURL(file);
+}
+
+function handleVideoSelected(file) {
+  if (!file) return;
+  if (!file.type.startsWith('video/') && !/\.(mp4|mov|webm|3gp|m4v|mkv)$/i.test(file.name)) {
+    alert('Veuillez sélectionner un fichier vidéo valide (MP4, WebM, MOV...).');
+    return;
+  }
+
+  const maxBytes = 100 * 1024 * 1024; // 100 Mo max
+  if (file.size > maxBytes) {
+    alert('La vidéo est trop volumineuse (maximum 100 Mo). Veuillez filmer une vidéo plus courte.');
+    return;
+  }
+
+  pendingVideoFile = file;
+  pendingPhotoBase64 = null;
+  activeMediaType = 'video';
+
+  if (pendingVideoObjectUrl) {
+    try { URL.revokeObjectURL(pendingVideoObjectUrl); } catch (e) {}
+  }
+  pendingVideoObjectUrl = URL.createObjectURL(file);
+
+  openMediaPreviewModal({
+    type: 'video',
+    src: pendingVideoObjectUrl,
+    fileSize: file.size,
+    fileName: file.name
+  });
 }
 
 function compressImage(base64Src, maxWidth, maxHeight, quality, callback) {
@@ -1492,38 +1634,109 @@ function compressImage(base64Src, maxWidth, maxHeight, quality, callback) {
   img.src = base64Src;
 }
 
-function openPhotoPreviewModal(base64Data) {
+function openMediaPreviewModal(media) {
   const modal = document.getElementById('modal-photo-preview');
   const img = document.getElementById('photo-preview-img');
+  const video = document.getElementById('video-preview-player');
+  const titleEl = document.getElementById('media-preview-modal-title');
+  const btnSubmit = document.getElementById('btn-submit-photo');
+  const badgeEl = document.getElementById('media-preview-badge');
+  const captionLabel = document.getElementById('media-caption-label');
   const captionInput = document.getElementById('photo-caption-input');
 
-  if (img) img.src = base64Data;
-  if (captionInput) {
-    captionInput.value = '';
-    const isPC = (window.App && typeof window.App.getPlatform === 'function')
-      ? (window.App.getPlatform() === 'PC')
-      : document.body.classList.contains('is-pc');
-    if (isPC) {
-      setTimeout(() => captionInput.focus(), 150);
+  if (captionInput) captionInput.value = '';
+
+  if (media && media.type === 'video') {
+    activeMediaType = 'video';
+    if (img) {
+      img.style.display = 'none';
+      img.src = '';
     }
+    if (video) {
+      video.src = media.src;
+      video.style.display = 'block';
+      video.load();
+    }
+    if (titleEl) titleEl.textContent = '🎥 Envoyer une Vidéo';
+    if (btnSubmit) {
+      btnSubmit.textContent = '📤 Envoyer la Vidéo';
+      btnSubmit.disabled = false;
+    }
+    if (captionLabel) captionLabel.textContent = '💬 Commentaire / Explication de la vidéo :';
+    if (captionInput) captionInput.placeholder = 'Ex. Chambre 3 : fuite d\'eau sous le lavabo, bruit étrange...';
+
+    if (badgeEl) {
+      const sizeMb = (media.fileSize / (1024 * 1024)).toFixed(1);
+      badgeEl.innerHTML = `🎥 <strong>Vidéo prête</strong> &bull; ${sizeMb} Mo`;
+      badgeEl.style.display = 'inline-flex';
+    }
+  } else {
+    activeMediaType = 'photo';
+    if (video) {
+      video.style.display = 'none';
+      video.pause();
+      video.src = '';
+    }
+    if (img) {
+      img.src = media ? media.src : '';
+      img.style.display = 'block';
+    }
+    if (titleEl) titleEl.textContent = '📷 Envoyer une Photo';
+    if (btnSubmit) {
+      btnSubmit.textContent = '📤 Envoyer la Photo';
+      btnSubmit.disabled = false;
+    }
+    if (captionLabel) captionLabel.textContent = '💬 Commentaire / Explication de la photo :';
+    if (captionInput) captionInput.placeholder = 'Ex. Chambre 3 : rideau déchiré, tache sur le matelas...';
+    if (badgeEl) badgeEl.style.display = 'none';
   }
 
   if (modal) {
     modal.style.setProperty('display', 'flex', 'important');
     modal.classList.add('modal-active');
   }
+
+  const isPC = (window.App && typeof window.App.getPlatform === 'function')
+    ? (window.App.getPlatform() === 'PC')
+    : document.body.classList.contains('is-pc');
+  if (isPC && captionInput) {
+    setTimeout(() => captionInput.focus(), 150);
+  }
+}
+
+function openPhotoPreviewModal(base64Data) {
+  pendingPhotoBase64 = base64Data;
+  pendingVideoFile = null;
+  activeMediaType = 'photo';
+  openMediaPreviewModal({ type: 'photo', src: base64Data });
 }
 
 function closePhotoPreviewModal() {
   const modal = document.getElementById('modal-photo-preview');
-  const fileInput = document.getElementById('chat-photo-input');
+  const photoInput = document.getElementById('chat-photo-input');
+  const videoInput = document.getElementById('chat-video-input');
+  const mediaInput = document.getElementById('chat-media-input');
   const img = document.getElementById('photo-preview-img');
+  const video = document.getElementById('video-preview-player');
   const captionInput = document.getElementById('photo-caption-input');
+  const badgeEl = document.getElementById('media-preview-badge');
   const chatInput = document.getElementById('chat-input');
 
   pendingPhotoBase64 = null;
-  if (fileInput) fileInput.value = '';
-  if (img) img.src = '';
+  pendingVideoFile = null;
+  activeMediaType = 'none';
+
+  if (pendingVideoObjectUrl) {
+    try { URL.revokeObjectURL(pendingVideoObjectUrl); } catch (e) {}
+    pendingVideoObjectUrl = null;
+  }
+
+  if (photoInput) photoInput.value = '';
+  if (videoInput) videoInput.value = '';
+  if (mediaInput) mediaInput.value = '';
+  if (img) { img.src = ''; img.style.display = 'none'; }
+  if (video) { video.pause(); video.src = ''; video.style.display = 'none'; }
+  if (badgeEl) badgeEl.style.display = 'none';
   if (captionInput) captionInput.value = '';
 
   if (modal) {
@@ -1539,6 +1752,89 @@ function closePhotoPreviewModal() {
       setTimeout(() => chatInput.focus(), 100);
     } else {
       chatInput.blur();
+    }
+  }
+}
+
+async function submitMediaMessage(event) {
+  if (event) event.preventDefault();
+  if (activeMediaType === 'video') {
+    return submitVideoMessage();
+  } else {
+    return submitPhotoMessage();
+  }
+}
+
+async function submitVideoMessage() {
+  if (!pendingVideoFile) return;
+
+  const captionInput = document.getElementById('photo-caption-input');
+  const btnSubmit = document.getElementById('btn-submit-photo');
+  const text = captionInput ? captionInput.value.trim() : '';
+  const sender = window.App ? window.App.getCurrentUser() : 'Roberto';
+  const replyPayload = currentReply ? { ...currentReply } : null;
+
+  if (btnSubmit) {
+    btnSubmit.disabled = true;
+    btnSubmit.textContent = '⏳ Envoi de la vidéo en cours...';
+  }
+
+  if (window.SoundEngine) {
+    window.SoundEngine.playSentSound();
+  }
+
+  try {
+    // 1. Téléversement binaire direct
+    const uploadRes = await fetch('/api/upload-media', {
+      method: 'POST',
+      headers: {
+        'Content-Type': pendingVideoFile.type || 'video/mp4',
+        'x-file-name': encodeURIComponent(pendingVideoFile.name || 'video.mp4')
+      },
+      body: pendingVideoFile
+    });
+
+    if (!uploadRes.ok) {
+      const errData = await uploadRes.json().catch(() => ({}));
+      throw new Error(errData.error || 'Échec du téléversement de la vidéo.');
+    }
+
+    const uploadData = await uploadRes.json();
+    const videoUrl = uploadData.video_url || uploadData.media_url;
+
+    if (!videoUrl) {
+      throw new Error('URL de la vidéo non reçue du serveur.');
+    }
+
+    // 2. Publication du message dans le chat
+    const res = await fetch('/api/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        sender,
+        text: text || '🎥 Vidéo',
+        type: 'video',
+        video_url: videoUrl,
+        reply_to: replyPayload,
+        is_ephemeral: isEphemeralActive ? 1 : 0
+      })
+    });
+
+    if (res.ok) {
+      clearReplyTo();
+      closePhotoPreviewModal();
+      scrollToBottom(true);
+    } else {
+      const err = await res.json().catch(() => ({}));
+      alert(err.error || 'Erreur lors de l\'envoi du message vidéo.');
+    }
+  } catch (err) {
+    console.error('Erreur envoi vidéo:', err);
+    alert('Erreur lors de l\'envoi de la vidéo : ' + (err.message || 'Erreur réseau'));
+  } finally {
+    if (btnSubmit) {
+      btnSubmit.disabled = false;
+      btnSubmit.textContent = '📤 Envoyer la Vidéo';
     }
   }
 }
@@ -1595,18 +1891,41 @@ async function submitPhotoMessage(event) {
   }
 }
 
-function openImageLightbox(imgUrl, sender, time, caption) {
+function openImageLightbox(imgUrl, sender, time, caption, isVideo = false) {
   const modal = document.getElementById('modal-image-lightbox');
   const fullImg = document.getElementById('lightbox-full-img');
+  const fullVideo = document.getElementById('lightbox-full-video');
   const senderEl = document.getElementById('lightbox-sender-name');
   const timeEl = document.getElementById('lightbox-time');
   const captionEl = document.getElementById('lightbox-caption');
 
-  if (fullImg) fullImg.src = imgUrl;
+  if (isVideo) {
+    if (fullImg) {
+      fullImg.style.display = 'none';
+      fullImg.src = '';
+    }
+    if (fullVideo) {
+      fullVideo.style.display = 'block';
+      fullVideo.src = imgUrl;
+      fullVideo.controls = true;
+      fullVideo.play().catch(() => {});
+    }
+  } else {
+    if (fullVideo) {
+      fullVideo.style.display = 'none';
+      fullVideo.pause();
+      fullVideo.src = '';
+    }
+    if (fullImg) {
+      fullImg.style.display = 'block';
+      fullImg.src = imgUrl;
+    }
+  }
+
   if (senderEl) senderEl.textContent = sender || '';
   if (timeEl) timeEl.textContent = time || '';
   if (captionEl) {
-    if (caption && caption !== '📷 Photo') {
+    if (caption && caption !== '📷 Photo' && caption !== '🎥 Vidéo') {
       captionEl.textContent = caption;
       captionEl.style.display = 'block';
     } else {
@@ -1624,14 +1943,25 @@ function openImageLightbox(imgUrl, sender, time, caption) {
 function closeImageLightbox() {
   const modal = document.getElementById('modal-image-lightbox');
   const fullImg = document.getElementById('lightbox-full-img');
+  const fullVideo = document.getElementById('lightbox-full-video');
   if (fullImg) fullImg.src = '';
+  if (fullVideo) {
+    fullVideo.pause();
+    fullVideo.src = '';
+  }
   if (modal) {
     modal.style.setProperty('display', 'none', 'important');
     modal.classList.remove('lightbox-active');
   }
 }
 
+window.openCameraPickerModal = openCameraPickerModal;
+window.closeCameraPickerModal = closeCameraPickerModal;
+window.triggerChatPhotoCapture = triggerChatPhotoCapture;
+window.triggerChatVideoCapture = triggerChatVideoCapture;
+window.triggerChatMediaFile = triggerChatMediaFile;
 window.closePhotoPreviewModal = closePhotoPreviewModal;
+window.submitMediaMessage = submitMediaMessage;
 window.submitPhotoMessage = submitPhotoMessage;
 window.closeImageLightbox = closeImageLightbox;
 window.openImageLightbox = openImageLightbox;

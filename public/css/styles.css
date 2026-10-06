@@ -5030,7 +5030,8 @@ body.is-pc section.tab-panel.pc-only:not(.active) {
 /* ==========================================================================
    PHOTO MESSAGES, CAPTION MODAL & FULL-SCREEN LIGHTBOX
    ========================================================================== */
-.bubble-has-photo {
+.bubble-has-photo,
+.bubble-has-video {
   padding: 8px 8px 10px 8px;
   max-width: 360px;
 }
@@ -5081,7 +5082,28 @@ body.is-pc section.tab-panel.pc-only:not(.active) {
   transform: translateY(0);
 }
 
-.msg-text-photo-caption {
+/* Messages Vidéo dans le chat */
+.msg-video-wrapper {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  background-color: #000000;
+  display: block;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+
+.msg-video-player {
+  display: block;
+  width: 100%;
+  max-height: 280px;
+  border-radius: 12px;
+  background-color: #000000;
+  object-fit: contain;
+  outline: none;
+}
+
+.msg-text-photo-caption,
+.msg-text-video-caption {
   margin-top: 8px;
   padding: 0 4px;
   font-size: 14.5px;
@@ -5242,6 +5264,158 @@ body.is-pc section.tab-panel.pc-only:not(.active) {
 .photo-caption-textarea:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+#video-preview-player {
+  max-width: 100%;
+  max-height: 280px;
+  object-fit: contain;
+  display: block;
+  border-radius: 8px;
+  outline: none;
+  background: #000;
+}
+
+@media (max-height: 720px) {
+  #video-preview-player {
+    max-height: 190px;
+  }
+}
+
+.media-preview-badge {
+  margin: 10px auto 4px auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 5px 14px;
+  border-radius: 20px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  color: #1d4ed8;
+  font-size: 13px;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* ==========================================================================
+   MODAL SÉLECTION APPAREIL PHOTO & VIDÉO
+   ========================================================================== */
+.modal-box-camera-picker {
+  max-width: 440px;
+  width: 92%;
+  border-radius: 16px;
+  overflow: hidden;
+  background: var(--bg-card);
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+  animation: modalScaleUp 0.18s ease-out;
+}
+
+.modal-camera-picker-body {
+  padding: 16px 20px 20px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.modal-camera-picker-desc {
+  margin: 0;
+  font-size: 14px;
+  color: var(--text-muted);
+  text-align: center;
+}
+
+.camera-picker-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 100%;
+}
+
+.btn-cam-picker-option {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1.5px solid var(--border-color);
+  background: var(--bg-surface, #ffffff);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.18s ease;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.btn-cam-picker-option:hover,
+.btn-cam-picker-option:active {
+  transform: translateY(-1px) scale(1.01);
+  border-color: #3b82f6;
+  background: #f0f7ff;
+  box-shadow: 0 6px 16px rgba(37, 99, 235, 0.15);
+}
+
+.cam-picker-icon-circle {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+}
+
+.cam-icon-photo {
+  background: linear-gradient(135deg, #e0f2fe, #bae6fd);
+}
+
+.cam-icon-video {
+  background: linear-gradient(135deg, #fee2e2, #fecaca);
+}
+
+.cam-icon-gallery {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+}
+
+.cam-picker-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  flex: 1;
+  min-width: 0;
+}
+
+.cam-picker-info strong {
+  font-size: 15.5px;
+  font-weight: 800;
+  color: var(--text-main);
+}
+
+.cam-picker-info span {
+  font-size: 12.5px;
+  color: var(--text-muted);
+}
+
+.btn-camera-picker-cancel {
+  padding: 12px 18px;
+  border-radius: 10px;
+  border: 1.5px solid var(--border-color);
+  background: #f1f5f9;
+  color: #475569;
+  font-weight: 700;
+  font-size: 15px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  width: 100%;
+}
+
+.btn-camera-picker-cancel:hover,
+.btn-camera-picker-cancel:active {
+  background: #e2e8f0;
+  color: #1e293b;
 }
 
 /* Lightbox Full Screen */

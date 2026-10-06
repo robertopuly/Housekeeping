@@ -37,6 +37,7 @@ function initSchema() {
       reply_to_text TEXT DEFAULT '',
       is_deleted INTEGER DEFAULT 0,
       image_url TEXT DEFAULT '',
+      video_url TEXT DEFAULT '',
       is_ephemeral INTEGER DEFAULT 0,
       expires_at DATETIME DEFAULT NULL,
       reward_animation INTEGER DEFAULT 0
@@ -206,6 +207,10 @@ function initSchema() {
   } catch (e) {}
 
   try {
+    db.exec('ALTER TABLE messages ADD COLUMN video_url TEXT DEFAULT "";');
+  } catch (e) {}
+
+  try {
     db.exec('ALTER TABLE messages ADD COLUMN question_type TEXT DEFAULT "";');
   } catch (e) {}
 
@@ -363,6 +368,7 @@ function cleanupExpiredMessages() {
             text = 'Message supprimé et non lu', 
             reply_to_text = '', 
             image_url = '', 
+            video_url = '', 
             is_ephemeral = 0, 
             expires_at = NULL 
         WHERE id IN (${unreadIds.map(() => '?').join(',')})
@@ -377,16 +383,16 @@ function getMessages(limit = 150) {
   return db.prepare('SELECT * FROM messages ORDER BY id ASC LIMIT ?').all(limit);
 }
 
-function addMessage(sender, text, type = 'text', replyTo = null, imageUrl = '', questionType = '', questionStatus = '', questionOptions = '', selectedOption = '', isEphemeral = 0, expiresAt = null, rewardAnimation = 0) {
+function addMessage(sender, text, type = 'text', replyTo = null, imageUrl = '', questionType = '', questionStatus = '', questionOptions = '', selectedOption = '', isEphemeral = 0, expiresAt = null, rewardAnimation = 0, videoUrl = '') {
   const reply_to_id = replyTo ? replyTo.id : null;
   const reply_to_sender = replyTo ? (replyTo.sender || '') : '';
   const reply_to_text = replyTo ? (replyTo.text || '') : '';
   const nowIso = new Date().toISOString();
 
   const result = db.prepare(`
-    INSERT INTO messages (sender, text, type, reply_to_id, reply_to_sender, reply_to_text, timestamp, image_url, question_type, question_status, question_options, selected_option, is_ephemeral, expires_at, reward_animation)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `).run(sender, text, type, reply_to_id, reply_to_sender, reply_to_text, nowIso, imageUrl || '', questionType || '', questionStatus || '', questionOptions || '', selectedOption || '', isEphemeral ? 1 : 0, expiresAt || null, rewardAnimation ? 1 : 0);
+    INSERT INTO messages (sender, text, type, reply_to_id, reply_to_sender, reply_to_text, timestamp, image_url, video_url, question_type, question_status, question_options, selected_option, is_ephemeral, expires_at, reward_animation)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(sender, text, type, reply_to_id, reply_to_sender, reply_to_text, nowIso, imageUrl || '', videoUrl || '', questionType || '', questionStatus || '', questionOptions || '', selectedOption || '', isEphemeral ? 1 : 0, expiresAt || null, rewardAnimation ? 1 : 0);
   return db.prepare('SELECT * FROM messages WHERE id = ?').get(result.lastInsertRowid);
 }
 
@@ -413,7 +419,7 @@ function answerChoiceQuestion(messageId, selectedOption, answeredBy = 'Adélcia'
 function deleteMessage(id) {
   db.prepare(`
     UPDATE messages 
-    SET is_deleted = 1, text = 'Message supprimé', reply_to_text = '' 
+    SET is_deleted = 1, text = 'Message supprimé', reply_to_text = '', image_url = '', video_url = '' 
     WHERE id = ?
   `).run(id);
   return db.prepare('SELECT * FROM messages WHERE id = ?').get(id) || { id, is_deleted: 1, text: 'Message supprimé' };
