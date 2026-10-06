@@ -465,7 +465,7 @@ function renderMessages() {
       if (hasImage) {
         photoHtml = `
           <div class="msg-photo-wrapper" data-img-url="${escapeHtml(msg.image_url)}" data-sender="${escapeHtml(msg.sender)}" data-time="${timeStr}" data-caption="${escapeHtml(msg.text || '')}">
-            <img src="${escapeHtml(msg.image_url)}" class="msg-photo-img" loading="lazy" alt="Photo" />
+            <img src="${escapeHtml(msg.image_url)}" class="msg-photo-img" alt="Photo" />
             <div class="msg-photo-zoom-hint">🔍 Agrandir</div>
           </div>
         `;
@@ -555,10 +555,24 @@ function renderMessages() {
     }
   });
 
-  container.innerHTML = html;
+  container.innerHTML = html + '<div id="chat-bottom-anchor" style="height: 1px; width: 100%; pointer-events: none; clear: both;"></div>';
   attachMessageClickEvents();
   attachPhotoClickEvents();
   renderTypingIndicator();
+
+  // Écoute le chargement des images et vidéos pour garantir le défilement en bas dès qu'elles sont rendues
+  container.querySelectorAll('.msg-photo-img, .msg-video-player').forEach(el => {
+    if (el.tagName === 'IMG') {
+      if (!el.complete) {
+        el.addEventListener('load', () => scrollToBottom(false), { once: true });
+        el.addEventListener('error', () => scrollToBottom(false), { once: true });
+      }
+    } else if (el.tagName === 'VIDEO') {
+      if (el.readyState < 1) {
+        el.addEventListener('loadedmetadata', () => scrollToBottom(false), { once: true });
+      }
+    }
+  });
 }
 
 function attachPhotoClickEvents() {
@@ -702,13 +716,22 @@ function clearReplyTo() {
 
 function scrollToBottom(smooth = false) {
   const container = document.getElementById('chat-messages');
-  if (container) {
-    if (smooth) {
-      container.scrollTo({ top: container.scrollHeight, behavior: 'smooth' });
-    } else {
-      container.scrollTop = container.scrollHeight;
+  if (!container) return;
+
+  const performScroll = () => {
+    container.scrollTop = container.scrollHeight;
+    const anchor = document.getElementById('chat-bottom-anchor');
+    if (anchor && typeof anchor.scrollIntoView === 'function') {
+      anchor.scrollIntoView({ block: 'end', behavior: smooth ? 'smooth' : 'auto' });
     }
-  }
+  };
+
+  performScroll();
+  requestAnimationFrame(performScroll);
+  setTimeout(performScroll, 50);
+  setTimeout(performScroll, 150);
+  setTimeout(performScroll, 350);
+  setTimeout(performScroll, 600);
 }
 
 async function sendMessage(customText = null) {
@@ -745,6 +768,7 @@ async function sendMessage(customText = null) {
 
   clearReplyTo();
   closeEmojiPicker();
+  scrollToBottom(false);
 
   if (window.SoundEngine) {
     window.SoundEngine.playSentSound();
@@ -763,7 +787,9 @@ async function sendMessage(customText = null) {
       })
     });
 
-    if (!res.ok) {
+    if (res.ok) {
+      scrollToBottom(false);
+    } else {
       console.error('Erreur envoi message');
     }
   } catch (err) {
@@ -1225,7 +1251,7 @@ function renderTypingIndicator() {
     `;
   }
 
-  scrollToBottom(true);
+  scrollToBottom(false);
 }
 
 function onMessageReceived(msg) {
@@ -1237,7 +1263,7 @@ function onMessageReceived(msg) {
 
   messages.push(msg);
   renderMessages();
-  scrollToBottom(true);
+  scrollToBottom(false);
 
   const currentUser = window.App ? window.App.getCurrentUser() : '';
   const isMe = msg.sender && currentUser && msg.sender.toLowerCase() === currentUser.toLowerCase();
@@ -1496,6 +1522,15 @@ function setupChatEvents() {
       closePhotoPreviewModal();
       closeImageLightbox();
       closeMessageActionsModal();
+    }
+  });
+
+  // Maintient le scroll en bas si la fenêtre se redimensionne (ex. clavier virtuel ouvert/fermé ou rotation)
+  window.addEventListener('resize', () => {
+    if (window.App && typeof window.App.getActiveTab === 'function') {
+      if (window.App.getActiveTab() === 'tab-chat') {
+        scrollToBottom(false);
+      }
     }
   });
 }
@@ -1823,7 +1858,7 @@ async function submitVideoMessage() {
     if (res.ok) {
       clearReplyTo();
       closePhotoPreviewModal();
-      scrollToBottom(true);
+      scrollToBottom(false);
     } else {
       const err = await res.json().catch(() => ({}));
       alert(err.error || 'Erreur lors de l\'envoi du message vidéo.');
@@ -1875,7 +1910,7 @@ async function submitPhotoMessage(event) {
     if (res.ok) {
       clearReplyTo();
       closePhotoPreviewModal();
-      scrollToBottom(true);
+      scrollToBottom(false);
     } else {
       const err = await res.json().catch(() => ({}));
       alert(err.error || 'Erreur lors de l\'envoi de la photo.');

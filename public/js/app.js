@@ -387,7 +387,10 @@ function switchTab(tabId) {
     window.location.hash = 'chat';
     if (window.ChatModule) {
       window.ChatModule.clearUnread();
-      setTimeout(() => window.ChatModule.scrollToBottom(), 50);
+      window.ChatModule.scrollToBottom(false);
+      setTimeout(() => window.ChatModule.scrollToBottom(false), 50);
+      setTimeout(() => window.ChatModule.scrollToBottom(false), 150);
+      setTimeout(() => window.ChatModule.scrollToBottom(false), 400);
     }
   } else if (tabId === 'tab-orders') {
     window.location.hash = 'orders';
