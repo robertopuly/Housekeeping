@@ -884,7 +884,7 @@ function getDailyRoomCardInnerHtml(room, isTablet) {
           ` : `
             ${status === 'libera' ? `<span class="tablet-pill pill-libera${getBlinkClass(room, 'status')}"${getBlinkData(room, 'status')}>🟢 Libre</span>` : ''}
             ${status === 'partenza' ? `<span class="tablet-pill pill-partenza${getBlinkClass(room, 'status')}"${getBlinkData(room, 'status')}>🔴 Départ</span>` : ''}
-            ${status === 'restante' ? `<span class="tablet-pill pill-restante${getBlinkClass(room, 'status')}"${getBlinkData(room, 'status')}>🟡 Recouche</span>` : ''}
+            ${status === 'restante' ? `<span class="tablet-pill pill-restante${getBlinkClass(room, 'status')}"${getBlinkData(room, 'status')}>🟡 Restant</span>` : ''}
           `}
           ${isSeparati ? `<span class="tablet-pill pill-beds${getBlinkClass(room, 'beds_type')}"${getBlinkData(room, 'beds_type')} title="Lits séparés">🛏️ Séparés</span>` : ''}
           ${needsExtraBed ? `<span class="tablet-pill pill-extra-bed${getBlinkClass(room, 'guests_count')}"${getBlinkData(room, 'guests_count')} title="Ajouter un lit d'appoint (3 personnes)">⚠️ Lit suppl. (3p)</span>` : ''}
@@ -956,8 +956,8 @@ function getDailyRoomCardInnerHtml(room, isTablet) {
       <button type="button" class="flag-btn flag-partenza ${status === 'partenza' ? 'active' : ''}${status === 'partenza' ? getBlinkClass(room, 'status') : ''}"${status === 'partenza' ? getBlinkData(room, 'status') : ''} data-status="partenza" title="Départ / À blanc">
         <span>🔴 Départ</span>
       </button>
-      <button type="button" class="flag-btn flag-restante ${status === 'restante' ? 'active' : ''}${status === 'restante' ? getBlinkClass(room, 'status') : ''}"${status === 'restante' ? getBlinkData(room, 'status') : ''} data-status="restante" title="Recouche / Client reste">
-        <span>🟡 Recouche</span>
+      <button type="button" class="flag-btn flag-restante ${status === 'restante' ? 'active' : ''}${status === 'restante' ? getBlinkClass(room, 'status') : ''}"${status === 'restante' ? getBlinkData(room, 'status') : ''} data-status="restante" title="Restant / Client reste">
+        <span>🟡 Restant</span>
       </button>
     </div>
 
@@ -1061,7 +1061,7 @@ function bindRoomCardEvents(card) {
     saveSeenMap(seenMap);
   };
 
-  // 1. Boutons Statut (Libre / Départ / Recouche) - Uniquement si interactifs (PC)
+  // 1. Boutons Statut (Libre / Départ / Restant) - Uniquement si interactifs (PC)
   card.querySelectorAll('.flag-btn:not(.flag-readonly)').forEach(btn => {
     btn.addEventListener('click', async () => {
       const newStatus = btn.getAttribute('data-status');

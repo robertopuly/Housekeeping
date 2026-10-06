@@ -2364,7 +2364,7 @@ body.is-pc .btn-chat-choices.pc-only {
   border-color: #f87171 !important;
 }
 
-/* 🟡 STATUT RECOUCHE : FOND ARANCIONE / AMBRE COMPLET */
+/* 🟡 STATUT RESTANT : FOND ARANCIONE / AMBRE COMPLET */
 .daily-room-card.status-card-restante {
   background-color: #ffedd5 !important;
   border-color: #fdba74 !important;
