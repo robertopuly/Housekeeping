@@ -476,20 +476,46 @@ body {
 
 /* Quote preview inside message bubble */
 .reply-quote-bubble {
-  border-radius: 6px;
-  padding: 5px 9px;
+  border-radius: 8px;
+  padding: 6px 10px;
   margin-bottom: 6px;
   font-size: 12px;
   display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  line-height: 1.3;
+  cursor: pointer;
+  user-select: none;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+
+.reply-quote-bubble:hover {
+  opacity: 0.94;
+}
+
+.reply-quote-bubble:active {
+  transform: scale(0.99);
+}
+
+.reply-quote-content {
+  display: flex;
   flex-direction: column;
   gap: 2px;
-  line-height: 1.3;
+  overflow: hidden;
+  flex: 1;
+  min-width: 0;
 }
 
 .bubble-in .reply-quote-bubble {
   background-color: #f1f5f9;
-  border-left: 3px solid #6366f1;
+  border-left: 3.5px solid #6366f1;
   color: #334155;
+}
+
+.bubble-in .reply-quote-bubble.has-reply-photo {
+  background-color: #eef2ff;
+  border-left-color: #4f46e5;
 }
 
 .bubble-in .reply-quote-bubble .reply-quote-sender {
@@ -503,14 +529,18 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 260px;
+  max-width: 240px;
   color: #475569;
 }
 
 .bubble-out .reply-quote-bubble {
   background-color: rgba(255, 255, 255, 0.22);
-  border-left: 3px solid #ffffff;
+  border-left: 3.5px solid #ffffff;
   color: #ffffff;
+}
+
+.bubble-out .reply-quote-bubble.has-reply-photo {
+  background-color: rgba(255, 255, 255, 0.28);
 }
 
 .bubble-out .reply-quote-bubble .reply-quote-sender {
@@ -524,8 +554,66 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 260px;
+  max-width: 240px;
   color: rgba(255, 255, 255, 0.95);
+}
+
+/* Vignette miniature photo dans la bulle de citation */
+.reply-quote-thumb-wrap {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  min-width: 44px;
+  min-height: 44px;
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+  cursor: pointer;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  border: 1.5px solid rgba(255, 255, 255, 0.9);
+  background-color: #1e293b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.bubble-in .reply-quote-thumb-wrap {
+  border-color: #cbd5e1;
+}
+
+.reply-quote-thumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform 0.2s ease;
+}
+
+.reply-quote-thumb-wrap:hover .reply-quote-thumb {
+  transform: scale(1.1);
+}
+
+.reply-quote-thumb-zoom {
+  position: absolute;
+  bottom: 1px;
+  right: 1px;
+  font-size: 9px;
+  background: rgba(0, 0, 0, 0.65);
+  color: #fff;
+  border-radius: 3px;
+  padding: 1px 2px;
+  line-height: 1;
+  pointer-events: none;
+}
+
+.message.message-highlight .bubble {
+  animation: msgHighlightPulse 1.8s ease;
+}
+@keyframes msgHighlightPulse {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(99, 102, 241, 0.8); }
+  30% { transform: scale(1.03); box-shadow: 0 0 0 10px rgba(99, 102, 241, 0); }
+  60% { transform: scale(1.01); }
+  100% { transform: scale(1); }
 }
 
 /* Chat Reply Preview Bar above input */
@@ -578,6 +666,26 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.reply-bar-thumb {
+  width: 42px;
+  height: 42px;
+  min-width: 42px;
+  min-height: 42px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1.5px solid #93c5fd;
+  flex-shrink: 0;
+  cursor: pointer;
+  margin-left: auto;
+  margin-right: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  transition: transform 0.15s ease;
+}
+
+.reply-bar-thumb:hover {
+  transform: scale(1.08);
 }
 
 .btn-cancel-reply {

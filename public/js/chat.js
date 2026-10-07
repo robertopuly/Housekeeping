@@ -442,20 +442,45 @@ function renderMessages() {
     } else {
       const replyText = msg.reply_to_text || (msg.reply_to && msg.reply_to.text) || '';
       const replySender = msg.reply_to_sender || (msg.reply_to && msg.reply_to.sender) || 'Message';
+      const refId = msg.reply_to_id || (msg.reply_to && msg.reply_to.id) || null;
+      let replyImageUrl = msg.reply_to_image_url || (msg.reply_to && msg.reply_to.image_url) || '';
+
+      if (!replyImageUrl && refId) {
+        const origMsg = messages.find(m => m.id === refId);
+        if (origMsg && origMsg.image_url) {
+          replyImageUrl = origMsg.image_url;
+        }
+      }
 
       let replyHtml = '';
-      if (replyText) {
+      if (replyText || replyImageUrl) {
+        let displayText = replyText;
+        if (!displayText || displayText === '📷 Photo' || displayText === '🎥 Vidéo') {
+          if (replyImageUrl) displayText = '📷 [Photo]';
+          else displayText = 'Message';
+        }
+
+        const photoThumbHtml = replyImageUrl ? `
+          <div class="reply-quote-thumb-wrap" data-reply-img="${escapeHtml(replyImageUrl)}" data-reply-sender="${escapeHtml(replySender)}" title="Cliquer pour agrandir la photo">
+            <img src="${escapeHtml(replyImageUrl)}" class="reply-quote-thumb" alt="Photo" />
+            <span class="reply-quote-thumb-zoom">🔍</span>
+          </div>
+        ` : '';
+
         replyHtml = `
-          <div class="reply-quote-bubble">
-            <span class="reply-quote-sender">↩ ${escapeHtml(replySender)}</span>
-            <span class="reply-quote-text">${escapeHtml(replyText)}</span>
+          <div class="reply-quote-bubble ${replyImageUrl ? 'has-reply-photo' : ''}" data-reply-id="${refId || ''}" ${replyImageUrl ? `data-reply-img="${escapeHtml(replyImageUrl)}" data-reply-sender="${escapeHtml(replySender)}" title="Cliquer pour agrandir la photo"` : 'title="Message cité"'}>
+            <div class="reply-quote-content">
+              <span class="reply-quote-sender">↩ ${escapeHtml(replySender)}</span>
+              <span class="reply-quote-text">${escapeHtml(displayText)}</span>
+            </div>
+            ${photoThumbHtml}
           </div>
         `;
       }
 
       const emojiInfo = getEmojiInfo(msg.text);
       const isOnlyEmoji = emojiInfo.isOnly && emojiInfo.count > 0 && emojiInfo.count <= 10;
-      const hasReply = !!replyText;
+      const hasReply = !!(replyText || replyImageUrl);
       const hasImage = !!msg.image_url;
       const hasVideo = !!msg.video_url;
       const bubbleEmojiClass = (isOnlyEmoji && !hasReply && !hasImage && !hasVideo) ? 'bubble-emoji-only' : '';
@@ -590,6 +615,28 @@ function attachPhotoClickEvents() {
     });
   });
 
+  // Clic sur l'aperçu photo ou la bulle d'une réponse pour agrandir immédiatement
+  container.querySelectorAll('.reply-quote-bubble').forEach(quoteEl => {
+    quoteEl.addEventListener('click', (e) => {
+      e.stopPropagation(); // Évite formellement d'ouvrir le menu d'action Répondre / Supprimer
+      const replyImg = quoteEl.getAttribute('data-reply-img');
+      const replySender = quoteEl.getAttribute('data-reply-sender') || 'Photo';
+      if (replyImg) {
+        openImageLightbox(replyImg, replySender, '', '', false);
+        return;
+      }
+      const replyId = quoteEl.getAttribute('data-reply-id');
+      if (replyId) {
+        const targetMsg = container.querySelector(`.message[data-msg-id="${replyId}"]`);
+        if (targetMsg) {
+          targetMsg.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          targetMsg.classList.add('message-highlight');
+          setTimeout(() => targetMsg.classList.remove('message-highlight'), 1800);
+        }
+      }
+    });
+  });
+
   // Éviter que les contrôles de lecture vidéo ouvrent le menu d'action
   container.querySelectorAll('.msg-video-wrapper video').forEach(vid => {
     vid.addEventListener('click', (e) => {
@@ -620,11 +667,31 @@ function openMessageActionsModal(msg) {
 
   if (preview) {
     if (msg.image_url) {
-      preview.innerHTML = `<strong>${escapeHtml(msg.sender)}:</strong> 📷 [Photo] ${msg.text && msg.text !== '📷 Photo' ? `"${escapeHtml(msg.text)}"` : ''}`;
+      preview.innerHTML = `
+        <div style="display:flex; align-items:center; gap:12px;">
+          <div style="position:relative; width:48px; height:48px; min-width:48px; border-radius:8px; overflow:hidden; border:1px solid #cbd5e1; cursor:pointer;" onclick="event.stopPropagation(); closeMessageActionsModal(); openImageLightbox('${escapeHtml(msg.image_url)}', '${escapeHtml(msg.sender)}', '', '${escapeHtml(msg.text && msg.text !== '📷 Photo' ? msg.text : '')}', false);" title="Cliquer pour agrandir la photo">
+            <img src="${escapeHtml(msg.image_url)}" style="width:100%; height:100%; object-fit:cover; display:block;" />
+            <span style="position:absolute; bottom:1px; right:1px; font-size:9px; background:rgba(0,0,0,0.6); color:#fff; border-radius:3px; padding:1px 2px;">🔍</span>
+          </div>
+          <div>
+            <strong>${escapeHtml(msg.sender)}:</strong> 📷 [Photo] ${msg.text && msg.text !== '📷 Photo' ? `<br/><span style="font-style:italic;">"${escapeHtml(msg.text)}"</span>` : ''}
+          </div>
+        </div>
+      `;
     } else if (msg.video_url) {
       preview.innerHTML = `<strong>${escapeHtml(msg.sender)}:</strong> 🎥 [Vidéo] ${msg.text && msg.text !== '🎥 Vidéo' ? `"${escapeHtml(msg.text)}"` : ''}`;
     } else {
-      preview.innerHTML = `<strong>${escapeHtml(msg.sender)}:</strong> "${escapeHtml(msg.text)}"`;
+      let refPhotoHtml = '';
+      const refImg = msg.reply_to_image_url || (msg.reply_to && msg.reply_to.image_url);
+      if (refImg) {
+        refPhotoHtml = `
+          <div style="display:flex; align-items:center; gap:8px; margin-top:8px; padding:6px 10px; background:#f1f5f9; border-radius:8px; border-left:3px solid #6366f1; cursor:pointer;" onclick="event.stopPropagation(); closeMessageActionsModal(); openImageLightbox('${escapeHtml(refImg)}', '${escapeHtml(msg.reply_to_sender || 'Photo')}', '', '', false);" title="Cliquer pour agrandir la photo liée">
+            <img src="${escapeHtml(refImg)}" style="width:36px; height:36px; object-fit:cover; border-radius:4px;" />
+            <span style="font-size:12px; color:#475569;">↩ En réponse à cette photo (Cliquer pour agrandir 🔍)</span>
+          </div>
+        `;
+      }
+      preview.innerHTML = `<div><strong>${escapeHtml(msg.sender)}:</strong> "${escapeHtml(msg.text)}"</div>${refPhotoHtml}`;
     }
   }
 
@@ -690,19 +757,39 @@ function setReplyTo(msg) {
     else if (msg.image_url) repText = '📷 [Photo]';
   }
 
+  const replyImg = msg.image_url || '';
+
   currentReply = {
     id: msg.id,
     sender: msg.sender,
-    text: repText
+    text: repText,
+    image_url: replyImg
   };
 
   const bar = document.getElementById('chat-reply-bar');
   const senderEl = document.getElementById('reply-sender-name');
   const textEl = document.getElementById('reply-text-preview');
+  const thumbEl = document.getElementById('reply-thumb-preview');
   const input = document.getElementById('chat-input');
 
   if (senderEl) senderEl.textContent = msg.sender;
   if (textEl) textEl.textContent = repText;
+
+  if (thumbEl) {
+    if (replyImg) {
+      thumbEl.src = replyImg;
+      thumbEl.style.display = 'block';
+      thumbEl.onclick = (e) => {
+        e.stopPropagation();
+        openImageLightbox(replyImg, msg.sender, '', msg.text && msg.text !== '📷 Photo' ? msg.text : '', false);
+      };
+    } else {
+      thumbEl.src = '';
+      thumbEl.style.display = 'none';
+      thumbEl.onclick = null;
+    }
+  }
+
   if (bar) bar.style.display = 'flex';
 
   if (input) input.focus();
@@ -711,6 +798,12 @@ function setReplyTo(msg) {
 function clearReplyTo() {
   currentReply = null;
   const bar = document.getElementById('chat-reply-bar');
+  const thumbEl = document.getElementById('reply-thumb-preview');
+  if (thumbEl) {
+    thumbEl.src = '';
+    thumbEl.style.display = 'none';
+    thumbEl.onclick = null;
+  }
   if (bar) bar.style.display = 'none';
 }
 
