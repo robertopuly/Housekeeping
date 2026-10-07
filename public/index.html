@@ -938,6 +938,33 @@
             <label for="order-desc">Notes / Détails (Optionnel)</label>
             <textarea id="order-desc" class="form-control" placeholder="Consignes supplémentaires, heure d'arrivée des clients..."></textarea>
           </div>
+
+          <!-- PHOTO ATTACHMENT POUR NOUVEL ORDRE -->
+          <div class="form-group order-photo-group">
+            <label class="order-photo-label">📷 Photo jointe (Optionnel)</label>
+            <div class="order-photo-picker-btns" id="order-new-photo-btns">
+              <button type="button" class="btn-order-attach" onclick="triggerOrderPhotoCamera('new')">
+                <span class="btn-order-attach-icon">📷</span>
+                <span>Prendre une photo</span>
+              </button>
+              <button type="button" class="btn-order-attach" onclick="openOrderGalleryPickerModal('new')">
+                <span class="btn-order-attach-icon">📁</span>
+                <span>Choisir dans la galerie</span>
+              </button>
+            </div>
+            <input type="file" id="order-new-file-input" accept="image/*" capture="environment" style="display: none;" />
+
+            <div id="order-new-photo-preview" class="order-attached-preview" style="display: none;">
+              <div class="order-attached-card">
+                <img id="order-new-preview-img" class="order-attached-thumb" src="" alt="Photo jointe" onclick="previewCurrentOrderPhoto('new')" title="Cliquer pour agrandir la photo" />
+                <div class="order-attached-info">
+                  <span class="order-attached-badge" id="order-new-preview-badge">📷 Photo jointe</span>
+                  <span class="order-attached-hint">🔍 Cliquer pour agrandir</span>
+                </div>
+                <button type="button" class="btn-remove-attached-photo" onclick="removeOrderAttachedPhoto('new')" title="Supprimer la photo">&times;</button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="modal-footer">
@@ -991,6 +1018,33 @@
             <label for="edit-order-desc">Notes / Détails</label>
             <textarea id="edit-order-desc" class="form-control" placeholder="Ajouter ou modifier des notes..."></textarea>
           </div>
+
+          <!-- PHOTO ATTACHMENT POUR MODIFIER ORDRE -->
+          <div class="form-group order-photo-group">
+            <label class="order-photo-label">📷 Photo jointe (Optionnel)</label>
+            <div class="order-photo-picker-btns" id="order-edit-photo-btns">
+              <button type="button" class="btn-order-attach" onclick="triggerOrderPhotoCamera('edit')">
+                <span class="btn-order-attach-icon">📷</span>
+                <span>Prendre une photo</span>
+              </button>
+              <button type="button" class="btn-order-attach" onclick="openOrderGalleryPickerModal('edit')">
+                <span class="btn-order-attach-icon">📁</span>
+                <span>Choisir dans la galerie</span>
+              </button>
+            </div>
+            <input type="file" id="order-edit-file-input" accept="image/*" capture="environment" style="display: none;" />
+
+            <div id="order-edit-photo-preview" class="order-attached-preview" style="display: none;">
+              <div class="order-attached-card">
+                <img id="order-edit-preview-img" class="order-attached-thumb" src="" alt="Photo jointe" onclick="previewCurrentOrderPhoto('edit')" title="Cliquer pour agrandir la photo" />
+                <div class="order-attached-info">
+                  <span class="order-attached-badge" id="order-edit-preview-badge">📷 Photo jointe</span>
+                  <span class="order-attached-hint">🔍 Cliquer pour agrandir</span>
+                </div>
+                <button type="button" class="btn-remove-attached-photo" onclick="removeOrderAttachedPhoto('edit')" title="Supprimer la photo">&times;</button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="modal-footer">
@@ -998,6 +1052,29 @@
           <button type="button" id="btn-submit-edit-order" class="btn btn-primary" onclick="submitEditOrder(event)">💾 Enregistrer</button>
         </div>
       </form>
+    </div>
+  </div>
+
+  <!-- MODAL SÉLECTION PHOTO DEPUIS LA GALERIE POUR ORDRE -->
+  <div id="modal-order-gallery-picker" class="modal-backdrop" onclick="if(event.target===this)closeOrderGalleryPickerModal()">
+    <div class="modal-box modal-box-gallery-picker">
+      <div class="modal-header">
+        <h2>📁 Choisir une photo de la Galerie</h2>
+        <button type="button" class="btn-close-modal" onclick="closeOrderGalleryPickerModal()">&times;</button>
+      </div>
+      <div class="modal-body modal-order-gallery-body">
+        <p class="modal-gallery-picker-desc">Touchez une photo pour l'attacher à cet ordre de service :</p>
+        <div id="order-gallery-picker-grid" class="order-gallery-picker-grid">
+          <!-- Vignettes chargées dynamiquement -->
+        </div>
+        <div id="order-gallery-picker-empty" class="order-gallery-picker-empty" style="display: none;">
+          <span style="font-size: 32px;">📷</span>
+          <p>Aucune photo disponible dans la galerie pour le moment.</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeOrderGalleryPickerModal()">Fermer</button>
+      </div>
     </div>
   </div>
 
@@ -1572,16 +1649,16 @@
 
   <!-- SCRIPTS -->
   <script src="/socket.io/socket.io.js"></script>
-  <script src="js/audio.js?v=78"></script>
-  <script src="js/socket.js?v=78"></script>
-  <script src="js/chat.js?v=78"></script>
-  <script src="js/orders.js?v=78"></script>
-  <script src="js/deadlines.js?v=78"></script>
-  <script src="js/shopping.js?v=78"></script>
-  <script src="js/expenses.js?v=78"></script>
-  <script src="js/leave.js?v=78"></script>
-  <script src="js/presence.js?v=78"></script>
-  <script src="js/gallery.js?v=78"></script>
-  <script src="js/app.js?v=78"></script>
+  <script src="js/audio.js?v=79"></script>
+  <script src="js/socket.js?v=79"></script>
+  <script src="js/chat.js?v=79"></script>
+  <script src="js/orders.js?v=79"></script>
+  <script src="js/deadlines.js?v=79"></script>
+  <script src="js/shopping.js?v=79"></script>
+  <script src="js/expenses.js?v=79"></script>
+  <script src="js/leave.js?v=79"></script>
+  <script src="js/presence.js?v=79"></script>
+  <script src="js/gallery.js?v=79"></script>
+  <script src="js/app.js?v=79"></script>
 </body>
 </html>

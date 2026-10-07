@@ -57,7 +57,8 @@ function initSchema() {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       completed_at DATETIME DEFAULT NULL,
-      is_archived INTEGER DEFAULT 0
+      is_archived INTEGER DEFAULT 0,
+      image_url TEXT DEFAULT ''
     );
 
     CREATE TABLE IF NOT EXISTS daily_room_status (
@@ -287,6 +288,27 @@ function initSchema() {
     db.exec('ALTER TABLE deadlines ADD COLUMN room_number TEXT DEFAULT "";');
   } catch (e) {}
 
+  try {
+    db.exec('ALTER TABLE orders ADD COLUMN image_url TEXT DEFAULT "";');
+  } catch (e) {}
+
+  // Synchronisation automatique de toutes les photos envoyées dans les messages vers la galerie
+  try {
+    const chatPhotos = db.prepare("SELECT sender, text, image_url, timestamp FROM messages WHERE image_url IS NOT NULL AND image_url != '' AND is_deleted = 0").all();
+    for (const cp of chatPhotos) {
+      const fn = path.basename(cp.image_url);
+      const exists = db.prepare("SELECT id FROM gallery_photos WHERE image_url = ? OR filename = ?").get(cp.image_url, fn);
+      if (!exists) {
+        const cap = (cp.text && cp.text !== '📷 Photo') ? cp.text : 'Photo depuis le chat';
+        const sender = (cp.sender && (cp.sender.toLowerCase() === 'adelcia' || cp.sender.toLowerCase() === 'adélcia')) ? 'Adélcia' : (cp.sender || 'Roberto');
+        db.prepare(`
+          INSERT INTO gallery_photos (filename, image_url, captured_by, caption, created_at)
+          VALUES (?, ?, ?, ?, ?)
+        `).run(fn, cp.image_url, sender, cap, cp.timestamp || new Date().toISOString());
+      }
+    }
+  } catch (e) {}
+
   const defaultReplies = [
     { text: 'Nettoyage terminé ✅', label: 'Nettoyage terminé ✅' },
     { text: 'Peux-tu venir ici dès que possible ? 🏃', label: 'Peux-tu venir ici ? 🏃' },
@@ -480,11 +502,11 @@ function getArchivedOrders() {
 }
 
 function createOrder(data) {
-  const { title, room_or_area, description, priority, created_by, assigned_to } = data;
+  const { title, room_or_area, description, priority, created_by, assigned_to, image_url } = data;
   const result = db.prepare(`
-    INSERT INTO orders (title, room_or_area, description, priority, status, created_by, assigned_to)
-    VALUES (?, ?, ?, ?, 'in_attesa', ?, ?)
-  `).run(title, room_or_area, description || '', priority || 'normale', created_by || 'Roberto', assigned_to || '');
+    INSERT INTO orders (title, room_or_area, description, priority, status, created_by, assigned_to, image_url)
+    VALUES (?, ?, ?, ?, 'in_attesa', ?, ?, ?)
+  `).run(title, room_or_area, description || '', priority || 'normale', created_by || 'Roberto', assigned_to || '', image_url || '');
   return db.prepare('SELECT * FROM orders WHERE id = ?').get(result.lastInsertRowid);
 }
 
@@ -496,12 +518,13 @@ function updateOrder(id, data) {
   const room_or_area = data.room_or_area !== undefined ? data.room_or_area : current.room_or_area;
   const description = data.description !== undefined ? data.description : current.description;
   const priority = data.priority !== undefined ? data.priority : current.priority;
+  const image_url = data.image_url !== undefined ? data.image_url : (current.image_url || '');
 
   db.prepare(`
     UPDATE orders 
-    SET title = ?, room_or_area = ?, description = ?, priority = ?, updated_at = CURRENT_TIMESTAMP
+    SET title = ?, room_or_area = ?, description = ?, priority = ?, image_url = ?, updated_at = CURRENT_TIMESTAMP
     WHERE id = ?
-  `).run(title, room_or_area, description, priority, id);
+  `).run(title, room_or_area, description, priority, image_url, id);
 
   return db.prepare('SELECT * FROM orders WHERE id = ?').get(id);
 }

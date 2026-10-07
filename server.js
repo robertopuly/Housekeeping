@@ -143,12 +143,25 @@ app.post('/api/messages', (req, res) => {
         imageUrl = `/uploads/${filename}`;
         msgType = 'image';
         try {
-          const galleryItem = db.addGalleryPhoto(filename, imageUrl, sender, text || '');
+          const cap = (text && text !== '📷 Photo') ? text : 'Photo depuis le chat';
+          const galleryItem = db.addGalleryPhoto(filename, imageUrl, sender, cap);
           io.emit('gallery:created', galleryItem);
         } catch (gErr) {}
       } catch (imgErr) {
         console.error('Erreur enregistrement photo:', imgErr);
       }
+    } else if (image_url && typeof image_url === 'string') {
+      imageUrl = image_url;
+      msgType = 'image';
+      try {
+        const fn = path.basename(imageUrl);
+        const exists = db.prepare('SELECT id FROM gallery_photos WHERE image_url = ? OR filename = ?').get(imageUrl, fn);
+        if (!exists) {
+          const cap = (text && text !== '📷 Photo') ? text : 'Photo depuis le chat';
+          const galleryItem = db.addGalleryPhoto(fn, imageUrl, sender, cap);
+          io.emit('gallery:created', galleryItem);
+        }
+      } catch (gErr) {}
     }
 
     if (video && typeof video === 'string') {
@@ -408,11 +421,43 @@ app.get('/api/orders/archived', (req, res) => {
 
 app.post('/api/orders', (req, res) => {
   try {
-    const { title, room_or_area } = req.body;
+    const { title, room_or_area, image, image_url } = req.body;
     if (!title || !room_or_area) {
       return res.status(400).json({ error: 'Titolo e Camera/Area sono obbligatori' });
     }
-    const order = db.createOrder(req.body);
+
+    let finalImageUrl = image_url || '';
+    if (image && typeof image === 'string') {
+      try {
+        const matches = image.match(/^data:image\/([a-zA-Z0-9+]+);base64,(.+)$/);
+        let ext = 'jpg';
+        let base64Data = image;
+        if (matches && matches.length === 3) {
+          ext = matches[1] === 'jpeg' ? 'jpg' : matches[1];
+          base64Data = matches[2];
+        }
+        const filename = `photo_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
+        const filePath = path.join(uploadsDir, filename);
+        fs.writeFileSync(filePath, Buffer.from(base64Data, 'base64'));
+        finalImageUrl = `/uploads/${filename}`;
+
+        // Sauvegarde également en copie dans la galerie
+        try {
+          const sender = req.body.created_by || 'Roberto';
+          const caption = `Ordre de service: ${room_or_area} - ${title}`;
+          const galleryItem = db.addGalleryPhoto(filename, finalImageUrl, sender, caption);
+          io.emit('gallery:created', galleryItem);
+        } catch (gErr) {}
+      } catch (imgErr) {
+        console.error('Erreur enregistrement photo ordre:', imgErr);
+      }
+    }
+
+    const orderData = {
+      ...req.body,
+      image_url: finalImageUrl
+    };
+    const order = db.createOrder(orderData);
     io.emit('order:created', order);
     res.status(201).json(order);
   } catch (err) {
@@ -423,7 +468,43 @@ app.post('/api/orders', (req, res) => {
 app.put('/api/orders/:id', (req, res) => {
   try {
     const { id } = req.params;
-    const updated = db.updateOrder(Number(id), req.body);
+    const { image, image_url, title, room_or_area } = req.body;
+    let finalImageUrl = image_url;
+
+    if (image && typeof image === 'string') {
+      try {
+        const matches = image.match(/^data:image\/([a-zA-Z0-9+]+);base64,(.+)$/);
+        let ext = 'jpg';
+        let base64Data = image;
+        if (matches && matches.length === 3) {
+          ext = matches[1] === 'jpeg' ? 'jpg' : matches[1];
+          base64Data = matches[2];
+        }
+        const filename = `photo_${Date.now()}_${Math.random().toString(36).substring(2, 8)}.${ext}`;
+        const filePath = path.join(uploadsDir, filename);
+        fs.writeFileSync(filePath, Buffer.from(base64Data, 'base64'));
+        finalImageUrl = `/uploads/${filename}`;
+
+        // Sauvegarde également en copie dans la galerie
+        try {
+          const sender = req.body.updated_by || 'Roberto';
+          const caption = `Ordre de service: ${room_or_area || 'Chambre'} - ${title || ''}`;
+          const galleryItem = db.addGalleryPhoto(filename, finalImageUrl, sender, caption);
+          io.emit('gallery:created', galleryItem);
+        } catch (gErr) {}
+      } catch (imgErr) {
+        console.error('Erreur enregistrement photo ordre:', imgErr);
+      }
+    }
+
+    const updateData = {
+      ...req.body
+    };
+    if (finalImageUrl !== undefined) {
+      updateData.image_url = finalImageUrl;
+    }
+
+    const updated = db.updateOrder(Number(id), updateData);
     if (!updated) {
       return res.status(404).json({ error: 'Ordine non trovato' });
     }

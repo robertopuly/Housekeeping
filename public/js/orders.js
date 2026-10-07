@@ -6,6 +6,10 @@
   let archivedList = [];
   let currentFilter = 'attivi';
 
+  let newOrderAttachedPhoto = null; // { type: 'base64'|'url', data: string }
+  let editOrderAttachedPhoto = null; // { type: 'base64'|'url', data: string }
+  let currentGalleryPickerTarget = 'new'; // 'new' | 'edit'
+
   let selectedDate = getTodayStr();
   let dailyRooms = [];
   let currentDailyMeta = null;
@@ -1618,6 +1622,13 @@ function createOrderCardHtml(order) {
         <h3 class="order-title">${escapeHtml(order.title)}</h3>
         ${order.description ? `<p class="order-description">${escapeHtml(order.description)}</p>` : ''}
         
+        ${order.image_url ? `
+          <div class="order-photo-wrap" onclick="window.openImageLightbox('${escapeHtml(order.image_url)}', '${escapeHtml(order.created_by)}', '${dateStr} ${timeStr}', '${escapeHtml(order.room_or_area)} - ${escapeHtml(order.title)}', false)" title="Cliquer pour agrandir la photo">
+            <img src="${escapeHtml(order.image_url)}" class="order-photo-img" alt="Photo de l'ordre" loading="lazy" />
+            <div class="order-photo-zoom-hint">🔍 Agrandir la photo</div>
+          </div>
+        ` : ''}
+
         <div class="order-meta">
           <span class="meta-item">👤 Créé par : <strong>${escapeHtml(order.created_by)}</strong></span>
           <span class="meta-item">🕐 ${dateStr} à ${timeStr}</span>
@@ -1717,6 +1728,12 @@ function openEditOrderModal(orderId) {
   document.getElementById('edit-order-title').value = order.title;
   document.getElementById('edit-order-priority').value = order.priority || 'normale';
   document.getElementById('edit-order-desc').value = order.description || '';
+
+  if (order.image_url) {
+    setOrderAttachedPhoto('edit', { type: 'url', data: order.image_url });
+  } else {
+    removeOrderAttachedPhoto('edit');
+  }
 
   modal.style.setProperty('display', 'flex', 'important');
   modal.classList.add('modal-active');
@@ -1879,6 +1896,7 @@ function openNewOrderModal() {
   const modalOrder = document.getElementById('modal-order');
   const formOrder = document.getElementById('form-order');
   if (formOrder) formOrder.reset();
+  removeOrderAttachedPhoto('new');
   if (modalOrder) {
     modalOrder.style.setProperty('display', 'flex', 'important');
     modalOrder.classList.add('modal-active');
@@ -1895,10 +1913,164 @@ function closeNewOrderModal() {
     modalOrder.style.setProperty('display', 'none', 'important');
     modalOrder.classList.remove('modal-active');
   }
+  removeOrderAttachedPhoto('new');
 }
 
 window.openNewOrderModal = openNewOrderModal;
 window.closeNewOrderModal = closeNewOrderModal;
+
+// ==========================================================================
+// GESTION DES PHOTOS JOINTES AUX ORDRES (CAMERA & SÉLECTION GALERIE)
+// ==========================================================================
+function compressOrderImage(base64Src, maxWidth, maxHeight, quality, callback) {
+  const img = new Image();
+  img.onload = function() {
+    let width = img.width;
+    let height = img.height;
+    if (width > maxWidth || height > maxHeight) {
+      if (width / height > maxWidth / maxHeight) {
+        height = Math.round((height * maxWidth) / width);
+        width = maxWidth;
+      } else {
+        width = Math.round((width * maxHeight) / height);
+        height = maxHeight;
+      }
+    }
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(img, 0, 0, width, height);
+    callback(canvas.toDataURL('image/jpeg', quality));
+  };
+  img.onerror = function() {
+    callback(base64Src);
+  };
+  img.src = base64Src;
+}
+
+function triggerOrderPhotoCamera(target) {
+  const inputId = (target === 'edit') ? 'order-edit-file-input' : 'order-new-file-input';
+  const input = document.getElementById(inputId);
+  if (input) {
+    input.value = '';
+    input.click();
+  }
+}
+
+function handleOrderFileSelected(file, target) {
+  if (!file || !file.type.startsWith('image/')) {
+    alert('Veuillez sélectionner un fichier image valide.');
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = function(evt) {
+    const raw = evt.target.result;
+    compressOrderImage(raw, 1600, 1600, 0.85, function(compressed) {
+      setOrderAttachedPhoto(target, { type: 'base64', data: compressed });
+    });
+  };
+  reader.readAsDataURL(file);
+}
+
+function setOrderAttachedPhoto(target, photoObj) {
+  if (target === 'edit') {
+    editOrderAttachedPhoto = photoObj;
+  } else {
+    newOrderAttachedPhoto = photoObj;
+  }
+  const previewWrap = document.getElementById(target === 'edit' ? 'order-edit-photo-preview' : 'order-new-photo-preview');
+  const previewImg = document.getElementById(target === 'edit' ? 'order-edit-preview-img' : 'order-new-preview-img');
+  const badgeEl = document.getElementById(target === 'edit' ? 'order-edit-preview-badge' : 'order-new-preview-badge');
+
+  if (previewImg && photoObj && photoObj.data) {
+    previewImg.src = photoObj.data;
+  }
+  if (badgeEl) {
+    badgeEl.textContent = (photoObj && photoObj.type === 'url') ? '📁 Photo issue de la Galerie' : '📷 Photo prise par l\'appareil';
+  }
+  if (previewWrap) {
+    previewWrap.style.display = (photoObj && photoObj.data) ? 'block' : 'none';
+  }
+}
+
+function removeOrderAttachedPhoto(target) {
+  if (target === 'edit') {
+    editOrderAttachedPhoto = null;
+  } else {
+    newOrderAttachedPhoto = null;
+  }
+  const previewWrap = document.getElementById(target === 'edit' ? 'order-edit-photo-preview' : 'order-new-photo-preview');
+  const previewImg = document.getElementById(target === 'edit' ? 'order-edit-preview-img' : 'order-new-preview-img');
+  if (previewImg) previewImg.src = '';
+  if (previewWrap) previewWrap.style.display = 'none';
+  const input = document.getElementById(target === 'edit' ? 'order-edit-file-input' : 'order-new-file-input');
+  if (input) input.value = '';
+}
+
+function previewCurrentOrderPhoto(target) {
+  const current = (target === 'edit') ? editOrderAttachedPhoto : newOrderAttachedPhoto;
+  if (current && current.data && typeof window.openImageLightbox === 'function') {
+    window.openImageLightbox(current.data, 'Ordre de Service', '', 'Aperçu de la photo jointe', false);
+  }
+}
+
+async function openOrderGalleryPickerModal(target) {
+  currentGalleryPickerTarget = target;
+  const modal = document.getElementById('modal-order-gallery-picker');
+  const grid = document.getElementById('order-gallery-picker-grid');
+  const emptyEl = document.getElementById('order-gallery-picker-empty');
+  if (!modal || !grid) return;
+
+  grid.innerHTML = '<div style="padding:25px; color:#64748b; font-size:13px; text-align:center; grid-column:1/-1;">⏳ Chargement de la galerie...</div>';
+  if (emptyEl) emptyEl.style.display = 'none';
+  modal.style.setProperty('display', 'flex', 'important');
+  modal.classList.add('modal-active');
+
+  try {
+    const res = await fetch('/api/gallery');
+    if (!res.ok) throw new Error('Erreur HTTP ' + res.status);
+    const photos = await res.json();
+    if (!Array.isArray(photos) || photos.length === 0) {
+      grid.innerHTML = '';
+      if (emptyEl) emptyEl.style.display = 'block';
+      return;
+    }
+    grid.innerHTML = photos.map(p => {
+      const cap = p.caption ? escapeHtml(p.caption) : (p.captured_by ? escapeHtml(p.captured_by) : 'Photo');
+      return `
+        <div class="order-gallery-picker-item" onclick="selectPhotoFromGallery('${escapeHtml(p.image_url)}')" title="${cap}">
+          <img src="${escapeHtml(p.image_url)}" class="order-gallery-picker-img" alt="Photo" loading="lazy" />
+          <div class="order-gallery-picker-caption">${cap}</div>
+        </div>
+      `;
+    }).join('');
+  } catch (err) {
+    console.error('Erreur chargement photos galerie pour ordre:', err);
+    grid.innerHTML = '<div style="padding:25px; color:#dc2626; font-size:13px; text-align:center; grid-column:1/-1;">⚠️ Impossible de charger la galerie.</div>';
+  }
+}
+
+function selectPhotoFromGallery(imageUrl) {
+  if (!imageUrl) return;
+  setOrderAttachedPhoto(currentGalleryPickerTarget, { type: 'url', data: imageUrl });
+  closeOrderGalleryPickerModal();
+}
+
+function closeOrderGalleryPickerModal() {
+  const modal = document.getElementById('modal-order-gallery-picker');
+  if (modal) {
+    modal.style.setProperty('display', 'none', 'important');
+    modal.classList.remove('modal-active');
+  }
+}
+
+window.triggerOrderPhotoCamera = triggerOrderPhotoCamera;
+window.openOrderGalleryPickerModal = openOrderGalleryPickerModal;
+window.closeOrderGalleryPickerModal = closeOrderGalleryPickerModal;
+window.removeOrderAttachedPhoto = removeOrderAttachedPhoto;
+window.previewCurrentOrderPhoto = previewCurrentOrderPhoto;
+window.selectPhotoFromGallery = selectPhotoFromGallery;
 
 async function submitNewOrder(e) {
   if (e && e.preventDefault) e.preventDefault();
@@ -1938,16 +2110,26 @@ async function submitNewOrder(e) {
   }
 
   try {
+    const payload = {
+      room_or_area: room,
+      title,
+      description: desc,
+      priority,
+      created_by: user
+    };
+
+    if (newOrderAttachedPhoto) {
+      if (newOrderAttachedPhoto.type === 'base64') {
+        payload.image = newOrderAttachedPhoto.data;
+      } else if (newOrderAttachedPhoto.type === 'url') {
+        payload.image_url = newOrderAttachedPhoto.data;
+      }
+    }
+
     const res = await fetch('/api/orders', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        room_or_area: room,
-        title,
-        description: desc,
-        priority,
-        created_by: user
-      })
+      body: JSON.stringify(payload)
     });
 
     if (res.ok) {
@@ -1992,15 +2174,27 @@ async function submitEditOrder(e) {
   }
 
   try {
+    const payload = {
+      room_or_area: room,
+      title,
+      description: desc,
+      priority
+    };
+
+    if (editOrderAttachedPhoto) {
+      if (editOrderAttachedPhoto.type === 'base64') {
+        payload.image = editOrderAttachedPhoto.data;
+      } else if (editOrderAttachedPhoto.type === 'url') {
+        payload.image_url = editOrderAttachedPhoto.data;
+      }
+    } else {
+      payload.image_url = '';
+    }
+
     const res = await fetch(`/api/orders/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        room_or_area: room,
-        title,
-        description: desc,
-        priority
-      })
+      body: JSON.stringify(payload)
     });
 
     if (res.ok) {
@@ -2092,6 +2286,23 @@ function setupOrderEvents() {
   // Form submit Modifier Ordre
   if (formEditOrder) {
     formEditOrder.addEventListener('submit', submitEditOrder);
+  }
+
+  // File inputs pour photos (Appareil photo / Fichier)
+  const newFileInput = document.getElementById('order-new-file-input');
+  if (newFileInput) {
+    newFileInput.addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (file) handleOrderFileSelected(file, 'new');
+    });
+  }
+
+  const editFileInput = document.getElementById('order-edit-file-input');
+  if (editFileInput) {
+    editFileInput.addEventListener('change', (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (file) handleOrderFileSelected(file, 'edit');
+    });
   }
 }
 
