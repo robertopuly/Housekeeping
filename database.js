@@ -1,4 +1,5 @@
 const path = require('path');
+const fs = require('fs');
 
 let DatabaseSync;
 try {
@@ -13,7 +14,15 @@ try {
   }
 }
 
-const dbPath = path.join(__dirname, 'data.db');
+const dbPath = process.env.DB_PATH || path.join(__dirname, 'data.db');
+const dbDir = path.dirname(dbPath);
+if (!fs.existsSync(dbDir)) {
+  try {
+    fs.mkdirSync(dbDir, { recursive: true });
+  } catch (err) {
+    console.error('Erreur création dossier base de données:', err);
+  }
+}
 const db = new DatabaseSync(dbPath);
 
 try {

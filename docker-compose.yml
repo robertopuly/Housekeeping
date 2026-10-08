@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  housekeeping:
+    build: .
+    image: housekeeping-app:latest
+    container_name: housekeeping-manager
+    restart: always
+    ports:
+      - "8765:8765"
+    volumes:
+      # Cartelle montate sul NAS per non perdere database e foto salvate
+      - ./data:/app/data
+      - ./uploads:/app/public/uploads
+    environment:
+      - PORT=8765
+      - NODE_ENV=production
+      - DB_PATH=/app/data/data.db
