@@ -3647,6 +3647,7 @@ body.is-pc .btn-chat-choices.pc-only {
   bottom: 0;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   background-color: rgba(15, 23, 42, 0.65);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
@@ -3655,6 +3656,8 @@ body.is-pc .btn-chat-choices.pc-only {
   justify-content: center;
   padding: 16px;
   box-sizing: border-box;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .modal-backdrop.modal-active {
@@ -3667,20 +3670,23 @@ body.is-pc .btn-chat-choices.pc-only {
   box-shadow: var(--shadow-lg);
   width: 100%;
   max-width: 520px;
-  max-height: 90vh;
+  max-height: calc(90vh - 20px);
+  max-height: calc(90dvh - 20px);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   position: relative;
   z-index: 100000;
   animation: modalIn 0.2s ease-out;
+  margin: auto;
 }
 
 .modal-box form {
   display: flex;
   flex-direction: column;
-  flex: 1;
+  flex: 1 1 auto;
   min-height: 0;
+  height: 100%;
   overflow: hidden;
 }
 
@@ -3690,17 +3696,19 @@ body.is-pc .btn-chat-choices.pc-only {
 }
 
 .modal-header {
-  padding: 16px 20px;
+  padding: 14px 20px;
   border-bottom: 1px solid var(--border-color);
   display: flex;
   align-items: center;
   justify-content: space-between;
+  flex-shrink: 0;
 }
 
 .modal-header h2 {
   font-size: 18px;
   font-weight: 700;
   color: var(--text-main);
+  margin: 0;
 }
 
 .btn-close-modal {
@@ -3714,21 +3722,45 @@ body.is-pc .btn-chat-choices.pc-only {
 }
 
 .modal-body {
-  padding: 20px;
-  overflow-y: auto;
+  padding: 16px 20px;
+  overflow-y: auto !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  flex: 1 1 auto;
+  min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: 12px;
+}
+
+.modal-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.modal-body::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 3px;
+}
+
+.modal-body::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+.modal-body::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
 .modal-footer {
-  padding: 14px 20px;
+  padding: 12px 20px;
   border-top: 1px solid var(--border-color);
   background-color: #f8fafc;
   display: flex;
   align-items: center;
   justify-content: flex-end;
   gap: 10px;
+  flex-shrink: 0;
+  box-shadow: 0 -2px 6px rgba(0, 0, 0, 0.03);
 }
 
 .form-group {
@@ -6899,42 +6931,43 @@ body.is-pc section.tab-panel.pc-only:not(.active) {
    ORDRES DE SERVICE - GESTION DES PHOTOS JOINTES & SÉLECTION GALERIE
    ========================================================================== */
 .order-photo-group {
-  margin-top: 14px;
-  padding: 12px;
+  margin-top: 8px;
+  padding: 10px 12px;
   background: #f8fafc;
   border: 1px solid #e2e8f0;
-  border-radius: 10px;
+  border-radius: 8px;
 }
 
 .order-photo-label {
   display: block;
   font-weight: 700;
-  font-size: 13px;
+  font-size: 12.5px;
   color: #334155;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
 }
 
 .order-photo-picker-btns {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   flex-wrap: wrap;
 }
 
 .btn-order-attach {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 9px 15px;
+  gap: 6px;
+  padding: 7px 12px;
   background: #ffffff;
   border: 1.5px dashed #94a3b8;
-  border-radius: 8px;
-  font-size: 13px;
+  border-radius: 6px;
+  font-size: 12.5px;
   font-weight: 600;
   color: #334155;
   cursor: pointer;
   transition: all 0.15s ease;
   flex: 1 1 auto;
   justify-content: center;
+  min-height: 34px;
 }
 
 .btn-order-attach:hover {
@@ -6944,7 +6977,7 @@ body.is-pc section.tab-panel.pc-only:not(.active) {
 }
 
 .btn-order-attach-icon {
-  font-size: 16px;
+  font-size: 15px;
 }
 
 .order-attached-preview {
@@ -7133,6 +7166,42 @@ body.is-pc section.tab-panel.pc-only:not(.active) {
 .order-gallery-picker-empty p {
   margin-top: 8px;
   font-size: 13px;
+}
+
+/* ==========================================================================
+   OPTIMISATIONS MODALES POUR TABLETTES & ÉCRANS COMPACTS
+   ========================================================================== */
+@media (max-height: 750px) {
+  .modal-backdrop {
+    padding: 8px !important;
+  }
+  .modal-box {
+    max-height: calc(96vh - 12px) !important;
+    max-height: calc(96dvh - 12px) !important;
+  }
+  .modal-header {
+    padding: 10px 16px !important;
+  }
+  .modal-header h2 {
+    font-size: 16px !important;
+  }
+  .modal-body {
+    padding: 12px 16px !important;
+    gap: 10px !important;
+  }
+  .modal-footer {
+    padding: 10px 16px !important;
+  }
+  .form-group {
+    gap: 4px !important;
+  }
+  .form-control {
+    padding: 7px 11px !important;
+    font-size: 14px !important;
+  }
+  textarea.form-control {
+    min-height: 50px !important;
+  }
 }
 
 

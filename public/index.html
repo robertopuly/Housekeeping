@@ -8,9 +8,9 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <title>Gouvernante Hôtel - Gestion & Communication</title>
-  <link rel="stylesheet" href="css/styles.css?v=78">
+  <link rel="stylesheet" href="css/styles.css?v=80">
   <script>
-    window.APP_VERSION = 78;
+    window.APP_VERSION = 80;
     function getTodayIsoStr() {
       var d = new Date();
       var y = d.getFullYear();
@@ -909,12 +909,12 @@
             <label for="order-room">Chambre / Lieu *</label>
             <input type="text" id="order-room" class="form-control" placeholder="ex. Chambre 1, Chambre 2, Buanderie" required />
             <div class="room-suggestions">
-              <span class="room-suggestion-chip" data-room="Chambre 1">Chambre 1</span>
-              <span class="room-suggestion-chip" data-room="Chambre 2">Chambre 2</span>
-              <span class="room-suggestion-chip" data-room="Chambre 3">Chambre 3</span>
-              <span class="room-suggestion-chip" data-room="Chambre 4">Chambre 4</span>
-              <span class="room-suggestion-chip" data-room="Chambre 5">Chambre 5</span>
-              <span class="room-suggestion-chip" data-room="Espaces Communs">Espaces Communs</span>
+              <span class="room-suggestion-chip" data-room="Chambre 1">Ch. 1</span>
+              <span class="room-suggestion-chip" data-room="Chambre 2">Ch. 2</span>
+              <span class="room-suggestion-chip" data-room="Chambre 3">Ch. 3</span>
+              <span class="room-suggestion-chip" data-room="Chambre 4">Ch. 4</span>
+              <span class="room-suggestion-chip" data-room="Chambre 5">Ch. 5</span>
+              <span class="room-suggestion-chip" data-room="Réception">Réception</span>
               <span class="room-suggestion-chip" data-room="Buanderie">Buanderie</span>
             </div>
           </div>
@@ -936,7 +936,7 @@
 
           <div class="form-group">
             <label for="order-desc">Notes / Détails (Optionnel)</label>
-            <textarea id="order-desc" class="form-control" placeholder="Consignes supplémentaires, heure d'arrivée des clients..."></textarea>
+            <textarea id="order-desc" class="form-control" rows="2" placeholder="Consignes supplémentaires, heure d'arrivée des clients..."></textarea>
           </div>
 
           <!-- PHOTO ATTACHMENT POUR NOUVEL ORDRE -->
@@ -1016,7 +1016,7 @@
 
           <div class="form-group">
             <label for="edit-order-desc">Notes / Détails</label>
-            <textarea id="edit-order-desc" class="form-control" placeholder="Ajouter ou modifier des notes..."></textarea>
+            <textarea id="edit-order-desc" class="form-control" rows="2" placeholder="Ajouter ou modifier des notes..."></textarea>
           </div>
 
           <!-- PHOTO ATTACHMENT POUR MODIFIER ORDRE -->
@@ -1649,16 +1649,16 @@
 
   <!-- SCRIPTS -->
   <script src="/socket.io/socket.io.js"></script>
-  <script src="js/audio.js?v=79"></script>
-  <script src="js/socket.js?v=79"></script>
-  <script src="js/chat.js?v=79"></script>
-  <script src="js/orders.js?v=79"></script>
-  <script src="js/deadlines.js?v=79"></script>
-  <script src="js/shopping.js?v=79"></script>
-  <script src="js/expenses.js?v=79"></script>
-  <script src="js/leave.js?v=79"></script>
-  <script src="js/presence.js?v=79"></script>
-  <script src="js/gallery.js?v=79"></script>
-  <script src="js/app.js?v=79"></script>
+  <script src="js/audio.js?v=80"></script>
+  <script src="js/socket.js?v=80"></script>
+  <script src="js/chat.js?v=80"></script>
+  <script src="js/orders.js?v=80"></script>
+  <script src="js/deadlines.js?v=80"></script>
+  <script src="js/shopping.js?v=80"></script>
+  <script src="js/expenses.js?v=80"></script>
+  <script src="js/leave.js?v=80"></script>
+  <script src="js/presence.js?v=80"></script>
+  <script src="js/gallery.js?v=80"></script>
+  <script src="js/app.js?v=80"></script>
 </body>
 </html>
