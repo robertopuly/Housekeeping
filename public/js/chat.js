@@ -1565,9 +1565,40 @@ function setupChatEvents() {
       handleInputChange();
     });
 
+    input.addEventListener('focus', () => {
+      // Quando si apre la tastiera virtuale, assicura che l'input rimanga visibile sopra la tastiera
+      setTimeout(() => {
+        if (window.visualViewport) {
+          const offset = Math.max(0, window.innerHeight - window.visualViewport.height);
+          if (offset > 60) {
+            document.documentElement.style.setProperty('--keyboard-offset', offset + 'px');
+            document.documentElement.style.setProperty('--app-height', window.visualViewport.height + 'px');
+            document.body.classList.add('keyboard-open');
+          }
+        }
+        scrollToBottom(false);
+        try {
+          input.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+        } catch (e) {}
+      }, 120);
+
+      setTimeout(() => {
+        scrollToBottom(false);
+      }, 350);
+    });
+
     input.addEventListener('blur', () => {
       if (stopTypingTimeout) clearTimeout(stopTypingTimeout);
       sendTypingStatus(false);
+      setTimeout(() => {
+        if (!document.activeElement || document.activeElement.id !== 'chat-input') {
+          if (!window.visualViewport || (window.innerHeight - window.visualViewport.height) <= 60) {
+            document.documentElement.style.setProperty('--keyboard-offset', '0px');
+            document.documentElement.style.removeProperty('--app-height');
+            document.body.classList.remove('keyboard-open');
+          }
+        }
+      }, 200);
     });
 
     input.addEventListener('keydown', (e) => {
@@ -1576,6 +1607,16 @@ function setupChatEvents() {
         sendMessage();
       }
     });
+  }
+
+  // Permette di abbassare la tastiera toccando la cronologia messaggi
+  const messagesContainer = document.getElementById('chat-messages');
+  if (messagesContainer) {
+    messagesContainer.addEventListener('touchstart', () => {
+      if (input && document.activeElement === input) {
+        input.blur();
+      }
+    }, { passive: true });
   }
 
   // Bouton photo / vidéo & inputs fichiers

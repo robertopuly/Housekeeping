@@ -2,7 +2,44 @@
 let currentUser = 'Roberto';
 let activeTab = 'tab-chat';
 
+function initVisualViewportHandler() {
+  if (!window.visualViewport) return;
+
+  function updateViewport() {
+    var vv = window.visualViewport;
+    var windowH = window.innerHeight;
+    var keyboardHeight = Math.max(0, windowH - vv.height);
+    var isKeyboardOpen = keyboardHeight > 60;
+
+    if (isKeyboardOpen) {
+      document.documentElement.style.setProperty('--keyboard-offset', keyboardHeight + 'px');
+      document.documentElement.style.setProperty('--app-height', vv.height + 'px');
+      document.body.classList.add('keyboard-open');
+    } else {
+      document.documentElement.style.setProperty('--keyboard-offset', '0px');
+      document.documentElement.style.removeProperty('--app-height');
+      document.body.classList.remove('keyboard-open');
+    }
+
+    if (window.App && typeof window.App.getActiveTab === 'function' && window.App.getActiveTab() === 'tab-chat') {
+      if (window.ChatModule && typeof window.ChatModule.scrollToBottom === 'function') {
+        window.ChatModule.scrollToBottom(false);
+      }
+    }
+  }
+
+  window.visualViewport.addEventListener('resize', updateViewport);
+  window.visualViewport.addEventListener('scroll', updateViewport);
+  window.addEventListener('resize', updateViewport);
+  window.addEventListener('orientationchange', function() {
+    setTimeout(updateViewport, 250);
+  });
+
+  updateViewport();
+}
+
 function initApp() {
+  initVisualViewportHandler();
   initUser();
   initNavigation();
   initSoundButton();
