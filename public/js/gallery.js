@@ -55,12 +55,22 @@
   function setupModalEvents() {
     const btnClose = document.getElementById('btn-close-modal-gallery');
     const btnCancel = document.getElementById('btn-gallery-modal-cancel');
+    const btnOrder = document.getElementById('btn-gallery-modal-order');
     const btnSendChat = document.getElementById('btn-gallery-modal-send');
     const btnDelete = document.getElementById('btn-gallery-modal-delete');
     const btnFullscreen = document.getElementById('btn-gallery-modal-fullscreen');
+    const previewImg = document.getElementById('gallery-action-preview-img');
 
     if (btnClose) btnClose.addEventListener('click', closeActionModal);
     if (btnCancel) btnCancel.addEventListener('click', closeActionModal);
+
+    if (btnOrder) {
+      btnOrder.addEventListener('click', () => {
+        if (activePhoto) {
+          createOrderWithPhoto(activePhoto.image_url);
+        }
+      });
+    }
 
     if (btnSendChat) {
       btnSendChat.addEventListener('click', () => {
@@ -89,6 +99,20 @@
             activePhoto.caption || ''
           );
           closeActionModal();
+        }
+      });
+    }
+
+    if (previewImg) {
+      previewImg.addEventListener('click', () => {
+        if (activePhoto && typeof window.openImageLightbox === 'function') {
+          const dt = formatZurichDateTime(activePhoto.created_at);
+          window.openImageLightbox(
+            activePhoto.image_url,
+            activePhoto.captured_by || 'Tablette',
+            dt.dateStr + ' ' + dt.timeStr,
+            activePhoto.caption || ''
+          );
         }
       });
     }
@@ -172,6 +196,11 @@
 
             <!-- BOUTONS D'ACTION DIRECTS À UN TOUCHE (SANS LONG-PRESS) -->
             <div class="gallery-card-actions-row">
+              <button type="button" class="btn-card-action btn-card-order" title="Créer un ordre de service avec cette photo" onclick="event.stopPropagation(); window.GalleryModule.createOrderWithPhoto(${photo.id});">
+                <span class="btn-card-action-icon">📋</span>
+                <span>Ordre</span>
+              </button>
+
               <button type="button" class="btn-card-action btn-card-chat" title="Envoyer directement dans la messagerie" onclick="event.stopPropagation(); window.GalleryModule.sendPhotoToChat(${photo.id});">
                 <span class="btn-card-action-icon">💬</span>
                 <span>Envoyer</span>
@@ -221,6 +250,40 @@
       modal.classList.remove('modal-active');
     }
     activePhoto = null;
+  }
+
+  function createOrderWithPhoto(photoIdOrUrl) {
+    let imageUrl = '';
+    if (typeof photoIdOrUrl === 'number' || (typeof photoIdOrUrl === 'string' && /^\d+$/.test(photoIdOrUrl))) {
+      const p = photos.find(item => item.id === parseInt(photoIdOrUrl));
+      if (p) imageUrl = p.image_url;
+    } else if (typeof photoIdOrUrl === 'string') {
+      imageUrl = photoIdOrUrl;
+    } else if (activePhoto) {
+      imageUrl = activePhoto.image_url;
+    }
+
+    if (!imageUrl) {
+      alert("Impossible de récupérer la photo pour l'ordre de service.");
+      return;
+    }
+
+    // 1. Fermer la modale d'action de la galerie
+    closeActionModal();
+
+    // 2. Basculer vers l'onglet Ordres de Service
+    if (window.App && typeof window.App.switchTab === 'function') {
+      window.App.switchTab('tab-orders');
+    }
+
+    // 3. Ouvrir la modale Nouvel Ordre avec la photo attachée
+    setTimeout(() => {
+      if (typeof window.openNewOrderModal === 'function') {
+        window.openNewOrderModal(imageUrl);
+      } else if (window.OrdersModule && typeof window.OrdersModule.openNewOrderModal === 'function') {
+        window.OrdersModule.openNewOrderModal(imageUrl);
+      }
+    }, 60);
   }
 
   async function sendPhotoToChat(photoId) {
@@ -489,6 +552,7 @@
     openActionModalById,
     openActionModal,
     closeActionModal,
+    createOrderWithPhoto,
     sendPhotoToChat,
     deletePhoto,
     onPhotoCreated,

@@ -8,9 +8,9 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <title>Gouvernante Hôtel - Gestion & Communication</title>
-  <link rel="stylesheet" href="css/styles.css?v=80">
+  <link rel="stylesheet" href="css/styles.css?v=81">
   <script>
-    window.APP_VERSION = 80;
+    window.APP_VERSION = 81;
     function getTodayIsoStr() {
       var d = new Date();
       var y = d.getFullYear();
@@ -1396,6 +1396,14 @@
         </div>
 
         <div class="gallery-action-buttons-group">
+          <button type="button" id="btn-gallery-modal-order" class="btn btn-gallery-order">
+            <span class="btn-action-icon">📋</span>
+            <div class="btn-action-label-wrap">
+              <strong>Ajouter aux ordres</strong>
+              <small>Créer un ordre de service avec cette photo jointe</small>
+            </div>
+          </button>
+
           <button type="button" id="btn-gallery-modal-send" class="btn btn-gallery-send">
             <span class="btn-action-icon">💬</span>
             <div class="btn-action-label-wrap">
@@ -1649,16 +1657,16 @@
 
   <!-- SCRIPTS -->
   <script src="/socket.io/socket.io.js"></script>
-  <script src="js/audio.js?v=80"></script>
-  <script src="js/socket.js?v=80"></script>
-  <script src="js/chat.js?v=80"></script>
-  <script src="js/orders.js?v=80"></script>
-  <script src="js/deadlines.js?v=80"></script>
-  <script src="js/shopping.js?v=80"></script>
-  <script src="js/expenses.js?v=80"></script>
-  <script src="js/leave.js?v=80"></script>
-  <script src="js/presence.js?v=80"></script>
-  <script src="js/gallery.js?v=80"></script>
-  <script src="js/app.js?v=80"></script>
+  <script src="js/audio.js?v=81"></script>
+  <script src="js/socket.js?v=81"></script>
+  <script src="js/chat.js?v=81"></script>
+  <script src="js/orders.js?v=81"></script>
+  <script src="js/deadlines.js?v=81"></script>
+  <script src="js/shopping.js?v=81"></script>
+  <script src="js/expenses.js?v=81"></script>
+  <script src="js/leave.js?v=81"></script>
+  <script src="js/presence.js?v=81"></script>
+  <script src="js/gallery.js?v=81"></script>
+  <script src="js/app.js?v=81"></script>
 </body>
 </html>

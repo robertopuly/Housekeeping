@@ -1892,11 +1892,19 @@ function onOrderDeleted(id) {
   updateOrdersBadge();
 }
 
-function openNewOrderModal() {
+function openNewOrderModal(initialPhoto = null) {
   const modalOrder = document.getElementById('modal-order');
   const formOrder = document.getElementById('form-order');
   if (formOrder) formOrder.reset();
-  removeOrderAttachedPhoto('new');
+
+  const hasPhoto = initialPhoto && (typeof initialPhoto === 'string' || (typeof initialPhoto === 'object' && initialPhoto.data));
+  if (hasPhoto) {
+    const photoData = (typeof initialPhoto === 'string') ? { type: 'url', data: initialPhoto } : initialPhoto;
+    setOrderAttachedPhoto('new', photoData);
+  } else {
+    removeOrderAttachedPhoto('new');
+  }
+
   if (modalOrder) {
     modalOrder.style.setProperty('display', 'flex', 'important');
     modalOrder.classList.add('modal-active');
