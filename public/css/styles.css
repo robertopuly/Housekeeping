@@ -6494,7 +6494,7 @@ body.is-pc section.tab-panel.pc-only:not(.active) {
 
 .gallery-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
   gap: 16px;
   padding-bottom: 30px;
 }
@@ -6628,20 +6628,22 @@ body.is-pc section.tab-panel.pc-only:not(.active) {
 .gallery-card-actions-row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  margin-top: 4px;
+  gap: 6px;
+  margin-top: 6px;
+  width: 100%;
 }
 
 .btn-card-action {
   flex: 1;
-  padding: 8px 10px;
+  min-width: 0;
+  padding: 8px 4px;
   border-radius: 8px;
-  font-size: 12.5px;
+  font-size: 12px;
   font-weight: 700;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 5px;
+  gap: 4px;
   cursor: pointer;
   border: none;
   transition: all 0.15s ease;
@@ -6649,10 +6651,30 @@ body.is-pc section.tab-panel.pc-only:not(.active) {
   -webkit-user-select: none;
   -webkit-touch-callout: none !important;
   touch-action: manipulation !important;
+  white-space: nowrap;
+}
+
+.btn-card-action span {
+  white-space: nowrap;
+  overflow: visible;
 }
 
 .btn-card-action:active {
   transform: scale(0.96);
+}
+
+@media (max-width: 640px) {
+  .gallery-card-actions-row {
+    flex-wrap: wrap;
+    gap: 5px;
+  }
+  .gallery-card-actions-row .btn-card-order,
+  .gallery-card-actions-row .btn-card-chat {
+    flex: 1 1 calc(50% - 3px);
+  }
+  .gallery-card-actions-row .btn-card-delete {
+    flex: 1 1 100%;
+  }
 }
 
 .btn-card-order {
