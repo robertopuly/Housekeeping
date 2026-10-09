@@ -1150,6 +1150,56 @@ body {
   }
 }
 
+/* Bannière "En train d'écrire" fixée au-dessus de la saisie (pour Adélcia) */
+.chat-typing-banner {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 7px 16px;
+  background: linear-gradient(135deg, #eff6ff 0%, #e0e7ff 100%);
+  border-top: 1.5px solid #bfdbfe;
+  border-bottom: 1px solid #dbeafe;
+  flex-shrink: 0;
+  animation: slideDownFade 0.2s ease-out;
+  z-index: 15;
+}
+
+.typing-banner-content {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13.5px;
+  color: #1e40af;
+  font-weight: 500;
+}
+
+.typing-banner-icon {
+  font-size: 16px;
+  animation: typingWiggle 1.2s infinite ease-in-out;
+}
+
+.typing-banner-text strong {
+  font-weight: 700;
+  color: #1d4ed8;
+}
+
+@keyframes typingWiggle {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-8deg); }
+  75% { transform: rotate(8deg); }
+}
+
+@keyframes slideDownFade {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 /* Live Draft Typing Preview (PC Roberto) */
 .typing-bubble-with-preview {
   display: flex !important;

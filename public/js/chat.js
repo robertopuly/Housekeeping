@@ -1288,25 +1288,47 @@ function onTypingStatus({ user, isTyping, text }) {
 
 function renderTypingIndicator() {
   const container = document.getElementById('chat-messages');
-  if (!container) return;
-
-  let indicatorEl = document.getElementById('chat-typing-indicator');
-
-  if (typingUsers.size === 0) {
-    if (indicatorEl) indicatorEl.remove();
-    return;
-  }
+  const bannerEl = document.getElementById('chat-typing-banner');
+  const bannerTextEl = document.getElementById('typing-banner-text');
 
   const names = Array.from(typingUsers);
   const currentUser = window.App ? window.App.getCurrentUser() : '';
   const isRoberto = (currentUser && currentUser.toLowerCase() === 'roberto');
 
+  if (typingUsers.size === 0) {
+    if (bannerEl) bannerEl.style.display = 'none';
+    const oldIndicator = document.getElementById('chat-typing-indicator');
+    if (oldIndicator) oldIndicator.remove();
+    return;
+  }
+
   const textLabel = names.length === 1 
     ? `<strong>${escapeHtml(names[0])}</strong> est en train d’écrire`
     : `<strong>${escapeHtml(names.join(', '))}</strong> sont en train d’écrire`;
-  const avatarChar = (names[0] || 'A').charAt(0).toUpperCase();
 
-  // Seul Roberto sur PC voit le texte en direct si disponible
+  // 1. Pour Adélcia (sur tablette / mobile) :
+  // Afficher la bannière TOUJOURS visible au-dessus de la saisie,
+  // sans avoir besoin de faire défiler et sans qu'elle soit cachée sous le clavier.
+  if (!isRoberto) {
+    if (bannerEl) {
+      if (bannerTextEl) {
+        bannerTextEl.innerHTML = textLabel;
+      }
+      bannerEl.style.display = 'flex';
+    }
+    const oldIndicator = document.getElementById('chat-typing-indicator');
+    if (oldIndicator) oldIndicator.remove();
+    return;
+  }
+
+  // 2. Pour Roberto (sur tablette / PC) :
+  // Conserver exactement le comportement dans le flux des messages (chat-messages),
+  // car Roberto y voit l'aperçu en direct (liveDraft) de ce qu'Adélcia écrit !
+  if (bannerEl) bannerEl.style.display = 'none';
+
+  if (!container) return;
+  let indicatorEl = document.getElementById('chat-typing-indicator');
+
   const liveDraft = (isRoberto && names.length === 1 && typeof typingDrafts[names[0]] === 'string' && typingDrafts[names[0]].length > 0)
     ? typingDrafts[names[0]]
     : '';
