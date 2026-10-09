@@ -3,7 +3,7 @@
   'use strict';
 
   let deadlinesList = [];
-  let currentFilter = 'prochaines_10j';
+  let currentFilter = 'tutte';
 
 async function initDeadlines() {
   setupDeadlineEvents();
