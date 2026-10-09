@@ -8,9 +8,9 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <title>Gouvernante Hôtel - Gestion & Communication</title>
-  <link rel="stylesheet" href="css/styles.css?v=81">
+  <link rel="stylesheet" href="css/styles.css?v=82">
   <script>
-    window.APP_VERSION = 81;
+    window.APP_VERSION = 82;
     function getTodayIsoStr() {
       var d = new Date();
       var y = d.getFullYear();
@@ -1238,6 +1238,42 @@
     </div>
   </div>
 
+  <!-- MODAL NOTIFICATION ÉCHÉANCES DU JOUR (OUVERTURE APPLICATION) -->
+  <div id="modal-today-deadlines-alert" class="modal-backdrop" onclick="if(event.target===this)closeTodayDeadlinesAlertModal()">
+    <div class="modal-box modal-box-today-deadlines">
+      <div class="modal-header modal-header-today-deadlines">
+        <div class="modal-title-with-badge">
+          <span class="modal-header-bell-icon">🔔</span>
+          <h2>Échéances & Tâches du Jour</h2>
+        </div>
+        <button type="button" class="btn-close-modal" onclick="closeTodayDeadlinesAlertModal()" title="Fermer" style="color: #ffffff;">&times;</button>
+      </div>
+
+      <div class="modal-body modal-body-today-deadlines">
+        <div class="today-deadlines-banner">
+          <div class="today-deadlines-banner-icon">📅</div>
+          <div class="today-deadlines-banner-text">
+            <strong>Tâches prévues pour aujourd'hui</strong>
+            <p id="today-deadlines-banner-sub">Vous avez des échéances planifiées à vérifier ou exécuter :</p>
+          </div>
+        </div>
+
+        <div id="today-deadlines-alert-list" class="today-deadlines-items-list">
+          <!-- Liste dynamique des échéances du jour -->
+        </div>
+      </div>
+
+      <div class="modal-footer modal-footer-today-deadlines">
+        <button type="button" class="btn btn-secondary" onclick="closeTodayDeadlinesAlertModal()">
+          ✓ J'ai compris
+        </button>
+        <button type="button" class="btn btn-primary" onclick="goToDeadlinesTabFromAlert()">
+          📋 Voir la fiche Échéances
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- MODAL ACTIONS MESSAGE (RÉPONDRE / SUPPRIMER) -->
   <div id="modal-message-actions" class="modal-backdrop" onclick="if(event.target===this)closeMessageActionsModal()">
     <div class="modal-box modal-box-sm">
@@ -1657,16 +1693,16 @@
 
   <!-- SCRIPTS -->
   <script src="/socket.io/socket.io.js"></script>
-  <script src="js/audio.js?v=81"></script>
-  <script src="js/socket.js?v=81"></script>
-  <script src="js/chat.js?v=81"></script>
-  <script src="js/orders.js?v=81"></script>
-  <script src="js/deadlines.js?v=81"></script>
-  <script src="js/shopping.js?v=81"></script>
-  <script src="js/expenses.js?v=81"></script>
-  <script src="js/leave.js?v=81"></script>
-  <script src="js/presence.js?v=81"></script>
-  <script src="js/gallery.js?v=81"></script>
-  <script src="js/app.js?v=81"></script>
+  <script src="js/audio.js?v=82"></script>
+  <script src="js/socket.js?v=82"></script>
+  <script src="js/chat.js?v=82"></script>
+  <script src="js/orders.js?v=82"></script>
+  <script src="js/deadlines.js?v=82"></script>
+  <script src="js/shopping.js?v=82"></script>
+  <script src="js/expenses.js?v=82"></script>
+  <script src="js/leave.js?v=82"></script>
+  <script src="js/presence.js?v=82"></script>
+  <script src="js/gallery.js?v=82"></script>
+  <script src="js/app.js?v=82"></script>
 </body>
 </html>

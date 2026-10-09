@@ -8,6 +8,9 @@
 async function initDeadlines() {
   setupDeadlineEvents();
   await loadDeadlines();
+  setTimeout(() => {
+    checkTodayDeadlinesPopup();
+  }, 450);
 }
 
 async function loadDeadlines() {
@@ -35,11 +38,21 @@ function setFilter(filter) {
 window.setDeadlinesFilter = setFilter;
 
 function getTodayStr() {
-  const d = new Date();
-  const year = d.getFullYear();
-  const month = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
+  try {
+    const parts = new Intl.DateTimeFormat('fr-CA', {
+      timeZone: 'Europe/Zurich',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    }).formatToParts(new Date());
+    const y = parts.find(p => p.type === 'year').value;
+    const m = parts.find(p => p.type === 'month').value;
+    const d = parts.find(p => p.type === 'day').value;
+    return `${y}-${m}-${d}`;
+  } catch (e) {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
 }
 
 function getLimit10DaysStr() {
@@ -388,6 +401,10 @@ function onDeadlineCreated(item) {
   }
   renderDeadlines();
   updateDeadlinesBadge();
+
+  if (!item.is_completed && item.due_date <= getTodayStr()) {
+    checkTodayDeadlinesPopup(true);
+  }
 }
 
 function onDeadlineUpdated(item) {
@@ -708,6 +725,149 @@ function escapeHtml(str) {
     .replace(/'/g, '&#39;');
 }
 
+// ==========================================================================
+// POPUP ÉCHÉANCES DU JOUR (DÉMARRAGE DE L'APPLICATION)
+// ==========================================================================
+function openTodayDeadlinesAlertModal(items, todayStr) {
+  const modal = document.getElementById('modal-today-deadlines-alert');
+  const listEl = document.getElementById('today-deadlines-alert-list');
+  const subEl = document.getElementById('today-deadlines-banner-sub');
+  if (!modal || !listEl) return;
+
+  const currentUser = (window.App && typeof window.App.getCurrentUser === 'function')
+    ? window.App.getCurrentUser()
+    : (localStorage.getItem('hk_user') || 'Adélcia');
+
+  if (subEl) {
+    const greeting = (currentUser && currentUser.toLowerCase().includes('adelcia'))
+      ? `Bonjour Adélcia, voici les tâches planifiées à réaliser :`
+      : `Bonjour ${escapeHtml(currentUser)}, voici les tâches planifiées pour aujourd'hui :`;
+    subEl.textContent = greeting;
+  }
+
+  listEl.innerHTML = items.map(item => {
+    const isOverdue = item.due_date < todayStr;
+    const formattedDate = formatDueDate(item.due_date);
+
+    let roomBadge = '';
+    if (item.room_number && item.room_number !== 'Général') {
+      roomBadge = `<span class="room-chip" style="background:#e0e7ff; color:#3730a3; padding:2.5px 8px; border-radius:12px; font-size:11.5px; font-weight:700;">🏨 ${escapeHtml(item.room_number)}</span>`;
+    } else {
+      roomBadge = `<span class="room-chip" style="background:#f1f5f9; color:#475569; padding:2.5px 8px; border-radius:12px; font-size:11.5px; font-weight:600;">📋 Général</span>`;
+    }
+
+    let priorityBadge = '';
+    if (item.priority === 'emergenza') {
+      priorityBadge = '<span class="priority-badge emergenza" style="font-size:11px;">🚨 Urgence</span>';
+    } else if (item.priority === 'urgente') {
+      priorityBadge = '<span class="priority-badge urgente" style="font-size:11px;">⚠️ Urgente</span>';
+    }
+
+    let dateBadge = isOverdue
+      ? `<span class="deadline-alert-badge badge-overdue" style="font-size:10.5px;">⚠️ En retard (${formattedDate})</span>`
+      : `<span class="deadline-alert-badge badge-today" style="font-size:10.5px;">🚨 Aujourd'hui</span>`;
+
+    let catBadge = `<span style="background:#f8fafc; border:1px solid #e2e8f0; color:#334155; font-size:11px; padding:2px 6px; border-radius:6px; font-weight:600;">🏷️ ${escapeHtml(item.category || 'Tâche')}</span>`;
+
+    return `
+      <div class="today-alert-item-card ${isOverdue ? 'is-overdue' : ''}" id="today-alert-item-${item.id}">
+        <div class="today-alert-item-header">
+          <div class="today-alert-badges-row">
+            ${dateBadge}
+            ${roomBadge}
+            ${catBadge}
+            ${priorityBadge}
+          </div>
+          <button type="button" class="btn-today-alert-complete" onclick="completeDeadlineFromAlert(${item.id})" title="Marquer comme terminée">
+            ✓ Terminer
+          </button>
+        </div>
+        <div class="today-alert-item-title">${escapeHtml(item.title)}</div>
+        ${item.notes ? `<div class="today-alert-item-notes">📝 ${escapeHtml(item.notes)}</div>` : ''}
+      </div>
+    `;
+  }).join('');
+
+  modal.style.setProperty('display', 'flex', 'important');
+  modal.classList.add('modal-active');
+
+  // Avertissement sonore doux ou alerte si tâche urgente
+  if (window.SoundEngine) {
+    const hasUrgent = items.some(i => i.priority === 'emergenza' || i.priority === 'urgente');
+    if (hasUrgent && typeof window.SoundEngine.playUrgentAlert === 'function') {
+      window.SoundEngine.playUrgentAlert();
+    } else if (typeof window.SoundEngine.playMessageSound === 'function') {
+      window.SoundEngine.playMessageSound();
+    }
+  }
+}
+
+function closeTodayDeadlinesAlertModal() {
+  const modal = document.getElementById('modal-today-deadlines-alert');
+  if (modal) {
+    modal.style.setProperty('display', 'none', 'important');
+    modal.classList.remove('modal-active');
+  }
+}
+
+function goToDeadlinesTabFromAlert() {
+  closeTodayDeadlinesAlertModal();
+  if (window.App && typeof window.App.switchTab === 'function') {
+    window.App.switchTab('tab-deadlines');
+  }
+  setFilter('oggi_scadute');
+}
+
+async function completeDeadlineFromAlert(id) {
+  const currentUser = (window.App && typeof window.App.getCurrentUser === 'function')
+    ? window.App.getCurrentUser()
+    : (localStorage.getItem('hk_user') || 'Adélcia');
+
+  const card = document.getElementById(`today-alert-item-${id}`);
+  if (card) {
+    card.style.opacity = '0.5';
+    card.style.pointerEvents = 'none';
+  }
+
+  await toggleDeadlineCompletion(id, true, currentUser);
+
+  if (card) {
+    card.remove();
+  }
+
+  const listEl = document.getElementById('today-deadlines-alert-list');
+  if (listEl && listEl.querySelectorAll('.today-alert-item-card').length === 0) {
+    listEl.innerHTML = '<div style="text-align:center; padding:18px; font-weight:700; color:#15803d; font-size:14.5px;">🎉 Bravo ! Toutes les tâches du jour ont été effectuées !</div>';
+    setTimeout(() => {
+      closeTodayDeadlinesAlertModal();
+    }, 1800);
+  }
+}
+
+function checkTodayDeadlinesPopup(force = false) {
+  const todayStr = getTodayStr();
+  const sessionKey = 'hk_deadlines_popup_seen_' + todayStr;
+
+  if (!force && sessionStorage.getItem(sessionKey)) {
+    return;
+  }
+
+  const dueItems = deadlinesList.filter(d => !d.is_completed && d.due_date <= todayStr);
+  if (dueItems.length === 0) {
+    return;
+  }
+
+  sessionStorage.setItem(sessionKey, '1');
+  openTodayDeadlinesAlertModal(dueItems, todayStr);
+}
+
+// Vérifier également au réveil / retour d'arrière-plan de l'appareil
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') {
+    checkTodayDeadlinesPopup();
+  }
+});
+
   window.DeadlinesModule = {
     initDeadlines,
     loadDeadlines,
@@ -724,7 +884,12 @@ function escapeHtml(str) {
     onDeadlineCreated,
     onDeadlineUpdated,
     onDeadlineDeleted,
-    updateDeadlinesBadge
+    updateDeadlinesBadge,
+    checkTodayDeadlinesPopup,
+    openTodayDeadlinesAlertModal,
+    closeTodayDeadlinesAlertModal,
+    goToDeadlinesTabFromAlert,
+    completeDeadlineFromAlert
   };
 
   window.setDeadlinesFilter = setFilter;
@@ -736,4 +901,8 @@ function escapeHtml(str) {
   window.submitEditDeadline = submitEditDeadline;
   window.loadDeadlines = loadDeadlines;
   window.renderDeadlines = renderDeadlines;
+  window.closeTodayDeadlinesAlertModal = closeTodayDeadlinesAlertModal;
+  window.goToDeadlinesTabFromAlert = goToDeadlinesTabFromAlert;
+  window.completeDeadlineFromAlert = completeDeadlineFromAlert;
+  window.checkTodayDeadlinesPopup = checkTodayDeadlinesPopup;
 })();
