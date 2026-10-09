@@ -116,7 +116,7 @@ app.get('/api/messages', (req, res) => {
 
 app.post('/api/messages', (req, res) => {
   try {
-    const { sender, text, type, reply_to, image, video, video_url } = req.body;
+    const { sender, text, type, reply_to, image, image_url, video, video_url } = req.body;
     if (!sender) {
       return res.status(400).json({ error: 'Mittente obbligatorio' });
     }
