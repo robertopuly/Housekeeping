@@ -1187,7 +1187,7 @@ io.on('connection', (socket) => {
 // Nettoyage régulier des messages éphémères expirés (toutes les 30 secondes)
 setInterval(() => {
   try {
-    const { expired, readExpired, unreadExpired } = db.cleanupExpiredMessages();
+    const { expired, readExpired, unreadExpired, purgedDeletedIds } = db.cleanupExpiredMessages();
     if (expired && expired.length > 0) {
       for (const m of expired) {
         if (m.image_url && m.image_url.startsWith('/uploads/')) {
@@ -1208,12 +1208,17 @@ setInterval(() => {
       // Les messages non lus sont transformés en "Message supprimé et non lu"
       if (unreadExpired && unreadExpired.length > 0) {
         unreadExpired.forEach(m => {
-          io.emit('chat:deleted', { id: m.id, text: 'Message supprimé et non lu' });
+          io.emit('chat:deleted', { id: m.id, text: 'Message supprimé et non lu', deleted_at: new Date().toISOString() });
         });
       }
     }
+
+    // Les messages supprimés depuis plus de 2 heures disparaissent complètement de la discussion
+    if (purgedDeletedIds && purgedDeletedIds.length > 0) {
+      io.emit('chat:messages_expired', { ids: purgedDeletedIds });
+    }
   } catch (err) {
-    console.error('Erreur nettoyage messages éphémères:', err);
+    console.error('Erreur nettoyage messages éphémères et supprimés:', err);
   }
 }, 30000);
 

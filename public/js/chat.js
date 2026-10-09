@@ -417,7 +417,16 @@ function renderMessages() {
 
     const isMe = msg.sender && currentUser && msg.sender.toLowerCase() === currentUser.toLowerCase();
     const isSystem = msg.sender && (msg.sender.toLowerCase() === 'système' || msg.sender.toLowerCase() === 'sistema');
-    const isDeleted = msg.is_deleted === 1 || msg.text === 'Message supprimé';
+    const isDeleted = msg.is_deleted === 1 || msg.text === 'Message supprimé' || msg.text === 'Message supprimé et non lu';
+
+    if (isDeleted) {
+      const delTime = msg.deleted_at ? new Date(msg.deleted_at).getTime() : (msg.timestamp ? new Date(msg.timestamp).getTime() : 0);
+      const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+      if (delTime && (Date.now() - delTime >= TWO_HOURS_MS)) {
+        // Le texte "Message supprimé" disparaît après 2 heures
+        return;
+      }
+    }
 
     if (isSystem) {
       html += `
@@ -1387,10 +1396,12 @@ function onMessageReceived(msg) {
 function onMessageDeleted(data) {
   const id = typeof data === 'object' && data !== null ? data.id : Number(data);
   const text = (typeof data === 'object' && data !== null && data.text) ? data.text : 'Message supprimé';
+  const deletedAt = (typeof data === 'object' && data !== null && data.deleted_at) ? data.deleted_at : new Date().toISOString();
   const msg = messages.find(m => m.id === id);
   if (msg) {
     msg.is_deleted = 1;
     msg.text = text;
+    msg.deleted_at = deletedAt;
     msg.reply_to_text = '';
     msg.image_url = '';
     msg.video_url = '';
@@ -1433,8 +1444,24 @@ function checkLocalMessageExpiration() {
 
   if (unreadExpired.length > 0) {
     unreadExpired.forEach(m => {
-      onMessageDeleted({ id: m.id, text: 'Message supprimé et non lu' });
+      onMessageDeleted({ id: m.id, text: 'Message supprimé et non lu', deleted_at: new Date().toISOString() });
     });
+  }
+
+  // Disparition automatique des messages supprimés après 2 heures
+  const TWO_HOURS_MS = 2 * 60 * 60 * 1000;
+  const expiredDeletedIds = [];
+  messages.forEach(m => {
+    if (m.is_deleted === 1 || m.text === 'Message supprimé' || m.text === 'Message supprimé et non lu') {
+      const delTime = m.deleted_at ? new Date(m.deleted_at).getTime() : (m.timestamp ? new Date(m.timestamp).getTime() : 0);
+      if (delTime && (now.getTime() - delTime >= TWO_HOURS_MS)) {
+        expiredDeletedIds.push(m.id);
+      }
+    }
+  });
+
+  if (expiredDeletedIds.length > 0) {
+    onMessagesExpired(expiredDeletedIds);
   }
 }
 

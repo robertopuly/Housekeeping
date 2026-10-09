@@ -50,6 +50,7 @@ function initSchema() {
       video_url TEXT DEFAULT '',
       is_ephemeral INTEGER DEFAULT 0,
       expires_at DATETIME DEFAULT NULL,
+      deleted_at DATETIME DEFAULT NULL,
       reward_animation INTEGER DEFAULT 0
     );
 
@@ -214,6 +215,10 @@ function initSchema() {
 
   try {
     db.exec('ALTER TABLE messages ADD COLUMN is_deleted INTEGER DEFAULT 0;');
+  } catch (e) {}
+
+  try {
+    db.exec('ALTER TABLE messages ADD COLUMN deleted_at DATETIME DEFAULT NULL;');
   } catch (e) {}
 
   try {
@@ -402,12 +407,29 @@ function cleanupExpiredMessages() {
             image_url = '', 
             video_url = '', 
             is_ephemeral = 0, 
-            expires_at = NULL 
+            expires_at = NULL,
+            deleted_at = ?
         WHERE id IN (${unreadIds.map(() => '?').join(',')})
-      `).run(...unreadIds);
+      `).run(nowIso, ...unreadIds);
     }
   }
-  return { expired, readExpired, unreadExpired };
+
+  // 3. Messages supprimés depuis plus de 2 heures : suppression définitive
+  const twoHoursAgo = Date.now() - (2 * 60 * 60 * 1000);
+  const deletedMessages = db.prepare('SELECT id, timestamp, deleted_at FROM messages WHERE is_deleted = 1').all();
+  const purgedDeletedIds = [];
+  for (const dm of deletedMessages) {
+    const dTime = dm.deleted_at ? new Date(dm.deleted_at).getTime() : (dm.timestamp ? new Date(dm.timestamp).getTime() : 0);
+    if (dTime && dTime <= twoHoursAgo) {
+      purgedDeletedIds.push(dm.id);
+    }
+  }
+
+  if (purgedDeletedIds.length > 0) {
+    db.prepare(`DELETE FROM messages WHERE id IN (${purgedDeletedIds.map(() => '?').join(',')})`).run(...purgedDeletedIds);
+  }
+
+  return { expired, readExpired, unreadExpired, purgedDeletedIds };
 }
 
 function getMessages(limit = 150) {
@@ -458,12 +480,13 @@ function answerChoiceQuestion(messageId, selectedOption, answeredBy = 'Adélcia'
 }
 
 function deleteMessage(id) {
+  const nowIso = new Date().toISOString();
   db.prepare(`
     UPDATE messages 
-    SET is_deleted = 1, text = 'Message supprimé', reply_to_text = '', reply_to_image_url = '', image_url = '', video_url = '' 
+    SET is_deleted = 1, text = 'Message supprimé', reply_to_text = '', reply_to_image_url = '', image_url = '', video_url = '', deleted_at = ? 
     WHERE id = ?
-  `).run(id);
-  return db.prepare('SELECT * FROM messages WHERE id = ?').get(id) || { id, is_deleted: 1, text: 'Message supprimé' };
+  `).run(nowIso, id);
+  return db.prepare('SELECT * FROM messages WHERE id = ?').get(id) || { id, is_deleted: 1, text: 'Message supprimé', deleted_at: nowIso };
 }
 
 function markMessagesAsRead(byUser = '') {
