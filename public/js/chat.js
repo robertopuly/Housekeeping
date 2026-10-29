@@ -430,7 +430,7 @@ function renderMessages() {
 
     if (isSystem) {
       html += `
-        <div class="message message-system">
+        <div class="message message-system message-clickable" data-msg-id="${msg.id}" title="Cliquer pour supprimer ce message">
           <span class="system-bubble">ℹ️ ${escapeHtml(msg.text)}</span>
         </div>
       `;
@@ -670,6 +670,9 @@ function attachMessageClickEvents() {
 }
 
 function openMessageActionsModal(msg) {
+  const isSystem = msg.sender && (msg.sender.toLowerCase() === 'système' || msg.sender.toLowerCase() === 'sistema');
+  const btnReply = document.getElementById('btn-action-reply');
+  if (btnReply) btnReply.style.display = isSystem ? 'none' : '';
   activeActionMsg = msg;
   const modal = document.getElementById('modal-message-actions');
   const preview = document.getElementById('msg-action-preview-text');

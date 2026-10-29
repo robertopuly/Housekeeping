@@ -17,7 +17,7 @@ const io = new Server(server, {
 });
 
 const PORT = process.env.PORT || 8765;
-const CURRENT_APP_VERSION = 89;
+const CURRENT_APP_VERSION = 90;
 
 const uploadsDir = path.join(__dirname, 'public', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -946,29 +946,6 @@ app.post('/api/leave-requests/:id/approve', (req, res) => {
     // Émission temps réel WebSocket
     io.emit('leave:approved', { id: Number(id), leave: updated, approved_by: approvedBy });
     io.emit('leave:updated', updated);
-
-    // Notification système dans la discussion
-    try {
-      const typeLabel = updated.type === 'vacances' ? 'vacances' : 'congé';
-      let datesStr = '';
-      if (updated.type === 'vacances') {
-        datesStr = `du ${formatFrenchDate(updated.start_date)} au ${formatFrenchDate(updated.end_date || updated.start_date)}`;
-      } else {
-        let datesArr = [];
-        try { datesArr = JSON.parse(updated.dates_json || '[]'); } catch (e) { datesArr = [updated.start_date]; }
-        datesStr = datesArr.map(d => formatFrenchDate(d)).join(', ');
-      }
-
-      const chatMsg = db.addMessage(
-        'Système',
-        `✅ Demande de ${typeLabel} de ${updated.user_name || 'Adélcia'} APPROUVÉE par ${approvedBy} (${datesStr}).`,
-        'text',
-        null
-      );
-      io.emit('chat:message', chatMsg);
-    } catch (mErr) {
-      console.error('Erreur message approbation chat:', mErr);
-    }
 
     res.json({ success: true, leave: updated });
   } catch (err) {

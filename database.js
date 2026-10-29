@@ -521,6 +521,13 @@ function resetAllMessages() {
   return [];
 }
 
+function purgeMessagesByIds(ids) {
+  if (!Array.isArray(ids) || ids.length === 0) return 0;
+  const placeholders = ids.map(() => '?').join(',');
+  const info = db.prepare(`DELETE FROM messages WHERE id IN (${placeholders})`).run(...ids);
+  return info.changes;
+}
+
 function getQuickReplies() {
   return db.prepare('SELECT * FROM quick_replies ORDER BY sort_order ASC, id ASC').all();
 }
@@ -1153,6 +1160,7 @@ module.exports = {
   answerYesNoQuestion,
   answerChoiceQuestion,
   deleteMessage,
+  purgeMessagesByIds,
   markMessagesAsRead,
   resetAllMessages,
   getQuickReplies,
