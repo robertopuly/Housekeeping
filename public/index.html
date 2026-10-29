@@ -8,9 +8,9 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <title>Gouvernante Hôtel - Gestion & Communication</title>
-  <link rel="stylesheet" href="css/styles.css?v=88">
+  <link rel="stylesheet" href="css/styles.css?v=89">
   <script>
-    window.APP_VERSION = 88;
+    window.APP_VERSION = 89;
     function getTodayIsoStr() {
       var d = new Date();
       var y = d.getFullYear();
@@ -841,8 +841,9 @@
               <!-- FILTRES -->
               <div class="leave-filter-pills">
                 <button type="button" class="leave-filter-btn active" data-filter="all">Toutes</button>
-                <button type="button" class="leave-filter-btn" data-filter="en_attente">⏳ En attente</button>
-                <button type="button" class="leave-filter-btn" data-filter="envoye">📤 Envoyées</button>
+                <button type="button" class="leave-filter-btn" data-filter="envoye">📋 Demandes d'approbation</button>
+                <button type="button" class="leave-filter-btn" data-filter="approuve">✅ Approuvées</button>
+                <button type="button" class="leave-filter-btn" data-filter="en_attente">⏳ Brouillons</button>
               </div>
             </div>
 
@@ -1709,16 +1710,16 @@
 
   <!-- SCRIPTS -->
   <script src="/socket.io/socket.io.js"></script>
-  <script src="js/audio.js?v=88"></script>
-  <script src="js/socket.js?v=88"></script>
-  <script src="js/chat.js?v=88"></script>
-  <script src="js/orders.js?v=88"></script>
-  <script src="js/deadlines.js?v=88"></script>
-  <script src="js/shopping.js?v=88"></script>
-  <script src="js/expenses.js?v=88"></script>
-  <script src="js/leave.js?v=88"></script>
-  <script src="js/presence.js?v=88"></script>
-  <script src="js/gallery.js?v=88"></script>
-  <script src="js/app.js?v=88"></script>
+  <script src="js/audio.js?v=89"></script>
+  <script src="js/socket.js?v=89"></script>
+  <script src="js/chat.js?v=89"></script>
+  <script src="js/orders.js?v=89"></script>
+  <script src="js/deadlines.js?v=89"></script>
+  <script src="js/shopping.js?v=89"></script>
+  <script src="js/expenses.js?v=89"></script>
+  <script src="js/leave.js?v=89"></script>
+  <script src="js/presence.js?v=89"></script>
+  <script src="js/gallery.js?v=89"></script>
+  <script src="js/app.js?v=89"></script>
 </body>
 </html>

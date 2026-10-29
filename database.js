@@ -148,6 +148,9 @@ function initSchema() {
       notes TEXT DEFAULT '',
       status TEXT DEFAULT 'en_attente',
       sent_at DATETIME DEFAULT NULL,
+      approved_at DATETIME DEFAULT NULL,
+      approved_by TEXT DEFAULT '',
+      celebrated INTEGER DEFAULT 0,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
@@ -255,6 +258,18 @@ function initSchema() {
 
   try {
     db.exec('ALTER TABLE quick_replies ADD COLUMN label TEXT DEFAULT "";');
+  } catch (e) {}
+
+  try {
+    db.exec('ALTER TABLE leave_requests ADD COLUMN approved_at DATETIME DEFAULT NULL;');
+  } catch (e) {}
+
+  try {
+    db.exec('ALTER TABLE leave_requests ADD COLUMN approved_by TEXT DEFAULT "";');
+  } catch (e) {}
+
+  try {
+    db.exec('ALTER TABLE leave_requests ADD COLUMN celebrated INTEGER DEFAULT 0;');
   } catch (e) {}
 
   try {
@@ -1023,6 +1038,27 @@ function markLeaveRequestAsSent(id) {
   return getLeaveRequestById(id);
 }
 
+function approveLeaveRequest(id, approvedBy = 'Roberto') {
+  const nowIso = new Date().toISOString();
+  db.prepare(`
+    UPDATE leave_requests
+    SET status = 'approuve', approved_at = ?, approved_by = ?, celebrated = 0, updated_at = ?
+    WHERE id = ?
+  `).run(nowIso, approvedBy, nowIso, id);
+
+  return getLeaveRequestById(id);
+}
+
+function markLeaveCelebrated(id) {
+  db.prepare(`
+    UPDATE leave_requests
+    SET celebrated = 1
+    WHERE id = ?
+  `).run(id);
+
+  return getLeaveRequestById(id);
+}
+
 // SUIVI DE LA CONSULTATION DES PAGES (PRÉSENCE EN TEMPS RÉEL & DERNIÈRE VUE)
 function recordPageView(user, page) {
   const normUser = (user && (user.toLowerCase() === 'adelcia' || user.toLowerCase() === 'adélcia')) ? 'Adélcia' : user;
@@ -1153,6 +1189,8 @@ module.exports = {
   updateLeaveRequest,
   deleteLeaveRequest,
   markLeaveRequestAsSent,
+  approveLeaveRequest,
+  markLeaveCelebrated,
   recordPageView,
   getPageViews,
   getPageView,

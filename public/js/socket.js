@@ -197,6 +197,31 @@ function initSocket() {
     }
   });
 
+  // Événements Congés & Vacances
+  socket.on('leave:created', (data) => {
+    if (window.LeaveModule && typeof window.LeaveModule.onLeaveCreated === 'function') {
+      window.LeaveModule.onLeaveCreated(data);
+    }
+  });
+
+  socket.on('leave:updated', (data) => {
+    if (window.LeaveModule && typeof window.LeaveModule.onLeaveUpdated === 'function') {
+      window.LeaveModule.onLeaveUpdated(data);
+    }
+  });
+
+  socket.on('leave:approved', (data) => {
+    if (window.LeaveModule && typeof window.LeaveModule.onLeaveApproved === 'function') {
+      window.LeaveModule.onLeaveApproved(data);
+    }
+  });
+
+  socket.on('leave:deleted', (data) => {
+    if (window.LeaveModule && typeof window.LeaveModule.onLeaveDeleted === 'function') {
+      window.LeaveModule.onLeaveDeleted(data);
+    }
+  });
+
   // Présence des utilisateurs
   socket.on('users:online', (users) => {
     console.log('Utilisateurs en ligne:', users);

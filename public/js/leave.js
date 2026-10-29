@@ -72,6 +72,11 @@
     return localStorage.getItem('hk_user') || 'Adélcia';
   }
 
+  function isCurrentUserRoberto() {
+    const u = getCurrentUser();
+    return !!(u && u.toLowerCase().trim() === 'roberto');
+  }
+
   function initLeave() {
     setupEventListeners();
     setupSocketListeners();
@@ -180,19 +185,16 @@
   }
 
   function setupSocketListeners() {
-    if (!window.socket) return;
+    const s = (window.SocketClient && typeof window.SocketClient.getSocket === 'function')
+      ? window.SocketClient.getSocket()
+      : window.socket;
 
-    window.socket.on('leave:created', () => {
-      loadLeaveRequests();
-    });
+    if (!s) return;
 
-    window.socket.on('leave:updated', () => {
-      loadLeaveRequests();
-    });
-
-    window.socket.on('leave:deleted', () => {
-      loadLeaveRequests();
-    });
+    s.on('leave:created', onLeaveCreated);
+    s.on('leave:updated', onLeaveUpdated);
+    s.on('leave:approved', onLeaveApproved);
+    s.on('leave:deleted', onLeaveDeleted);
   }
 
   function switchMode(mode) {
@@ -568,18 +570,27 @@
         leaveRequests = await res.json();
         renderRequestsList();
         updateBadge();
+        return leaveRequests;
       }
     } catch (err) {
       console.error('Erreur chargement demandes:', err);
     }
+    return [];
   }
 
   function updateBadge() {
     const badge = document.getElementById('leave-badge');
     if (!badge) return;
-    const pendingCount = leaveRequests.filter(r => r.status === 'en_attente').length;
-    if (pendingCount > 0) {
-      badge.textContent = pendingCount;
+    const isRoberto = isCurrentUserRoberto();
+    let count = 0;
+    if (isRoberto) {
+      count = leaveRequests.filter(r => r.status === 'envoye').length;
+    } else {
+      count = leaveRequests.filter(r => r.status === 'approuve' && !r.celebrated).length;
+    }
+
+    if (count > 0) {
+      badge.textContent = count;
       badge.style.display = 'inline-block';
     } else {
       badge.style.display = 'none';
@@ -598,6 +609,8 @@
       filtered = leaveRequests.filter(r => r.status === 'en_attente');
     } else if (currentFilter === 'envoye') {
       filtered = leaveRequests.filter(r => r.status === 'envoye');
+    } else if (currentFilter === 'approuve') {
+      filtered = leaveRequests.filter(r => r.status === 'approuve');
     }
 
     if (filtered.length === 0) {
@@ -607,9 +620,20 @@
 
     if (emptyNotice) emptyNotice.style.display = 'none';
 
+    const isRoberto = isCurrentUserRoberto();
+
     filtered.forEach(item => {
+      const isApproved = item.status === 'approuve';
+      const isWaitingApproval = item.status === 'envoye';
+      const isPending = item.status === 'en_attente' || !item.status;
+
+      let cardClass = 'leave-request-card';
+      if (isApproved) cardClass += ' is-approved';
+      else if (isWaitingApproval) cardClass += ' is-sent';
+      else cardClass += ' is-pending';
+
       const card = document.createElement('div');
-      card.className = `leave-request-card ${item.status === 'envoye' ? 'is-sent' : 'is-pending'}`;
+      card.className = cardClass;
       card.setAttribute('data-id', item.id);
 
       const isVacances = item.type === 'vacances';
@@ -643,11 +667,73 @@
         }
       }
 
-      const statusBadge = item.status === 'envoye'
-        ? `<span class="badge-status-sent">📤 Envoyé à Roberto le ${formatSwissDateTime(item.sent_at)}</span>`
-        : `<span class="badge-status-pending">⏳ En attente d'envoi</span>`;
+      // Badge de statut
+      let statusBadge = '';
+      if (isApproved) {
+        const approvedDate = formatSwissDateTime(item.approved_at || item.sent_at);
+        statusBadge = `<span class="badge-status-approved">✅ Approuvé par ${item.approved_by || 'Roberto'} le ${approvedDate}</span>`;
+      } else if (isWaitingApproval) {
+        if (isRoberto) {
+          statusBadge = `<span class="badge-status-waiting-approval">📩 Demande d'approbation reçue de ${item.user_name || 'Adélcia'}</span>`;
+        } else {
+          statusBadge = `<span class="badge-status-waiting-approval">📋 Demande d'approbation</span>`;
+        }
+      } else {
+        statusBadge = `<span class="badge-status-pending">⏳ Brouillon (non envoyé)</span>`;
+      }
+
+      // Tampon encreur officiel pour les demandes approuvées
+      let stampHtml = '';
+      if (isApproved) {
+        const approvedDateStr = formatSwissDateTime(item.approved_at || item.sent_at);
+        stampHtml = `
+          <div class="leave-stamp-seal" id="stamp-seal-${item.id}">
+            <span class="leave-stamp-header">★ ★ ★ OFFICIEL ★ ★ ★</span>
+            <span class="leave-stamp-text">APPROUVÉ</span>
+            <span class="leave-stamp-footer">PAR ${item.approved_by || 'ROBERTO'} • ${approvedDateStr}</span>
+          </div>
+        `;
+      }
+
+      // Boutons d'action adaptés au rôle
+      let actionsHtml = '';
+      if (isApproved) {
+        if (isRoberto) {
+          actionsHtml = `
+            <span class="approved-tag-info">✅ Demande validée & approuvée</span>
+            <button type="button" class="btn btn-secondary btn-edit-leave" title="Corriger les dates">✏️ Corriger</button>
+            <button type="button" class="btn btn-danger btn-delete-leave" title="Supprimer la demande">🗑️ Supprimer</button>
+          `;
+        } else {
+          actionsHtml = `
+            <span class="approved-tag-info">🎉 Demande officiellement approuvée</span>
+            <button type="button" class="btn btn-danger btn-delete-leave" title="Supprimer la demande">🗑️ Supprimer</button>
+          `;
+        }
+      } else if (isWaitingApproval) {
+        if (isRoberto) {
+          actionsHtml = `
+            <button type="button" class="btn btn-approve-leave" title="Approuver officiellement cette demande">✅ Approuver la demande</button>
+            <button type="button" class="btn btn-secondary btn-edit-leave" title="Corriger les dates">✏️ Corriger</button>
+            <button type="button" class="btn btn-danger btn-delete-leave" title="Supprimer la demande">🗑️ Supprimer</button>
+          `;
+        } else {
+          actionsHtml = `
+            <button type="button" class="btn btn-secondary btn-edit-leave" title="Corriger les dates">✏️ Corriger</button>
+            <button type="button" class="btn btn-danger btn-delete-leave" title="Supprimer la demande">🗑️ Supprimer</button>
+            <button type="button" class="btn btn-success btn-send-leave btn-already-sent" disabled title="Demande déjà soumise à Roberto">📋 Demande d'approbation envoyée</button>
+          `;
+        }
+      } else {
+        actionsHtml = `
+          <button type="button" class="btn btn-secondary btn-edit-leave" title="Corriger les dates">✏️ Corriger</button>
+          <button type="button" class="btn btn-danger btn-delete-leave" title="Supprimer la demande">🗑️ Supprimer</button>
+          <button type="button" class="btn btn-success btn-send-leave" title="Envoyer le message à Roberto">✉️ Envoyer à Roberto</button>
+        `;
+      }
 
       card.innerHTML = `
+        ${stampHtml}
         <div class="leave-card-top">
           <div class="leave-card-type">
             <span class="type-icon">${isVacances ? '🏖️' : '🗓️'}</span>
@@ -677,25 +763,119 @@
         </div>
 
         <div class="leave-card-actions">
-          <button type="button" class="btn btn-secondary btn-edit-leave" title="Corriger les dates">
-            ✏️ Corriger
-          </button>
-          <button type="button" class="btn btn-danger btn-delete-leave" title="Supprimer la demande">
-            🗑️ Supprimer
-          </button>
-          <button type="button" class="btn btn-success btn-send-leave ${item.status === 'envoye' ? 'btn-already-sent' : ''}" title="Envoyer le message à Roberto">
-            ${item.status === 'envoye' ? '✅ Envoyé à Roberto (Renvoyer ?)' : '✉️ Envoyer à Roberto'}
-          </button>
+          ${actionsHtml}
         </div>
       `;
 
       // Event listeners for actions
-      card.querySelector('.btn-edit-leave').addEventListener('click', () => editRequest(item));
-      card.querySelector('.btn-delete-leave').addEventListener('click', () => deleteRequest(item.id));
-      card.querySelector('.btn-send-leave').addEventListener('click', () => sendRequestToRoberto(item));
+      const btnEdit = card.querySelector('.btn-edit-leave');
+      if (btnEdit) btnEdit.addEventListener('click', () => editRequest(item));
+
+      const btnDelete = card.querySelector('.btn-delete-leave');
+      if (btnDelete) btnDelete.addEventListener('click', () => deleteRequest(item.id));
+
+      const btnSend = card.querySelector('.btn-send-leave:not([disabled])');
+      if (btnSend) btnSend.addEventListener('click', () => sendRequestToRoberto(item));
+
+      const btnApprove = card.querySelector('.btn-approve-leave');
+      if (btnApprove) btnApprove.addEventListener('click', () => approveRequest(item.id));
 
       listContainer.appendChild(card);
     });
+  }
+
+  async function approveRequest(id) {
+    if (!confirm('Confirmez-vous l\'approbation officielle de cette demande de vacances / congé ?')) return;
+
+    try {
+      const res = await fetch(`/api/leave-requests/${id}/approve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ approved_by: getCurrentUser() || 'Roberto' })
+      });
+
+      if (res.ok) {
+        if (window.SoundEngine && typeof window.SoundEngine.playStampSound === 'function') {
+          window.SoundEngine.playStampSound();
+        }
+        await loadLeaveRequests();
+        setTimeout(() => triggerStampAnimation(id), 120);
+      } else {
+        const err = await res.json().catch(() => ({}));
+        alert(err.error || 'Erreur lors de l\'approbation.');
+      }
+    } catch (err) {
+      console.error('Erreur approbation:', err);
+      alert('Erreur de connexion avec le serveur.');
+    }
+  }
+
+  function triggerStampAnimation(id) {
+    const card = document.querySelector(`.leave-request-card[data-id="${id}"]`);
+    if (!card) return;
+
+    try {
+      card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } catch (e) {}
+
+    const stamp = card.querySelector('.leave-stamp-seal');
+    if (stamp) {
+      card.classList.remove('card-stamp-impact');
+      stamp.classList.remove('stamp-animating');
+      void stamp.offsetWidth; // Force reflow
+      stamp.classList.add('stamp-animating');
+      card.classList.add('card-stamp-impact');
+    }
+
+    if (window.SoundEngine && typeof window.SoundEngine.playStampSound === 'function') {
+      window.SoundEngine.playStampSound();
+    }
+  }
+
+  async function markRequestCelebrated(id) {
+    try {
+      await fetch(`/api/leave-requests/${id}/celebrate`, { method: 'POST' });
+      const target = leaveRequests.find(r => r.id === id);
+      if (target) target.celebrated = 1;
+      updateBadge();
+    } catch (e) {
+      console.warn('Erreur celebrate:', e);
+    }
+  }
+
+  async function checkPendingApprovalAnimation() {
+    if (isCurrentUserRoberto()) return;
+    const uncelebrated = leaveRequests.filter(r => r.status === 'approuve' && !r.celebrated);
+    if (!uncelebrated.length) return;
+
+    uncelebrated.forEach((item, idx) => {
+      setTimeout(() => {
+        triggerStampAnimation(item.id);
+        markRequestCelebrated(item.id);
+      }, 350 + idx * 450);
+    });
+  }
+
+  function onLeaveCreated(data) {
+    loadLeaveRequests();
+  }
+
+  function onLeaveUpdated(data) {
+    loadLeaveRequests();
+  }
+
+  function onLeaveDeleted(data) {
+    loadLeaveRequests();
+  }
+
+  async function onLeaveApproved(data) {
+    await loadLeaveRequests();
+    if (!isCurrentUserRoberto() && data && data.id) {
+      setTimeout(() => {
+        triggerStampAnimation(data.id);
+        markRequestCelebrated(data.id);
+      }, 300);
+    }
   }
 
   function editRequest(item) {
@@ -799,7 +979,14 @@
   window.LeaveModule = {
     initLeave,
     loadLeaveRequests,
-    switchMode
+    switchMode,
+    approveRequest,
+    triggerStampAnimation,
+    checkPendingApprovalAnimation,
+    onLeaveCreated,
+    onLeaveUpdated,
+    onLeaveDeleted,
+    onLeaveApproved
   };
 
 })();

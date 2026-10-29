@@ -474,6 +474,75 @@ function playHappySongSound() {
   playHappySongSynth();
 }
 
+// Son percutant de coup de tampon officiel d'approbation ("Thud" mécanique + carillon triomphant)
+function playStampSound() {
+  if (isMuted()) return;
+  const ctx = ensureAudioContextRunning();
+  if (!ctx) return;
+
+  try {
+    const t = ctx.currentTime;
+
+    // 1. Coup de tampon physique (Impact percutant et grave)
+    const oscImpact = ctx.createOscillator();
+    const gainImpact = ctx.createGain();
+    oscImpact.type = 'triangle';
+    oscImpact.frequency.setValueAtTime(150, t);
+    oscImpact.frequency.exponentialRampToValueAtTime(30, t + 0.12);
+
+    gainImpact.gain.setValueAtTime(1.0, t);
+    gainImpact.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+
+    oscImpact.connect(gainImpact);
+    gainImpact.connect(ctx.destination);
+    oscImpact.start(t);
+    oscImpact.stop(t + 0.15);
+
+    // Bruit d'impact sec (claquement mécanique de l'encre sur le papier)
+    const bufferSize = Math.floor(ctx.sampleRate * 0.05);
+    const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+    const output = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      output[i] = Math.random() * 2 - 1;
+    }
+    const noise = ctx.createBufferSource();
+    noise.buffer = noiseBuffer;
+    const noiseFilter = ctx.createBiquadFilter();
+    noiseFilter.type = 'lowpass';
+    noiseFilter.frequency.setValueAtTime(700, t);
+    const noiseGain = ctx.createGain();
+    noiseGain.gain.setValueAtTime(0.7, t);
+    noiseGain.gain.exponentialRampToValueAtTime(0.001, t + 0.07);
+
+    noise.connect(noiseFilter);
+    noiseFilter.connect(noiseGain);
+    noiseGain.connect(ctx.destination);
+    noise.start(t);
+    noise.stop(t + 0.08);
+
+    // 2. Carillon d'approbation mélodieux et triomphant (Do - Mi - Sol - Do aigu)
+    const chimeNotes = [523.25, 659.25, 783.99, 1046.50];
+    chimeNotes.forEach((freq, idx) => {
+      const chimeOsc = ctx.createOscillator();
+      const chimeGain = ctx.createGain();
+      const noteStart = t + 0.10 + idx * 0.07;
+      chimeOsc.type = 'sine';
+      chimeOsc.frequency.setValueAtTime(freq, noteStart);
+
+      chimeGain.gain.setValueAtTime(0.001, noteStart);
+      chimeGain.gain.linearRampToValueAtTime(0.25, noteStart + 0.02);
+      chimeGain.gain.exponentialRampToValueAtTime(0.0001, noteStart + 0.40);
+
+      chimeOsc.connect(chimeGain);
+      chimeGain.connect(ctx.destination);
+      chimeOsc.start(noteStart);
+      chimeOsc.stop(noteStart + 0.42);
+    });
+  } catch (e) {
+    console.warn('Erreur lecture son de tampon:', e);
+  }
+}
+
 window.SoundEngine = {
   initAudio,
   startAudioKeepAlive,
@@ -487,5 +556,6 @@ window.SoundEngine = {
   playSuccessSound,
   playRewardSound,
   playDisappointedDessertSound,
-  playHappySongSound
+  playHappySongSound,
+  playStampSound
 };

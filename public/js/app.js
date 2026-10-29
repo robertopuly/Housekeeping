@@ -470,6 +470,20 @@ function switchTab(tabId) {
     if (window.GalleryModule && typeof window.GalleryModule.loadGallery === 'function') {
       window.GalleryModule.loadGallery();
     }
+  } else if (tabId === 'tab-leave') {
+    window.location.hash = 'leave';
+    if (window.LeaveModule) {
+      if (typeof window.LeaveModule.loadLeaveRequests === 'function') {
+        const p = window.LeaveModule.loadLeaveRequests();
+        if (p && typeof p.then === 'function') {
+          p.then(() => {
+            if (typeof window.LeaveModule.checkPendingApprovalAnimation === 'function') {
+              window.LeaveModule.checkPendingApprovalAnimation();
+            }
+          });
+        }
+      }
+    }
   }
 }
 
