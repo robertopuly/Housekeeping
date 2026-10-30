@@ -1,0 +1,277 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <!-- Ciel nocturne d'Halloween -->
+    <linearGradient id="hwSky" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#0a0514"/>
+      <stop offset="35%" stop-color="#160e29"/>
+      <stop offset="70%" stop-color="#2a133d"/>
+      <stop offset="100%" stop-color="#421a38"/>
+    </linearGradient>
+
+    <!-- Halo & Pleine Lune d'Halloween -->
+    <radialGradient id="hwMoonGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fef08a" stop-opacity="0.95"/>
+      <stop offset="40%" stop-color="#fbbf24" stop-opacity="0.8"/>
+      <stop offset="70%" stop-color="#f97316" stop-opacity="0.3"/>
+      <stop offset="100%" stop-color="#f97316" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="hwMoonBody" cx="40%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#fffbeb"/>
+      <stop offset="60%" stop-color="#fde68a"/>
+      <stop offset="90%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#d97706"/>
+    </radialGradient>
+
+    <!-- Collines dans la brume -->
+    <linearGradient id="hwHillFar" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#251233" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#150a1f" stop-opacity="0.95"/>
+    </linearGradient>
+    <linearGradient id="hwHillMid" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#180b22"/>
+      <stop offset="100%" stop-color="#0e0614"/>
+    </linearGradient>
+    <linearGradient id="hwGround" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#12061a"/>
+      <stop offset="100%" stop-color="#06020a"/>
+    </linearGradient>
+
+    <!-- Dégradé Citrouille -->
+    <linearGradient id="hwPumpkinGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fb923c"/>
+      <stop offset="40%" stop-color="#f97316"/>
+      <stop offset="85%" stop-color="#ea580c"/>
+      <stop offset="100%" stop-color="#9a3412"/>
+    </linearGradient>
+    <radialGradient id="hwPumpkinGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#fef08a"/>
+      <stop offset="60%" stop-color="#f59e0b"/>
+      <stop offset="100%" stop-color="#ea580c" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Brume mystique -->
+    <linearGradient id="hwMistGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#9333ea" stop-opacity="0"/>
+      <stop offset="50%" stop-color="#c084fc" stop-opacity="0.12"/>
+      <stop offset="100%" stop-color="#f97316" stop-opacity="0.05"/>
+    </linearGradient>
+
+    <!-- Vignette sombre pour lisibilité -->
+    <radialGradient id="hwVignette" cx="50%" cy="50%" r="65%">
+      <stop offset="40%" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="80%" stop-color="#0a0514" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#05020a" stop-opacity="0.8"/>
+    </radialGradient>
+  </defs>
+
+  <!-- FOND DU CIEL -->
+  <rect width="1920" height="1080" fill="url(#hwSky)"/>
+
+  <!-- ÉTOILES ET ÉTINCELLES MAGIQUES -->
+  <g fill="#fef08a" opacity="0.6">
+    <circle cx="120" cy="80" r="1.5" />
+    <circle cx="280" cy="140" r="1.2" />
+    <circle cx="450" cy="60" r="2" />
+    <circle cx="620" cy="180" r="1" />
+    <circle cx="790" cy="90" r="1.8" />
+    <circle cx="950" cy="130" r="1.3" />
+    <circle cx="1120" cy="70" r="2" />
+    <circle cx="1320" cy="160" r="1.5" />
+    <circle cx="1540" cy="100" r="2" />
+    <circle cx="1780" cy="80" r="1.5" />
+    <circle cx="1860" cy="190" r="1.2" />
+    <circle cx="210" cy="240" r="1.5" />
+    <circle cx="390" cy="310" r="1" />
+    <circle cx="710" cy="270" r="1.5" />
+    <circle cx="1040" cy="240" r="1.2" />
+    <circle cx="1220" cy="300" r="1.6" />
+    <circle cx="1450" cy="260" r="1.3" />
+    <circle cx="1680" cy="220" r="1.8" />
+    <!-- Étoiles brillantes à 4 pointes -->
+    <path d="M 450 60 Q 450 68 456 68 Q 450 68 450 76 Q 450 68 444 68 Q 450 68 450 60 Z" opacity="0.8" fill="#fef9c3"/>
+    <path d="M 1540 100 Q 1540 107 1545 107 Q 1540 107 1540 114 Q 1540 107 1535 107 Q 1540 107 1540 100 Z" opacity="0.8" fill="#fef9c3"/>
+    <path d="M 1120 70 Q 1120 76 1124 76 Q 1120 76 1120 82 Q 1120 76 1116 76 Q 1120 76 1120 70 Z" opacity="0.7" fill="#fef9c3"/>
+  </g>
+
+  <!-- PLEINE LUNE D'HALLOWEEN -->
+  <g transform="translate(1380, 240)">
+    <!-- Halo extérieur -->
+    <circle cx="0" cy="0" r="210" fill="url(#hwMoonGlow)" />
+    <!-- Disque de lune -->
+    <circle cx="0" cy="0" r="120" fill="url(#hwMoonBody)" />
+    <!-- Cratères lunaires doux -->
+    <g fill="#d97706" opacity="0.22">
+      <ellipse cx="-35" cy="-25" rx="22" ry="18" />
+      <ellipse cx="20" cy="-45" rx="16" ry="12" />
+      <ellipse cx="45" cy="15" rx="25" ry="20" />
+      <ellipse cx="-15" cy="40" rx="30" ry="22" />
+      <circle cx="-55" cy="15" r="12" />
+      <circle cx="10" cy="10" r="9" />
+    </g>
+    <!-- Nuages vaporeux passant devant la lune -->
+    <path d="M -160 30 Q -100 -20 0 -10 Q 90 0 150 -30 Q 190 -20 220 10 Q 180 50 120 40 Q 60 55 -20 45 Q -100 65 -160 30 Z" fill="#1e112d" opacity="0.45"/>
+    <path d="M -130 -40 Q -80 -70 20 -60 Q 80 -75 140 -50 Q 80 -30 10 -40 Q -70 -35 -130 -40 Z" fill="#2a153c" opacity="0.35"/>
+  </g>
+
+  <!-- CHAUVES-SOURIS EN VOL -->
+  <g fill="#0e0618" opacity="0.9">
+    <!-- Chauve-souris 1 (près de la lune) -->
+    <path d="M 1290 190 Q 1315 165 1335 185 Q 1345 195 1355 185 Q 1375 165 1400 190 Q 1375 200 1360 215 Q 1350 205 1340 215 Q 1325 200 1290 190 Z"/>
+    <!-- Chauve-souris 2 -->
+    <path d="M 1430 280 Q 1450 260 1465 275 Q 1475 282 1485 275 Q 1500 260 1520 280 Q 1500 288 1490 300 Q 1480 292 1470 300 Q 1460 288 1430 280 Z" transform="scale(0.85) translate(280, 20)"/>
+    <!-- Chauve-souris 3 (plus petite, au loin) -->
+    <path d="M 1220 270 Q 1235 255 1245 265 Q 1252 270 1260 265 Q 1270 255 1285 270 Q 1270 276 1262 285 Q 1255 280 1248 285 Q 1240 276 1220 270 Z" transform="scale(0.65) translate(660, 110)"/>
+    <!-- Chauve-souris 4 (plus haut dans le ciel) -->
+    <path d="M 850 160 Q 870 140 885 155 Q 895 162 905 155 Q 920 140 940 160 Q 920 168 910 180 Q 900 172 890 180 Q 880 168 850 160 Z" transform="scale(0.7) translate(370, 40)"/>
+    <!-- Chauve-souris 5 (à gauche) -->
+    <path d="M 420 220 Q 436 206 448 218 Q 455 224 463 218 Q 475 206 491 220 Q 475 227 467 236 Q 460 230 453 236 Q 445 227 420 220 Z" transform="scale(0.75) translate(140, 50)"/>
+  </g>
+
+  <!-- COLLINES LOINTAINES -->
+  <path d="M 0 680 Q 380 560 780 640 Q 1180 720 1560 620 Q 1780 570 1920 620 L 1920 1080 L 0 1080 Z" fill="url(#hwHillFar)" />
+
+  <!-- MANOIR HANTÉ SILHOUETTE SUR LA COLLINE GAUCHE -->
+  <g fill="#100619" transform="translate(180, 480) scale(0.75)">
+    <!-- Tour centrale et toit pointu -->
+    <rect x="140" y="70" width="60" height="110"/>
+    <polygon points="130,70 170,5 210,70"/>
+    <!-- Corps du château -->
+    <rect x="80" y="110" width="180" height="110"/>
+    <!-- Tour gauche -->
+    <rect x="50" y="85" width="45" height="135"/>
+    <polygon points="40,85 72,25 105,85"/>
+    <!-- Tour droite -->
+    <rect x="245" y="95" width="40" height="125"/>
+    <polygon points="238,95 265,40 292,95"/>
+    <!-- Fenêtres avec lueur jaune chaleureuse/mystique -->
+    <rect x="160" y="95" width="18" height="28" rx="9" fill="#f59e0b" opacity="0.8"/>
+    <rect x="62" y="115" width="16" height="22" rx="8" fill="#fbbf24" opacity="0.7"/>
+    <rect x="256" y="125" width="14" height="20" rx="7" fill="#f59e0b" opacity="0.7"/>
+    <rect x="110" y="140" width="22" height="30" rx="4" fill="#fbbf24" opacity="0.85"/>
+    <rect x="205" y="140" width="22" height="30" rx="4" fill="#f59e0b" opacity="0.8"/>
+    <!-- Flèches et détails gothiques -->
+    <line x1="170" y1="5" x2="170" y2="-12" stroke="#100619" stroke-width="3"/>
+    <line x1="72" y1="25" x2="72" y2="10" stroke="#100619" stroke-width="2.5"/>
+  </g>
+
+  <!-- COLLINES MOYENNES -->
+  <path d="M 0 760 Q 420 710 920 780 Q 1420 850 1920 740 L 1920 1080 L 0 1080 Z" fill="url(#hwHillMid)" />
+
+  <!-- BRUME MAGIQUE VIOLETTE FLOTTANTE -->
+  <rect x="0" y="650" width="1920" height="300" fill="url(#hwMistGrad)" />
+
+  <!-- ARBRES HANTÉS SILHOUETTES AUX BRANCHES TORTUEUSES (CÔTÉ GAUCHE) -->
+  <g fill="#0b0412" stroke="#0b0412" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Grand arbre gauche -->
+    <path d="M 0 1080 L 70 1080 Q 80 880 110 750 Q 140 660 170 540 Q 140 500 110 430 Q 100 370 70 320 Q 95 335 125 365 Q 150 405 160 470 Q 190 380 230 310 Q 250 280 290 240 Q 280 270 250 325 Q 210 395 195 490 Q 240 460 300 440 Q 350 430 410 440 Q 360 460 310 475 Q 245 495 190 560 Q 155 690 130 830 Q 115 950 140 1080 Z" />
+    <path d="M 125 610 Q 70 570 30 510 Q 10 480 0 440 Q 25 460 65 500 Q 105 540 130 580 Z" />
+    <path d="M 175 480 Q 185 410 160 350 Q 140 310 115 280 Q 140 305 165 345 Q 185 390 185 460 Z" />
+    <path d="M 235 440 Q 275 390 340 350 Q 380 330 420 320 Q 370 345 320 380 Q 265 425 225 470 Z" />
+  </g>
+
+  <!-- ARBRES HANTÉS (CÔTÉ DROIT) -->
+  <g fill="#08020e" stroke="#08020e" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M 1920 1080 L 1830 1080 Q 1810 890 1780 770 Q 1750 670 1720 560 Q 1750 510 1780 430 Q 1800 370 1840 310 Q 1810 330 1780 370 Q 1750 420 1730 490 Q 1700 390 1650 310 Q 1620 270 1570 230 Q 1590 270 1625 320 Q 1665 395 1685 500 Q 1630 470 1560 450 Q 1500 445 1430 465 Q 1490 475 1550 490 Q 1625 510 1680 580 Q 1715 710 1740 850 Q 1760 970 1720 1080 Z" />
+    <path d="M 1765 630 Q 1825 580 1870 510 Q 1900 470 1920 430 Q 1890 460 1840 510 Q 1795 560 1765 605 Z" />
+    <path d="M 1700 500 Q 1660 430 1620 370 Q 1580 330 1530 300 Q 1575 330 1610 375 Q 1645 430 1675 490 Z" />
+  </g>
+
+  <!-- TOILE D'ARAIGNÉE ÉLÉGANTE (COIN SUPÉRIEUR GAUCHE) -->
+  <g stroke="#c084fc" stroke-width="1.2" opacity="0.25" fill="none">
+    <path d="M 0 0 L 260 0 M 0 0 L 240 70 M 0 0 L 200 150 M 0 0 L 140 220 M 0 0 L 60 270 M 0 0 L 0 280"/>
+    <!-- Fils concentriques -->
+    <path d="M 50 0 Q 48 18 42 32 Q 33 46 22 55 Q 10 60 0 62"/>
+    <path d="M 110 0 Q 105 38 92 68 Q 72 98 48 118 Q 22 130 0 135"/>
+    <path d="M 180 0 Q 170 60 148 108 Q 115 155 77 188 Q 35 208 0 215"/>
+    <path d="M 250 0 Q 235 85 205 150 Q 158 215 105 260 Q 48 288 0 298"/>
+  </g>
+
+  <!-- TOILE D'ARAIGNÉE (COIN SUPÉRIEUR DROIT) -->
+  <g stroke="#c084fc" stroke-width="1.2" opacity="0.2" fill="none" transform="translate(1920, 0) scale(-1, 1)">
+    <path d="M 0 0 L 220 0 M 0 0 L 200 60 M 0 0 L 170 130 M 0 0 L 120 190 M 0 0 L 50 230 M 0 0 L 0 240"/>
+    <path d="M 50 0 Q 48 16 42 28 Q 33 40 22 48 Q 10 52 0 54"/>
+    <path d="M 110 0 Q 105 34 92 60 Q 72 86 48 104 Q 22 114 0 118"/>
+    <path d="M 170 0 Q 160 52 138 94 Q 108 135 72 164 Q 32 181 0 187"/>
+  </g>
+
+  <!-- SOL TERREUX NOIR DU PREMIER PLAN -->
+  <path d="M 0 940 Q 480 900 960 930 Q 1440 960 1920 910 L 1920 1080 L 0 1080 Z" fill="url(#hwGround)" />
+
+  <!-- CITROUILLE D'HALLOWEEN 1 (BAS GAUCHE) - GRANDE & LUMINEUSE -->
+  <g transform="translate(130, 920)">
+    <!-- Halo lumineux de la citrouille au sol -->
+    <ellipse cx="65" cy="55" rx="140" ry="40" fill="url(#hwPumpkinGlow)" opacity="0.6"/>
+
+    <!-- Tige verte/brune -->
+    <path d="M 60 -35 Q 55 -55 75 -65 Q 85 -55 70 -35 Z" fill="#3f6212"/>
+
+    <!-- Côtes de la citrouille -->
+    <!-- Côté gauche large -->
+    <ellipse cx="15" cy="5" rx="45" ry="50" fill="#c2410c" />
+    <ellipse cx="115" cy="5" rx="45" ry="50" fill="#c2410c" />
+    <!-- Côtes intermédiaires -->
+    <ellipse cx="38" cy="5" rx="42" ry="54" fill="#ea580c" />
+    <ellipse cx="92" cy="5" rx="42" ry="54" fill="#ea580c" />
+    <!-- Cœur central -->
+    <ellipse cx="65" cy="5" rx="40" ry="56" fill="url(#hwPumpkinGrad)" />
+
+    <!-- LUEUR INTERNE DES YEUX ET DE LA BOUCHE -->
+    <!-- Oeil Gauche -->
+    <polygon points="35,-15 50,-15 42,5" fill="#fef08a" filter="drop-shadow(0 0 6px #f59e0b)"/>
+    <!-- Oeil Droit -->
+    <polygon points="80,-15 95,-15 88,5" fill="#fef08a" filter="drop-shadow(0 0 6px #f59e0b)"/>
+    <!-- Nez triangulaire -->
+    <polygon points="65,-2 71,8 59,8" fill="#fef08a"/>
+    <!-- Bouche malicieuse d'Halloween avec dents découpées -->
+    <path d="M 28 20 Q 65 48 102 20 Q 95 36 84 34 Q 80 26 74 27 Q 70 36 60 36 Q 55 27 48 28 Q 40 38 28 20 Z" fill="#fef08a" filter="drop-shadow(0 0 8px #f59e0b)"/>
+  </g>
+
+  <!-- PETITE CITROUILLE COMPAGNON (À CÔTÉ DE LA PREMIÈRE) -->
+  <g transform="translate(255, 960) scale(0.65)">
+    <ellipse cx="45" cy="30" rx="90" ry="28" fill="url(#hwPumpkinGlow)" opacity="0.45"/>
+    <path d="M 45 -25 Q 40 -40 55 -48 Q 62 -40 52 -25 Z" fill="#365314"/>
+    <ellipse cx="10" cy="5" rx="32" ry="38" fill="#c2410c" />
+    <ellipse cx="80" cy="5" rx="32" ry="38" fill="#c2410c" />
+    <ellipse cx="28" cy="5" rx="30" ry="42" fill="#ea580c" />
+    <ellipse cx="62" cy="5" rx="30" ry="42" fill="#ea580c" />
+    <ellipse cx="45" cy="5" rx="28" ry="44" fill="url(#hwPumpkinGrad)" />
+    <!-- Visage joyeux -->
+    <polygon points="26,-8 37,-8 32,5" fill="#fef08a" filter="drop-shadow(0 0 5px #f59e0b)"/>
+    <polygon points="53,-8 64,-8 58,5" fill="#fef08a" filter="drop-shadow(0 0 5px #f59e0b)"/>
+    <path d="M 25 18 Q 45 36 65 18 Q 55 28 45 28 Q 35 28 25 18 Z" fill="#fef08a" filter="drop-shadow(0 0 6px #f59e0b)"/>
+  </g>
+
+  <!-- CITROUILLE D'HALLOWEEN 2 (BAS DROITE) -->
+  <g transform="translate(1710, 935) scale(0.9)">
+    <ellipse cx="60" cy="45" rx="120" ry="35" fill="url(#hwPumpkinGlow)" opacity="0.55"/>
+    <path d="M 60 -30 Q 68 -48 85 -55 Q 88 -45 70 -30 Z" fill="#3f6212"/>
+    <ellipse cx="15" cy="5" rx="42" ry="48" fill="#c2410c" />
+    <ellipse cx="105" cy="5" rx="42" ry="48" fill="#c2410c" />
+    <ellipse cx="38" cy="5" rx="38" ry="52" fill="#ea580c" />
+    <ellipse cx="82" cy="5" rx="38" ry="52" fill="#ea580c" />
+    <ellipse cx="60" cy="5" rx="36" ry="54" fill="url(#hwPumpkinGrad)" />
+    <!-- Visage mystérieux -->
+    <polygon points="32,-10 46,-10 39,6" fill="#fef08a" filter="drop-shadow(0 0 6px #f59e0b)"/>
+    <polygon points="74,-10 88,-10 81,6" fill="#fef08a" filter="drop-shadow(0 0 6px #f59e0b)"/>
+    <path d="M 32 20 Q 60 42 88 20 Q 78 30 68 25 Q 60 32 52 25 Q 42 30 32 20 Z" fill="#fef08a" filter="drop-shadow(0 0 7px #f59e0b)"/>
+  </g>
+
+  <!-- PETIT FANTÔME MIGNON FLOTTANT DISCRÈTEMENT (MILIEU DROIT AU LOIN) -->
+  <g transform="translate(1600, 680) scale(0.65)" opacity="0.45">
+    <path d="M 30 0 C 10 0 0 15 0 35 C 0 60 5 80 0 95 C 10 90 15 95 25 90 C 35 95 40 90 50 95 C 45 80 50 60 50 35 C 50 15 45 0 30 0 Z" fill="#f8fafc" filter="drop-shadow(0 0 12px #c084fc)"/>
+    <ellipse cx="18" cy="30" rx="4" ry="6" fill="#1e112d"/>
+    <ellipse cx="34" cy="30" rx="4" ry="6" fill="#1e112d"/>
+    <ellipse cx="26" cy="45" rx="5" ry="7" fill="#1e112d"/>
+  </g>
+
+  <!-- PETITES FEUILLES MORTES D'AUTOMNE D'HALLOWEEN QUI TOURNIVOLENT -->
+  <g fill="#ea580c" opacity="0.6">
+    <path d="M 350 780 C 365 770 380 775 390 790 C 375 795 360 790 350 780 Z" transform="rotate(25, 370, 785)"/>
+    <path d="M 820 840 C 835 830 850 835 860 850 C 845 855 830 850 820 840 Z" transform="rotate(-35, 840, 845)" fill="#f59e0b"/>
+    <path d="M 1250 870 C 1262 862 1275 866 1282 878 C 1270 882 1258 878 1250 870 Z" transform="rotate(45, 1265, 874)"/>
+    <path d="M 1520 810 C 1535 800 1550 805 1560 820 C 1545 825 1530 820 1520 810 Z" transform="rotate(-15, 1540, 815)" fill="#d97706"/>
+  </g>
+
+  <!-- VIGNETTE GLOBALE POUR CONFORT DE LECTURE CHAT -->
+  <rect width="1920" height="1080" fill="url(#hwVignette)" pointer-events="none"/>
+</svg>

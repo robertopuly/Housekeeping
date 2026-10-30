@@ -7633,6 +7633,284 @@ body.is-pc section.tab-panel.pc-only:not(.active) {
   border-color: #16a34a;
 }
 
+/* ==========================================================================
+   THÈMES SAISONNIERS : HALLOWEEN (30 OCT - 1 NOV) & AUTOMNE (DÈS LE 2 NOV)
+   ========================================================================== */
+
+/* 1. THÈME HALLOWEEN (30 Octobre, 31 Octobre, 1er Novembre) */
+.chat-container.chat-theme-halloween {
+  background: #0a0514 url('/img/halloween-bg.svg') no-repeat center center / cover;
+  position: relative;
+}
+
+.chat-container.chat-theme-halloween .chat-messages {
+  background: rgba(10, 5, 20, 0.42);
+  backdrop-filter: blur(0.5px);
+  -webkit-backdrop-filter: blur(0.5px);
+}
+
+.chat-container.chat-theme-halloween .chat-date-divider span {
+  background: rgba(26, 12, 38, 0.94);
+  color: #fed7aa;
+  border: 1px solid rgba(249, 115, 22, 0.55);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45);
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.chat-container.chat-theme-halloween .bubble-out {
+  background: linear-gradient(135deg, #c2410c 0%, #ea580c 65%, #f97316 100%);
+  color: #ffffff;
+  border: 1px solid rgba(254, 215, 170, 0.3);
+  box-shadow: 0 4px 14px rgba(234, 88, 12, 0.35);
+}
+
+.chat-container.chat-theme-halloween .bubble-in {
+  background-color: #ffffff;
+  color: #0f172a;
+  border: 1.5px solid rgba(254, 215, 170, 0.45);
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.4);
+}
+
+.chat-container.chat-theme-halloween .bubble-in .msg-sender {
+  color: #ea580c;
+  font-weight: 800;
+}
+
+.chat-container.chat-theme-halloween .bubble-in .reply-quote-bubble {
+  background-color: #fff7ed;
+  border-left-color: #ea580c;
+}
+
+.chat-container.chat-theme-halloween .bubble-in .reply-quote-bubble .reply-quote-sender {
+  color: #ea580c;
+}
+
+.chat-container.chat-theme-halloween .system-bubble {
+  background: rgba(26, 12, 38, 0.94);
+  border: 1.5px solid #f97316;
+  color: #ffedd5;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+}
+
+.chat-container.chat-theme-halloween .quick-replies-bar {
+  background: rgba(22, 11, 33, 0.95);
+  border-top: 1px solid rgba(249, 115, 22, 0.35);
+}
+
+.chat-container.chat-theme-halloween .quick-reply-btn {
+  background: rgba(45, 23, 65, 0.92);
+  color: #ffedd5;
+  border: 1px solid rgba(249, 115, 22, 0.45);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+.chat-container.chat-theme-halloween .quick-reply-btn:hover {
+  background: rgba(234, 88, 12, 0.4);
+  border-color: #f97316;
+  color: #ffffff;
+}
+
+.chat-container.chat-theme-halloween .chat-typing-banner {
+  background: rgba(26, 12, 38, 0.95);
+  border-top: 2px solid #f97316;
+  color: #ffedd5;
+}
+
+.chat-container.chat-theme-halloween .typing-banner-text {
+  color: #fed7aa;
+}
+
+.chat-container.chat-theme-halloween .chat-reply-bar {
+  background: rgba(26, 12, 38, 0.96);
+  border-top: 1px solid rgba(249, 115, 22, 0.4);
+  border-left: 4px solid #ea580c;
+  color: #ffedd5;
+}
+
+.chat-container.chat-theme-halloween .reply-bar-sender {
+  color: #fb923c;
+}
+
+.chat-container.chat-theme-halloween .reply-bar-text {
+  color: #fdba74;
+}
+
+.chat-container.chat-theme-halloween .chat-input-bar {
+  background: rgba(20, 10, 30, 0.97);
+  border-top: 1px solid rgba(249, 115, 22, 0.35);
+}
+
+.chat-container.chat-theme-halloween .chat-input {
+  background-color: rgba(36, 18, 54, 0.92);
+  color: #ffffff;
+  border: 1.5px solid rgba(249, 115, 22, 0.4);
+}
+
+.chat-container.chat-theme-halloween .chat-input:focus {
+  border-color: #f97316;
+  box-shadow: 0 0 0 3px rgba(249, 115, 22, 0.25);
+  background-color: rgba(45, 22, 68, 0.95);
+}
+
+.chat-container.chat-theme-halloween .chat-input::placeholder {
+  color: #fdba74;
+  opacity: 0.75;
+}
+
+.chat-container.chat-theme-halloween .btn-emoji,
+.chat-container.chat-theme-halloween .btn-chat-photo,
+.chat-container.chat-theme-halloween .btn-ephemeral-toggle,
+.chat-container.chat-theme-halloween .btn-chat-choices {
+  color: #fed7aa;
+}
+
+.chat-container.chat-theme-halloween .btn-send {
+  background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+  box-shadow: 0 2px 8px rgba(234, 88, 12, 0.45);
+}
+
+.chat-container.chat-theme-halloween .btn-send:hover {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+}
+
+/* 2. THÈME AUTOMNE (Arbres avec feuilles jaunes et oranges, dès le 2 Novembre) */
+.chat-container.chat-theme-autumn {
+  background: #fff7ed url('/img/autumn-bg.svg') no-repeat center center / cover;
+  position: relative;
+}
+
+.chat-container.chat-theme-autumn .chat-messages {
+  background: rgba(255, 247, 237, 0.46);
+  backdrop-filter: blur(0.5px);
+  -webkit-backdrop-filter: blur(0.5px);
+}
+
+.chat-container.chat-theme-autumn .chat-date-divider span {
+  background: rgba(254, 243, 199, 0.94);
+  color: #9a3412;
+  border: 1px solid #fcd34d;
+  box-shadow: 0 1px 4px rgba(120, 53, 15, 0.15);
+  font-weight: 700;
+  letter-spacing: 0.3px;
+}
+
+.chat-container.chat-theme-autumn .bubble-out {
+  background: linear-gradient(135deg, #d97706 0%, #ea580c 100%);
+  color: #ffffff;
+  border: 1px solid rgba(254, 240, 138, 0.35);
+  box-shadow: 0 3px 12px rgba(217, 119, 6, 0.32);
+}
+
+.chat-container.chat-theme-autumn .bubble-in {
+  background-color: #ffffff;
+  color: #1e293b;
+  border: 1.5px solid #fde68a;
+  box-shadow: 0 2px 10px rgba(120, 53, 15, 0.12);
+}
+
+.chat-container.chat-theme-autumn .bubble-in .msg-sender {
+  color: #c2410c;
+  font-weight: 800;
+}
+
+.chat-container.chat-theme-autumn .bubble-in .reply-quote-bubble {
+  background-color: #fffbeb;
+  border-left-color: #f59e0b;
+}
+
+.chat-container.chat-theme-autumn .bubble-in .reply-quote-bubble .reply-quote-sender {
+  color: #c2410c;
+}
+
+.chat-container.chat-theme-autumn .system-bubble {
+  background: rgba(254, 243, 199, 0.95);
+  border: 1.5px solid #fcd34d;
+  color: #9a3412;
+  box-shadow: 0 1px 4px rgba(120, 53, 15, 0.15);
+}
+
+.chat-container.chat-theme-autumn .quick-replies-bar {
+  background: rgba(255, 247, 237, 0.95);
+  border-top: 1px solid #fed7aa;
+}
+
+.chat-container.chat-theme-autumn .quick-reply-btn {
+  background: #ffffff;
+  color: #7c2d12;
+  border: 1px solid #fed7aa;
+  box-shadow: 0 1px 3px rgba(120, 53, 15, 0.1);
+}
+
+.chat-container.chat-theme-autumn .quick-reply-btn:hover {
+  background: #fef3c7;
+  border-color: #f59e0b;
+  color: #9a3412;
+}
+
+.chat-container.chat-theme-autumn .chat-typing-banner {
+  background: rgba(255, 247, 237, 0.95);
+  border-top: 2px solid #f59e0b;
+  color: #7c2d12;
+}
+
+.chat-container.chat-theme-autumn .typing-banner-text {
+  color: #9a3412;
+}
+
+.chat-container.chat-theme-autumn .chat-reply-bar {
+  background: rgba(255, 247, 237, 0.95);
+  border-top: 1px solid #fed7aa;
+  border-left: 4px solid #ea580c;
+  color: #7c2d12;
+}
+
+.chat-container.chat-theme-autumn .reply-bar-sender {
+  color: #c2410c;
+}
+
+.chat-container.chat-theme-autumn .reply-bar-text {
+  color: #9a3412;
+}
+
+.chat-container.chat-theme-autumn .chat-input-bar {
+  background: rgba(255, 247, 237, 0.98);
+  border-top: 1px solid #fed7aa;
+}
+
+.chat-container.chat-theme-autumn .chat-input {
+  background-color: #ffffff;
+  color: #1e293b;
+  border: 1.5px solid #fed7aa;
+}
+
+.chat-container.chat-theme-autumn .chat-input:focus {
+  border-color: #f59e0b;
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.25);
+}
+
+.chat-container.chat-theme-autumn .chat-input::placeholder {
+  color: #9a3412;
+  opacity: 0.65;
+}
+
+.chat-container.chat-theme-autumn .btn-emoji,
+.chat-container.chat-theme-autumn .btn-chat-photo,
+.chat-container.chat-theme-autumn .btn-ephemeral-toggle,
+.chat-container.chat-theme-autumn .btn-chat-choices {
+  color: #9a3412;
+}
+
+.chat-container.chat-theme-autumn .btn-send {
+  background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
+  box-shadow: 0 2px 8px rgba(234, 88, 12, 0.4);
+}
+
+.chat-container.chat-theme-autumn .btn-send:hover {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+}
+
+
 
 
 

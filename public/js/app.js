@@ -423,6 +423,9 @@ function switchTab(tabId) {
   if (tabId === 'tab-chat') {
     window.location.hash = 'chat';
     if (window.ChatModule) {
+      if (typeof window.ChatModule.applyChatSeasonalTheme === 'function') {
+        window.ChatModule.applyChatSeasonalTheme();
+      }
       window.ChatModule.clearUnread();
       window.ChatModule.scrollToBottom(false);
       setTimeout(() => window.ChatModule.scrollToBottom(false), 50);

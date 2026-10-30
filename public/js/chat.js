@@ -16,7 +16,54 @@
   let typingDrafts = {};
   let activeChoiceSelections = {};
 
+
+// Détermination et application du thème saisonnier : Halloween (30 oct - 1 nov) & Automne (dès le 2 nov)
+function getChatSeasonalTheme() {
+  try {
+    const urlParams = new URLSearchParams(window.location.search);
+    const forcedTheme = urlParams.get('theme');
+    if (forcedTheme === 'halloween' || forcedTheme === 'autumn') {
+      return forcedTheme;
+    }
+
+    const now = new Date();
+    const formatter = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Europe/Zurich',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+    const parts = formatter.formatToParts(now);
+    const month = parseInt(parts.find(p => p.type === 'month').value, 10);
+    const day = parseInt(parts.find(p => p.type === 'day').value, 10);
+
+    // Halloween : 30 octobre, 31 octobre, 1er novembre
+    if ((month === 10 && (day === 30 || day === 31)) || (month === 11 && day === 1)) {
+      return 'halloween';
+    }
+
+    // Dès le 2 novembre : Automne (arbres aux feuilles jaunes et oranges)
+    return 'autumn';
+  } catch (e) {
+    return 'halloween';
+  }
+}
+
+function applyChatSeasonalTheme() {
+  const container = document.querySelector('.chat-container');
+  if (!container) return;
+  const theme = getChatSeasonalTheme();
+  container.classList.remove('chat-theme-halloween', 'chat-theme-autumn');
+  if (theme === 'halloween') {
+    container.classList.add('chat-theme-halloween');
+  } else if (theme === 'autumn') {
+    container.classList.add('chat-theme-autumn');
+  }
+}
+
 async function initChat() {
+  applyChatSeasonalTheme();
+  setInterval(applyChatSeasonalTheme, 60000);
   await loadQuickReplies();
   await loadMessages();
   setupChatEvents();
@@ -2628,7 +2675,9 @@ function stopRewardConfetti() {
     onTypingStatus,
     clearUnread,
     checkPendingRewardCelebration,
-    scrollToBottom
+    scrollToBottom,
+    applyChatSeasonalTheme,
+    getChatSeasonalTheme
   };
 
   window.toggleChoiceRewardAnimation = toggleChoiceRewardAnimation;
