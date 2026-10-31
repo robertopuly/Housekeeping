@@ -54,9 +54,9 @@ function initSocket() {
     }
   });
 
-  socket.on('chat:read_all', () => {
+  socket.on('chat:read_all', (data) => {
     if (window.ChatModule) {
-      window.ChatModule.onMessagesRead();
+      window.ChatModule.onMessagesRead(data);
     }
   });
 

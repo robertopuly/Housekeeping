@@ -88,7 +88,15 @@ async function loadMessages() {
       renderMessages();
       scrollToBottom();
       if (window.App && window.App.getActiveTab() === 'tab-chat' && document.visibilityState !== 'hidden') {
-        markAsReadOnServer();
+        const currentUser = (window.App ? window.App.getCurrentUser() : '').toLowerCase();
+        const hasIncomingUnread = messages.some(m => {
+          const sender = (m.sender || '').toLowerCase();
+          const isFromOther = sender && sender !== currentUser && !(currentUser.startsWith('ad') && sender.startsWith('ad'));
+          return isFromOther && !m.is_read;
+        });
+        if (hasIncomingUnread) {
+          markAsReadOnServer();
+        }
         checkPendingRewardCelebration();
       }
     }
@@ -592,7 +600,9 @@ function renderMessages() {
         const isRead = msg.is_read === 1;
         const statusIcon = isRead ? '✓✓' : '✓';
         const statusClass = isRead ? 'msg-status-read' : 'msg-status-sent';
-        const statusTitle = isRead ? 'Vu par le destinataire' : 'Envoyé / Reçu par le serveur';
+        const isCurrentRoberto = (currentUser && currentUser.toLowerCase() === 'roberto');
+        const recipientName = isCurrentRoberto ? 'Adélcia' : 'Roberto';
+        const statusTitle = isRead ? `Lu par ${recipientName}` : `Envoyé (non encore lu par ${recipientName})`;
         const ephemeralBadge = (msg.is_ephemeral === 1) ? '<span class="ephemeral-timer-badge" title="Message éphémère (s\'efface 1h après l\'envoi)">⏳ 1h</span>' : '';
 
         html += `
@@ -1538,10 +1548,26 @@ function checkLocalMessageExpiration() {
 }
 
 function onMessagesRead(data) {
-  const currentUser = window.App ? window.App.getCurrentUser().toLowerCase() : '';
+  const currentUser = (window.App ? window.App.getCurrentUser() : '').toLowerCase();
+  const reader = (data && data.user) ? data.user.toLowerCase() : '';
+
+  // Normalisation pour Adélcia / Roberto
+  const isMeReader = reader && (
+    reader === currentUser ||
+    (currentUser.startsWith('ad') && reader.startsWith('ad'))
+  );
+
+  // Si c'est l'utilisateur actuel qui a lu, ses propres messages sortants ne changent pas
+  if (isMeReader) {
+    return;
+  }
+
+  // C'est l'autre utilisateur qui a lu : tous mes messages sortants passent en lu (2 coches bleues)
   let changed = false;
   messages.forEach(m => {
-    if (m.sender && m.sender.toLowerCase() === currentUser && !m.is_read) {
+    const sender = (m.sender || '').toLowerCase();
+    const isMyMsg = (sender === currentUser || (currentUser.startsWith('ad') && sender.startsWith('ad')));
+    if (isMyMsg && !m.is_read) {
       m.is_read = 1;
       changed = true;
     }
@@ -1595,7 +1621,15 @@ function checkPendingRewardCelebration(specificMsg = null) {
 function clearUnread() {
   unreadCount = 0;
   updateUnreadBadge();
-  markAsReadOnServer();
+  const currentUser = (window.App ? window.App.getCurrentUser() : '').toLowerCase();
+  const hasIncomingUnread = messages.some(m => {
+    const sender = (m.sender || '').toLowerCase();
+    const isFromOther = sender && sender !== currentUser && !(currentUser.startsWith('ad') && sender.startsWith('ad'));
+    return isFromOther && !m.is_read;
+  });
+  if (hasIncomingUnread) {
+    markAsReadOnServer();
+  }
   checkPendingRewardCelebration();
 }
 
