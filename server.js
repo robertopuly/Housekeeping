@@ -201,8 +201,9 @@ app.post('/api/messages', (req, res) => {
       expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
     }
     const rewardAnimation = req.body.reward_animation === 1 || req.body.reward_animation === true || req.body.reward_animation === '1';
+    const customTimestamp = req.body.timestamp || null;
 
-    const msg = db.addMessage(sender, text || '', msgType, reply_to || null, imageUrl, qType, qStatus, qOptions, '', isEphemeral ? 1 : 0, expiresAt, rewardAnimation ? 1 : 0, videoUrl);
+    const msg = db.addMessage(sender, text || '', msgType, reply_to || null, imageUrl, qType, qStatus, qOptions, '', isEphemeral ? 1 : 0, expiresAt, rewardAnimation ? 1 : 0, videoUrl, customTimestamp);
     io.emit('chat:message', msg);
     res.status(201).json(msg);
   } catch (err) {

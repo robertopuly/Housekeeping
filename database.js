@@ -452,7 +452,7 @@ function getMessages(limit = 150) {
   return db.prepare('SELECT * FROM messages ORDER BY id ASC LIMIT ?').all(limit);
 }
 
-function addMessage(sender, text, type = 'text', replyTo = null, imageUrl = '', questionType = '', questionStatus = '', questionOptions = '', selectedOption = '', isEphemeral = 0, expiresAt = null, rewardAnimation = 0, videoUrl = '') {
+function addMessage(sender, text, type = 'text', replyTo = null, imageUrl = '', questionType = '', questionStatus = '', questionOptions = '', selectedOption = '', isEphemeral = 0, expiresAt = null, rewardAnimation = 0, videoUrl = '', customTimestamp = null) {
   const reply_to_id = replyTo ? replyTo.id : null;
   const reply_to_sender = replyTo ? (replyTo.sender || '') : '';
   const reply_to_text = replyTo ? (replyTo.text || '') : '';
@@ -465,7 +465,7 @@ function addMessage(sender, text, type = 'text', replyTo = null, imageUrl = '', 
       }
     } catch (e) {}
   }
-  const nowIso = new Date().toISOString();
+  const nowIso = customTimestamp || new Date().toISOString();
 
   const result = db.prepare(`
     INSERT INTO messages (sender, text, type, reply_to_id, reply_to_sender, reply_to_text, reply_to_image_url, timestamp, image_url, video_url, question_type, question_status, question_options, selected_option, is_ephemeral, expires_at, reward_animation)
