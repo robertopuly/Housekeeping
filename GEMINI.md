@@ -18,3 +18,7 @@
 
 ## 4. Données & Base SQLite
 - Ne jamais versionner les fichiers de base de données opérationnels (`data.db`, `data.db-wal`, `data.db-shm`) afin de protéger les données réelles locales.
+
+## 5. Connectivité & IP Dynamique du Serveur
+- En cas de problème de connexion, d'absence de synchronisation ou de messages semblant non reçus/lus par les tablettes d'Adélcia, **vérifier systématiquement l'adresse IP locale active du serveur PC** (`ipconfig` / `192.168.20.X`).
+- L'IP étant attribuée dynamiquement par le routeur, les favoris ou raccourcis sur les tablettes peuvent pointer vers une ancienne IP et afficher une page hors ligne. Il est primordial de rappeler cette cause potentielle et de vérifier la cohérence des liens/raccourcis des tablettes.
