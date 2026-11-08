@@ -26,6 +26,9 @@
 ## 6. Déploiement Synology NAS (DS1522+) & Tailscale
 - Le dossier cible sur le NAS est `/Webapp/Housekeeping`.
 - L'interface DSM du NAS est configurée en **français** : toujours utiliser les termes exacts de l'interface DSM en français (`Container Manager`, menu `Conteneur` ou `Projet`, bouton `Action` ➔ `Redémarrer`, `File Station`, `Remplacer`, etc.) dans les explications données à l'utilisateur.
+- **Rappel systématique de déploiement en fin de réponse :** À la fin de chaque tâche ou modification de code, l'agent doit systématiquement et explicitement rappeler à l'utilisateur :
+  1. La liste précise des fichiers ou dossiers modifiés à copier du PC vers le dossier NAS (`/Webapp/Housekeeping`).
+  2. La procédure exacte de redémarrage dans `Container Manager` (`Conteneur` ➔ `housekeeping-manager` ➔ `Action` ➔ `Redémarrer`).
 - Le container utilise `network_mode: host` pour être accessible directement via le réseau local et via l'IP Tailscale (`100.78.184.124:8765` ou `http://ds1522:8765`).
 - Le volume persisté pour la base de données est `./data:/app/data` et `./uploads:/app/public/uploads`.
 - Avant toute copie initiale de `data.db`, s'assurer que le journal WAL a été consolidé via `PRAGMA wal_checkpoint(TRUNCATE);`.
