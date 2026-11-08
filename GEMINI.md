@@ -10,7 +10,7 @@
 - L'utilisateur n'a pas besoin de le demander : le dépôt GitHub distant doit être en permanence synchronisé et à jour.
 
 ## 2. Langues & Communication
-- **Interface utilisateur (UI) :** Strictement en **français** (textes, boutons, statuts, messages système, infobulles).
+- **Interface utilisateur (UI) & Appareils :** Strictement en **français** (application Housekeeping, tablettes Adélcia, téléphones, PC et interface Synology DSM : textes, boutons, menus système, paramètres, infobulles). Toujours citer les termes exacts en français lorsque l'on guide l'utilisateur sur n'importe quel appareil.
 - **Communication avec l'utilisateur :** En **italien**.
 
 ## 3. Fuseau Horaire
