@@ -383,8 +383,9 @@ body {
   flex-direction: column;
   height: 100%;
   min-height: 0;
-  background-color: #f8fafc;
+  background: #140a1c url('/img/chat-bg-feminine.svg') no-repeat center center / cover;
   overflow: hidden;
+  position: relative;
 }
 
 .chat-messages {
@@ -7778,123 +7779,132 @@ body.is-pc section.tab-panel.pc-only:not(.active) {
   background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
 }
 
-/* 2. THÈME AUTOMNE (Arbres avec feuilles jaunes et oranges, dès le 2 Novembre) */
+/* 2. THÈME DISCUSSIONS (Fond raffiné, féminin & plus sombre : Velours prune, pivoines & or rosé) */
 .chat-container.chat-theme-autumn {
-  background: #fff7ed url('/img/autumn-bg.svg') no-repeat center center / cover;
+  background: #140a1c url('/img/chat-bg-feminine.svg') no-repeat center center / cover;
   position: relative;
 }
 
 .chat-container.chat-theme-autumn .chat-messages {
-  background: rgba(255, 247, 237, 0.46);
-  backdrop-filter: blur(0.5px);
-  -webkit-backdrop-filter: blur(0.5px);
+  background: rgba(20, 10, 28, 0.42);
+  backdrop-filter: blur(1px);
+  -webkit-backdrop-filter: blur(1px);
 }
 
 .chat-container.chat-theme-autumn .chat-date-divider span {
-  background: rgba(254, 243, 199, 0.94);
-  color: #9a3412;
-  border: 1px solid #fcd34d;
-  box-shadow: 0 1px 4px rgba(120, 53, 15, 0.15);
+  background: rgba(36, 18, 48, 0.88);
+  color: #fce7f3;
+  border: 1px solid rgba(244, 114, 182, 0.35);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
   font-weight: 700;
   letter-spacing: 0.3px;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 .chat-container.chat-theme-autumn .bubble-out {
-  background: linear-gradient(135deg, #d97706 0%, #ea580c 100%);
+  background: linear-gradient(135deg, #e11d48 0%, #be123c 60%, #9f1239 100%);
   color: #ffffff;
-  border: 1px solid rgba(254, 240, 138, 0.35);
-  box-shadow: 0 3px 12px rgba(217, 119, 6, 0.32);
+  border: 1px solid rgba(254, 205, 211, 0.35);
+  box-shadow: 0 4px 14px rgba(159, 18, 57, 0.38);
 }
 
 .chat-container.chat-theme-autumn .bubble-in {
   background-color: #ffffff;
-  color: #1e293b;
-  border: 1.5px solid #fde68a;
-  box-shadow: 0 2px 10px rgba(120, 53, 15, 0.12);
+  color: #1e1b4b;
+  border: 1.5px solid #fbcfe8;
+  box-shadow: 0 3px 12px rgba(0, 0, 0, 0.22);
 }
 
 .chat-container.chat-theme-autumn .bubble-in .msg-sender {
-  color: #c2410c;
+  color: #be185d;
   font-weight: 800;
 }
 
 .chat-container.chat-theme-autumn .bubble-in .reply-quote-bubble {
-  background-color: #fffbeb;
-  border-left-color: #f59e0b;
+  background-color: #fdf2f8;
+  border-left-color: #f472b6;
 }
 
 .chat-container.chat-theme-autumn .bubble-in .reply-quote-bubble .reply-quote-sender {
-  color: #c2410c;
+  color: #be185d;
 }
 
 .chat-container.chat-theme-autumn .system-bubble {
-  background: rgba(254, 243, 199, 0.95);
-  border: 1.5px solid #fcd34d;
-  color: #9a3412;
-  box-shadow: 0 1px 4px rgba(120, 53, 15, 0.15);
+  background: rgba(36, 18, 48, 0.90);
+  border: 1.5px solid rgba(244, 114, 182, 0.4);
+  color: #fbcfe8;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 
 .chat-container.chat-theme-autumn .quick-replies-bar {
-  background: rgba(255, 247, 237, 0.95);
-  border-top: 1px solid #fed7aa;
+  background: rgba(24, 12, 34, 0.94);
+  border-top: 1px solid rgba(244, 114, 182, 0.25);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .chat-container.chat-theme-autumn .quick-reply-btn {
   background: #ffffff;
-  color: #7c2d12;
-  border: 1px solid #fed7aa;
-  box-shadow: 0 1px 3px rgba(120, 53, 15, 0.1);
+  color: #831843;
+  border: 1px solid #fbcfe8;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
+  font-weight: 600;
 }
 
 .chat-container.chat-theme-autumn .quick-reply-btn:hover {
-  background: #fef3c7;
-  border-color: #f59e0b;
-  color: #9a3412;
+  background: #fdf2f8;
+  border-color: #f472b6;
+  color: #9d174d;
 }
 
 .chat-container.chat-theme-autumn .chat-typing-banner {
-  background: rgba(255, 247, 237, 0.95);
-  border-top: 2px solid #f59e0b;
-  color: #7c2d12;
+  background: rgba(24, 12, 34, 0.95);
+  border-top: 2px solid #f472b6;
+  color: #fbcfe8;
 }
 
 .chat-container.chat-theme-autumn .typing-banner-text {
-  color: #9a3412;
+  color: #f472b6;
 }
 
 .chat-container.chat-theme-autumn .chat-reply-bar {
-  background: rgba(255, 247, 237, 0.95);
-  border-top: 1px solid #fed7aa;
-  border-left: 4px solid #ea580c;
-  color: #7c2d12;
+  background: rgba(24, 12, 34, 0.95);
+  border-top: 1px solid rgba(244, 114, 182, 0.25);
+  border-left: 4px solid #f43f5e;
+  color: #fbcfe8;
 }
 
 .chat-container.chat-theme-autumn .reply-bar-sender {
-  color: #c2410c;
+  color: #fda4af;
 }
 
 .chat-container.chat-theme-autumn .reply-bar-text {
-  color: #9a3412;
+  color: #fce7f3;
 }
 
 .chat-container.chat-theme-autumn .chat-input-bar {
-  background: rgba(255, 247, 237, 0.98);
-  border-top: 1px solid #fed7aa;
+  background: rgba(20, 10, 28, 0.96);
+  border-top: 1px solid rgba(244, 114, 182, 0.25);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .chat-container.chat-theme-autumn .chat-input {
   background-color: #ffffff;
-  color: #1e293b;
-  border: 1.5px solid #fed7aa;
+  color: #1e1b4b;
+  border: 1.5px solid #fbcfe8;
 }
 
 .chat-container.chat-theme-autumn .chat-input:focus {
-  border-color: #f59e0b;
-  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.25);
+  border-color: #f43f5e;
+  box-shadow: 0 0 0 3px rgba(244, 63, 94, 0.25);
 }
 
 .chat-container.chat-theme-autumn .chat-input::placeholder {
-  color: #9a3412;
+  color: #831843;
   opacity: 0.65;
 }
 
@@ -7902,16 +7912,23 @@ body.is-pc section.tab-panel.pc-only:not(.active) {
 .chat-container.chat-theme-autumn .btn-chat-photo,
 .chat-container.chat-theme-autumn .btn-ephemeral-toggle,
 .chat-container.chat-theme-autumn .btn-chat-choices {
-  color: #9a3412;
+  color: #fda4af;
+}
+
+.chat-container.chat-theme-autumn .btn-emoji:hover,
+.chat-container.chat-theme-autumn .btn-chat-photo:hover,
+.chat-container.chat-theme-autumn .btn-ephemeral-toggle:hover,
+.chat-container.chat-theme-autumn .btn-chat-choices:hover {
+  color: #ffffff;
 }
 
 .chat-container.chat-theme-autumn .btn-send {
-  background: linear-gradient(135deg, #ea580c 0%, #c2410c 100%);
-  box-shadow: 0 2px 8px rgba(234, 88, 12, 0.4);
+  background: linear-gradient(135deg, #f43f5e 0%, #e11d48 50%, #be123c 100%);
+  box-shadow: 0 2px 10px rgba(225, 29, 72, 0.45);
 }
 
 .chat-container.chat-theme-autumn .btn-send:hover {
-  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  background: linear-gradient(135deg, #fb7185 0%, #f43f5e 100%);
 }
 
 /* ==========================================================================

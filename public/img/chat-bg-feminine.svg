@@ -1,0 +1,246 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <!-- Fond dégradé crépuscule prune / velours nuit chaleureux -->
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#140a1c"/>
+      <stop offset="35%" stop-color="#1f1028"/>
+      <stop offset="70%" stop-color="#2a1435"/>
+      <stop offset="100%" stop-color="#3b1945"/>
+    </linearGradient>
+
+    <!-- Halo lumineux rose poudré délicat -->
+    <radialGradient id="glowRose" cx="20%" cy="25%" r="55%">
+      <stop offset="0%" stop-color="#f472b6" stop-opacity="0.22"/>
+      <stop offset="45%" stop-color="#db2777" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#1f1028" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Halo doré champagne chaud -->
+    <radialGradient id="glowGold" cx="80%" cy="75%" r="60%">
+      <stop offset="0%" stop-color="#fde68a" stop-opacity="0.18"/>
+      <stop offset="40%" stop-color="#f59e0b" stop-opacity="0.08"/>
+      <stop offset="100%" stop-color="#3b1945" stop-opacity="0"/>
+    </radialGradient>
+
+    <radialGradient id="glowCenter" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#e879f9" stop-opacity="0.10"/>
+      <stop offset="60%" stop-color="#a21caf" stop-opacity="0.03"/>
+      <stop offset="100%" stop-color="#140a1c" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Dégradés pour pétales et pivoines / roses -->
+    <linearGradient id="petalPink" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fbcfe8" stop-opacity="0.85"/>
+      <stop offset="50%" stop-color="#f472b6" stop-opacity="0.65"/>
+      <stop offset="100%" stop-color="#be185d" stop-opacity="0.45"/>
+    </linearGradient>
+
+    <linearGradient id="petalDeep" x1="0%" y1="0%" x2="80%" y2="100%">
+      <stop offset="0%" stop-color="#f472b6" stop-opacity="0.75"/>
+      <stop offset="60%" stop-color="#9d174d" stop-opacity="0.60"/>
+      <stop offset="100%" stop-color="#4c0519" stop-opacity="0.30"/>
+    </linearGradient>
+
+    <linearGradient id="petalGold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fef08a" stop-opacity="0.7"/>
+      <stop offset="50%" stop-color="#f59e0b" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#b45309" stop-opacity="0.2"/>
+    </linearGradient>
+
+    <linearGradient id="branchGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#831843" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#500724" stop-opacity="0.3"/>
+    </linearGradient>
+
+    <!-- Filtre de flou doux pour profondeur de champ -->
+    <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+
+    <filter id="bokehBlur" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="16"/>
+    </filter>
+  </defs>
+
+  <!-- FOND PRINCIPAL -->
+  <rect width="1920" height="1080" fill="url(#bgGrad)"/>
+  <rect width="1920" height="1080" fill="url(#glowRose)"/>
+  <rect width="1920" height="1080" fill="url(#glowGold)"/>
+  <rect width="1920" height="1080" fill="url(#glowCenter)"/>
+
+  <!-- ORBES LUMINEUX BOKEH (Ambiance féerique et chaleureuse) -->
+  <g filter="url(#bokehBlur)" opacity="0.65">
+    <circle cx="280" cy="180" r="140" fill="#f472b6" opacity="0.25"/>
+    <circle cx="450" cy="320" r="90" fill="#fb7185" opacity="0.20"/>
+    <circle cx="1650" cy="220" r="160" fill="#e879f9" opacity="0.22"/>
+    <circle cx="1480" cy="400" r="110" fill="#fbcfe8" opacity="0.18"/>
+    <circle cx="960" cy="260" r="130" fill="#fde68a" opacity="0.14"/>
+    <circle cx="220" cy="850" r="170" fill="#be185d" opacity="0.28"/>
+    <circle cx="1700" cy="880" r="180" fill="#f59e0b" opacity="0.20"/>
+    <circle cx="1200" cy="820" r="120" fill="#f43f5e" opacity="0.18"/>
+  </g>
+
+  <!-- MOTIFS FLORAUX ÉLÉGANTS DANS LES COINS (Laisse le centre fluide pour les messages) -->
+  
+  <!-- COIN SUPÉRIEUR GAUCHE : Branche florale et pivoines douces -->
+  <g transform="translate(-60, -50)" opacity="0.82">
+    <!-- Branche stylisée -->
+    <path d="M40,50 Q180,120 320,80 T560,180" fill="none" stroke="url(#branchGrad)" stroke-width="4" stroke-linecap="round"/>
+    <path d="M180,120 Q240,240 380,260" fill="none" stroke="url(#branchGrad)" stroke-width="3" stroke-linecap="round"/>
+    <path d="M320,80 Q380,20 460,40" fill="none" stroke="url(#branchGrad)" stroke-width="2.5" stroke-linecap="round"/>
+
+    <!-- Feuilles fines dorées et rosées -->
+    <path d="M220,135 Q250,110 270,140 Q240,155 220,135 Z" fill="url(#petalGold)" opacity="0.85"/>
+    <path d="M350,110 Q390,95 400,130 Q365,135 350,110 Z" fill="url(#petalPink)" opacity="0.9"/>
+    <path d="M260,210 Q290,190 310,225 Q280,235 260,210 Z" fill="url(#petalGold)" opacity="0.8"/>
+    <path d="M420,250 Q460,240 465,275 Q430,280 420,250 Z" fill="url(#petalPink)" opacity="0.85"/>
+
+    <!-- Grande fleur pivoine stylisée (centre à 150, 110) -->
+    <g transform="translate(150, 110)" filter="url(#softGlow)">
+      <ellipse cx="-20" cy="0" rx="35" ry="24" transform="rotate(-30)" fill="url(#petalDeep)"/>
+      <ellipse cx="20" cy="0" rx="35" ry="24" transform="rotate(30)" fill="url(#petalDeep)"/>
+      <ellipse cx="0" cy="-20" rx="24" ry="35" fill="url(#petalPink)"/>
+      <ellipse cx="0" cy="20" rx="24" ry="35" fill="url(#petalDeep)"/>
+      <circle cx="0" cy="0" r="16" fill="#fde68a" opacity="0.85"/>
+      <circle cx="0" cy="0" r="8" fill="#ffffff" opacity="0.9"/>
+    </g>
+
+    <!-- Petite fleur secondaire (330, 90) -->
+    <g transform="translate(330, 90)">
+      <circle cx="-12" cy="0" r="18" fill="url(#petalPink)" opacity="0.75"/>
+      <circle cx="12" cy="0" r="18" fill="url(#petalPink)" opacity="0.75"/>
+      <circle cx="0" cy="-12" r="18" fill="url(#petalPink)" opacity="0.75"/>
+      <circle cx="0" cy="12" r="18" fill="url(#petalPink)" opacity="0.75"/>
+      <circle cx="0" cy="0" r="9" fill="#fef08a" opacity="0.8"/>
+    </g>
+
+    <!-- Fleur bourgeon (460, 190) -->
+    <g transform="translate(460, 190)">
+      <ellipse cx="0" cy="0" rx="20" ry="28" transform="rotate(40)" fill="url(#petalPink)"/>
+      <ellipse cx="10" cy="-5" rx="14" ry="22" transform="rotate(45)" fill="url(#petalDeep)"/>
+      <circle cx="2" cy="-2" r="5" fill="#fde68a"/>
+    </g>
+  </g>
+
+  <!-- COIN SUPÉRIEUR DROIT : Guirlande de boutons de rose et étoiles douces -->
+  <g transform="translate(1420, -40)" opacity="0.80">
+    <path d="M500,60 Q340,110 220,70 T-20,160" fill="none" stroke="url(#branchGrad)" stroke-width="3.5" stroke-linecap="round"/>
+    <path d="M220,70 Q160,180 40,210" fill="none" stroke="url(#branchGrad)" stroke-width="2.5" stroke-linecap="round"/>
+
+    <path d="M290,85 Q260,60 240,90 Q270,105 290,85 Z" fill="url(#petalGold)" opacity="0.85"/>
+    <path d="M160,130 Q120,115 110,150 Q145,155 160,130 Z" fill="url(#petalPink)" opacity="0.9"/>
+
+    <g transform="translate(360, 90)" filter="url(#softGlow)">
+      <ellipse cx="-18" cy="0" rx="30" ry="20" transform="rotate(-25)" fill="url(#petalDeep)"/>
+      <ellipse cx="18" cy="0" rx="30" ry="20" transform="rotate(25)" fill="url(#petalDeep)"/>
+      <ellipse cx="0" cy="-18" rx="20" ry="30" fill="url(#petalPink)"/>
+      <ellipse cx="0" cy="18" rx="20" ry="30" fill="url(#petalDeep)"/>
+      <circle cx="0" cy="0" r="14" fill="#fde68a" opacity="0.85"/>
+      <circle cx="0" cy="0" r="7" fill="#ffffff" opacity="0.95"/>
+    </g>
+
+    <g transform="translate(190, 75)">
+      <circle cx="-10" cy="0" r="15" fill="url(#petalPink)" opacity="0.8"/>
+      <circle cx="10" cy="0" r="15" fill="url(#petalPink)" opacity="0.8"/>
+      <circle cx="0" cy="-10" r="15" fill="url(#petalPink)" opacity="0.8"/>
+      <circle cx="0" cy="10" r="15" fill="url(#petalPink)" opacity="0.8"/>
+      <circle cx="0" cy="0" r="7" fill="#fde68a"/>
+    </g>
+  </g>
+
+  <!-- COIN INFÉRIEUR GAUCHE : Fleurs majestueuses veloutées -->
+  <g transform="translate(-40, 780)" opacity="0.85">
+    <path d="M30,280 Q190,160 350,210 T580,120" fill="none" stroke="url(#branchGrad)" stroke-width="4" stroke-linecap="round"/>
+    <path d="M190,160 Q230,60 360,30" fill="none" stroke="url(#branchGrad)" stroke-width="3" stroke-linecap="round"/>
+
+    <path d="M220,170 Q250,140 270,175 Q240,190 220,170 Z" fill="url(#petalGold)" opacity="0.85"/>
+    <path d="M340,180 Q380,165 390,200 Q355,205 340,180 Z" fill="url(#petalPink)" opacity="0.9"/>
+
+    <g transform="translate(180, 180)" filter="url(#softGlow)">
+      <ellipse cx="-22" cy="0" rx="38" ry="26" transform="rotate(-30)" fill="url(#petalDeep)"/>
+      <ellipse cx="22" cy="0" rx="38" ry="26" transform="rotate(30)" fill="url(#petalDeep)"/>
+      <ellipse cx="0" cy="-22" rx="26" ry="38" fill="url(#petalPink)"/>
+      <ellipse cx="0" cy="22" rx="26" ry="38" fill="url(#petalDeep)"/>
+      <circle cx="0" cy="0" r="18" fill="#fde68a" opacity="0.9"/>
+      <circle cx="0" cy="0" r="8" fill="#ffffff"/>
+    </g>
+
+    <g transform="translate(370, 50)">
+      <circle cx="-12" cy="0" r="17" fill="url(#petalPink)" opacity="0.8"/>
+      <circle cx="12" cy="0" r="17" fill="url(#petalPink)" opacity="0.8"/>
+      <circle cx="0" cy="-12" r="17" fill="url(#petalPink)" opacity="0.8"/>
+      <circle cx="0" cy="12" r="17" fill="url(#petalPink)" opacity="0.8"/>
+      <circle cx="0" cy="0" r="8" fill="#fde68a"/>
+    </g>
+  </g>
+
+  <!-- COIN INFÉRIEUR DROIT : Rameaux délicats et fleurs parfumées -->
+  <g transform="translate(1440, 750)" opacity="0.85">
+    <path d="M480,260 Q320,160 180,210 T-30,120" fill="none" stroke="url(#branchGrad)" stroke-width="4" stroke-linecap="round"/>
+    <path d="M180,210 Q140,80 10,60" fill="none" stroke="url(#branchGrad)" stroke-width="3" stroke-linecap="round"/>
+
+    <path d="M260,200 Q230,170 210,205 Q240,220 260,200 Z" fill="url(#petalGold)" opacity="0.85"/>
+    <path d="M140,180 Q100,165 90,200 Q125,205 140,180 Z" fill="url(#petalPink)" opacity="0.9"/>
+
+    <g transform="translate(300, 180)" filter="url(#softGlow)">
+      <ellipse cx="-22" cy="0" rx="38" ry="26" transform="rotate(-30)" fill="url(#petalDeep)"/>
+      <ellipse cx="22" cy="0" rx="38" ry="26" transform="rotate(30)" fill="url(#petalDeep)"/>
+      <ellipse cx="0" cy="-22" rx="26" ry="38" fill="url(#petalPink)"/>
+      <ellipse cx="0" cy="22" rx="26" ry="38" fill="url(#petalDeep)"/>
+      <circle cx="0" cy="0" r="18" fill="#fde68a" opacity="0.9"/>
+      <circle cx="0" cy="0" r="8" fill="#ffffff"/>
+    </g>
+
+    <g transform="translate(130, 80)">
+      <circle cx="-12" cy="0" r="18" fill="url(#petalPink)" opacity="0.85"/>
+      <circle cx="12" cy="0" r="18" fill="url(#petalPink)" opacity="0.85"/>
+      <circle cx="0" cy="-12" r="18" fill="url(#petalPink)" opacity="0.85"/>
+      <circle cx="0" cy="12" r="18" fill="url(#petalPink)" opacity="0.85"/>
+      <circle cx="0" cy="0" r="8" fill="#fde68a"/>
+    </g>
+  </g>
+
+  <!-- PÉTALES LÉGERS QUI VOLTIGENT AVEC DOUCEUR EN ARRIÈRE-PLAN -->
+  <g opacity="0.75">
+    <!-- Pétales à gauche -->
+    <path d="M480,380 C500,360 520,380 505,405 C490,415 470,400 480,380 Z" fill="url(#petalPink)" transform="rotate(25 490 390)"/>
+    <path d="M380,560 C400,545 415,560 405,580 C390,590 375,575 380,560 Z" fill="url(#petalDeep)" transform="rotate(-15 390 570)"/>
+    <path d="M620,240 C635,225 650,235 640,255 C630,265 615,250 620,240 Z" fill="url(#petalGold)" transform="rotate(40 630 245)"/>
+
+    <!-- Pétales au centre (très discrets pour ne pas gêner la lecture) -->
+    <path d="M820,180 C835,170 850,180 840,195 C830,205 815,190 820,180 Z" fill="url(#petalPink)" opacity="0.45" transform="rotate(10 830 185)"/>
+    <path d="M1120,280 C1135,270 1150,280 1140,295 C1130,305 1115,290 1120,280 Z" fill="url(#petalPink)" opacity="0.45" transform="rotate(-30 1130 285)"/>
+    <path d="M910,880 C925,865 940,875 930,895 C920,905 905,890 910,880 Z" fill="url(#petalGold)" opacity="0.45" transform="rotate(50 920 885)"/>
+
+    <!-- Pétales à droite -->
+    <path d="M1380,480 C1400,460 1420,480 1405,505 C1390,515 1370,500 1380,480 Z" fill="url(#petalPink)" transform="rotate(-40 1390 490)"/>
+    <path d="M1520,340 C1540,325 1555,340 1545,360 C1530,370 1515,355 1520,340 Z" fill="url(#petalDeep)" transform="rotate(35 1530 350)"/>
+    <path d="M1420,660 C1435,645 1450,655 1440,675 C1430,685 1415,670 1420,660 Z" fill="url(#petalGold)" transform="rotate(-20 1430 665)"/>
+  </g>
+
+  <!-- PETITES ÉTINCELLES / ÉTOILES DORÉES DISCRÈTES (LUXUEUX & FÉMININ) -->
+  <g fill="#fef08a" opacity="0.75">
+    <circle cx="340" cy="280" r="2.5"/>
+    <circle cx="520" cy="180" r="1.8"/>
+    <circle cx="280" cy="460" r="2.2"/>
+    <circle cx="680" cy="380" r="1.5"/>
+    <circle cx="1320" cy="240" r="2.5"/>
+    <circle cx="1580" cy="440" r="2.2"/>
+    <circle cx="1460" cy="620" r="1.8"/>
+    <circle cx="1260" cy="740" r="2.0"/>
+    <circle cx="750" cy="780" r="2.2"/>
+    <circle cx="420" cy="720" r="1.8"/>
+    <!-- Scintillements en forme d'étoile à 4 branches -->
+    <path d="M310,220 Q310,230 300,230 Q310,230 310,240 Q310,230 320,230 Q310,230 310,220 Z" fill="#ffffff" opacity="0.8"/>
+    <path d="M1580,260 Q1580,270 1570,270 Q1580,270 1580,280 Q1580,270 1590,270 Q1580,270 1580,260 Z" fill="#ffffff" opacity="0.8"/>
+    <path d="M1490,540 Q1490,548 1482,548 Q1490,548 1490,556 Q1490,548 1498,548 Q1490,548 1490,540 Z" fill="#fde68a" opacity="0.7"/>
+    <path d="M430,620 Q430,628 422,628 Q430,628 430,636 Q430,628 438,628 Q430,628 430,620 Z" fill="#fde68a" opacity="0.7"/>
+  </g>
+
+  <!-- VOILE DE CONTRASTE CENTRAL ULTRA-DOUX POUR GARANTIR UNE LISIBILITÉ PARFAITE DU CHAT -->
+  <rect x="0" y="0" width="1920" height="1080" fill="#0f0717" opacity="0.22"/>
+</svg>
