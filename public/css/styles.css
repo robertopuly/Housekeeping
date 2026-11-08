@@ -7931,6 +7931,31 @@ body.is-pc section.tab-panel.pc-only:not(.active) {
   background: linear-gradient(135deg, #fb7185 0%, #f43f5e 100%);
 }
 
+.chat-container.chat-theme-autumn .typing-indicator-row {
+  margin: 10px 0 16px 0;
+  scroll-margin-bottom: 28px;
+}
+
+.chat-container.chat-theme-autumn .typing-bubble {
+  background-color: #ffffff;
+  border: 1.5px solid #fbcfe8;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.28);
+}
+
+.chat-container.chat-theme-autumn .typing-header .typing-text {
+  color: #be185d;
+}
+
+.chat-container.chat-theme-autumn .typing-live-preview {
+  background-color: #fdf2f8;
+  border-left: 3px solid #e11d48;
+  color: #1e1b4b;
+}
+
+.chat-container.chat-theme-autumn .live-preview-cursor {
+  color: #e11d48;
+}
+
 /* ==========================================================================
    POPUP MODAL ANIMATION HALLOWEEN 2026 (TABLETTES)
    ========================================================================== */

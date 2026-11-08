@@ -881,19 +881,28 @@ function scrollToBottom(smooth = false) {
   if (!container) return;
 
   const performScroll = () => {
-    container.scrollTop = container.scrollHeight;
+    // 1. Si l'indicateur de frappe / brouillon en direct est affiché, c'est lui qu'on amène en bas
+    const indicator = document.getElementById('chat-typing-indicator');
+    if (indicator && typeof indicator.scrollIntoView === 'function') {
+      indicator.scrollIntoView({ block: 'end', behavior: smooth ? 'smooth' : 'auto' });
+      container.scrollTop = container.scrollHeight;
+      return;
+    }
+
+    // 2. Sinon, on descend tout en bas sur l'ancre finale
     const anchor = document.getElementById('chat-bottom-anchor');
     if (anchor && typeof anchor.scrollIntoView === 'function') {
       anchor.scrollIntoView({ block: 'end', behavior: smooth ? 'smooth' : 'auto' });
     }
+    container.scrollTop = container.scrollHeight;
   };
 
   performScroll();
   requestAnimationFrame(performScroll);
-  setTimeout(performScroll, 50);
-  setTimeout(performScroll, 150);
-  setTimeout(performScroll, 350);
-  setTimeout(performScroll, 600);
+  setTimeout(performScroll, 30);
+  setTimeout(performScroll, 100);
+  setTimeout(performScroll, 250);
+  setTimeout(performScroll, 500);
 }
 
 async function sendMessage(customText = null) {
@@ -1310,9 +1319,11 @@ function handleInputChange() {
   if (hasText) {
     sendTypingStatus(true, currentVal);
     if (stopTypingTimeout) clearTimeout(stopTypingTimeout);
+    // Tant qu'il y a du texte dans le champ, on maintient le statut d'écriture et le brouillon visible.
+    // On ne coupe le statut qu'après 90 secondes d'inactivité totale pour éviter tout saut d'écran.
     stopTypingTimeout = setTimeout(() => {
       sendTypingStatus(false, '');
-    }, 3500);
+    }, 90000);
   } else {
     if (stopTypingTimeout) clearTimeout(stopTypingTimeout);
     sendTypingStatus(false, '');
@@ -1329,20 +1340,24 @@ function onTypingStatus({ user, isTyping, text }) {
       typingDrafts[user] = text;
     }
   } else {
-    typingUsers.delete(user);
-    delete typingDrafts[user];
+    // Si isTyping: false arrive mais qu'un brouillon existait et que text n'est pas vide,
+    // on ne détruit pas le brouillon prématurément
+    if (!text || text.trim().length === 0) {
+      typingUsers.delete(user);
+      delete typingDrafts[user];
+    }
   }
 
   renderTypingIndicator();
 
-  // Sécurité : masquer automatiquement après 5s d'inactivité
+  // Sécurité : masquer automatiquement après 90s d'inactivité complète
   if (remoteTypingTimeout) clearTimeout(remoteTypingTimeout);
   if (typingUsers.size > 0) {
     remoteTypingTimeout = setTimeout(() => {
       typingUsers.clear();
       typingDrafts = {};
       renderTypingIndicator();
-    }, 5000);
+    }, 90000);
   }
 }
 
@@ -1397,7 +1412,17 @@ function renderTypingIndicator() {
     indicatorEl = document.createElement('div');
     indicatorEl.id = 'chat-typing-indicator';
     indicatorEl.className = 'typing-indicator-row';
-    container.appendChild(indicatorEl);
+    const anchor = document.getElementById('chat-bottom-anchor');
+    if (anchor) {
+      container.insertBefore(indicatorEl, anchor);
+    } else {
+      container.appendChild(indicatorEl);
+    }
+  } else {
+    const anchor = document.getElementById('chat-bottom-anchor');
+    if (anchor && indicatorEl.nextSibling !== anchor) {
+      container.insertBefore(indicatorEl, anchor);
+    }
   }
 
   if (liveDraft) {
@@ -1694,8 +1719,11 @@ function setupChatEvents() {
     });
 
     input.addEventListener('blur', () => {
-      if (stopTypingTimeout) clearTimeout(stopTypingTimeout);
-      sendTypingStatus(false);
+      const currentVal = input.value;
+      if (!currentVal || !currentVal.trim()) {
+        if (stopTypingTimeout) clearTimeout(stopTypingTimeout);
+        sendTypingStatus(false);
+      }
       setTimeout(() => {
         if (!document.activeElement || document.activeElement.id !== 'chat-input') {
           if (!window.visualViewport || (window.innerHeight - window.visualViewport.height) <= 60) {
