@@ -8405,3 +8405,190 @@ body.is-pc section.tab-panel.pc-only:not(.active) {
   color: #ffffff !important;
   border-color: #f43f5e !important;
 }
+
+/* Modal Pop-up Information Mise à Jour (Mardi 10 Novembre 2026) */
+.update-notice-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 99999;
+  background: rgba(10, 15, 29, 0.82);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  animation: noticeFadeIn 0.3s ease-out;
+}
+
+.update-notice-box {
+  background: #0f172a;
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: 20px;
+  max-width: 540px;
+  width: 100%;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 35px rgba(245, 158, 11, 0.15);
+  overflow: hidden;
+  animation: noticeScaleUp 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+}
+
+@keyframes noticeFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes noticeScaleUp {
+  from { opacity: 0; transform: scale(0.92) translateY(10px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.update-notice-header {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.22) 0%, rgba(217, 119, 6, 0.1) 60%, transparent 100%);
+  padding: 18px 20px;
+  border-bottom: 1px solid rgba(245, 158, 11, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  position: relative;
+}
+
+.update-notice-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 14px;
+  background: rgba(245, 158, 11, 0.18);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+  flex-shrink: 0;
+}
+
+.update-notice-tag {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #fbbf24;
+  background: rgba(245, 158, 11, 0.18);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  padding: 2px 10px;
+  border-radius: 12px;
+  margin-bottom: 4px;
+}
+
+.update-notice-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #ffffff;
+  line-height: 1.3;
+}
+
+.update-notice-close-btn {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #94a3b8;
+  font-size: 20px;
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.update-notice-close-btn:hover {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+}
+
+.update-notice-body {
+  padding: 22px 24px;
+  color: #e2e8f0;
+  font-size: 14.5px;
+  line-height: 1.65;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.update-notice-greeting {
+  font-size: 16px;
+  font-weight: 700;
+  color: #fef08a;
+  margin: 0;
+}
+
+.update-notice-highlight {
+  background: rgba(30, 41, 59, 0.8);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-left: 4px solid #f59e0b;
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 13.5px;
+}
+
+.update-notice-highlight-title {
+  color: #f59e0b;
+  font-weight: 700;
+  margin-bottom: 4px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.update-notice-clarification {
+  font-size: 13px;
+  color: #94a3b8;
+  font-style: italic;
+  padding-top: 8px;
+  border-top: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+.update-notice-footer {
+  padding: 14px 24px 18px;
+  background: rgba(15, 23, 42, 0.6);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.update-notice-hint {
+  font-size: 11.5px;
+  color: #64748b;
+}
+
+.update-notice-submit-btn {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 700;
+  padding: 10px 22px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(245, 158, 11, 0.35);
+  transition: all 0.2s ease;
+}
+
+.update-notice-submit-btn:hover {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.5);
+}
+
+.update-notice-submit-btn:active {
+  transform: translateY(0);
+}

@@ -8,9 +8,9 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <title>Gouvernante Hôtel - Gestion & Communication</title>
-  <link rel="stylesheet" href="css/styles.css?v=95">
+  <link rel="stylesheet" href="css/styles.css?v=96">
   <script>
-    window.APP_VERSION = 95;
+    window.APP_VERSION = 96;
     function getTodayIsoStr() {
       var d = new Date();
       var y = d.getFullYear();
@@ -1856,23 +1856,59 @@
     </div>
   </div>
 
+  <!-- MODAL POPUP INFORMATION MISE À JOUR ADÉLCIA (ACTIVATION MARDI 10 NOVEMBRE 2026 SUR TABLETTE) -->
+  <div id="modal-update-notice-nov2026" class="update-notice-backdrop" style="display: none;" onclick="if(event.target===this)window.UpdateNotice.close()">
+    <div class="update-notice-box" role="dialog" aria-modal="true" aria-labelledby="update-notice-title">
+      
+      <div class="update-notice-header">
+        <div class="update-notice-icon">🏨✨</div>
+        <div>
+          <span class="update-notice-tag">Mise à jour • Mardi 10 Novembre</span>
+          <h2 id="update-notice-title" class="update-notice-title">Nouvelle version de l'application</h2>
+        </div>
+        <button type="button" class="update-notice-close-btn" onclick="window.UpdateNotice.close()" aria-label="Fermer" title="Fermer">&times;</button>
+      </div>
+
+      <div class="update-notice-body">
+        <p class="update-notice-greeting">Bonjour Adélcia,</p>
+        <p>L'application de gestion <strong>Housekeeping</strong> a été mise à jour. Dès maintenant, il est possible d'envoyer et de synchroniser les données en temps réel, même lorsque Roberto est à l'extérieur de l'hôtel.</p>
+
+        <div class="update-notice-highlight">
+          <div class="update-notice-highlight-title">🛒 Achats aux supermarchés (Lundi, Jeudi & Samedi)</div>
+          <div>Comme d'habitude, Roberto s'absente de <strong>8h30 à 10h00</strong>. Vous pouvez donc lui demander directement du matériel ou des produits en direct si urgent ou nécessaire pour l'hôtel.</div>
+        </div>
+
+        <p>🌐 La connexion en ligne a également été renforcée afin d'assurer une parfaite stabilité et d'éviter tout dysfonctionnement.</p>
+
+        <p class="update-notice-clarification">En cas de problème ou de question, veuillez vous adresser directement à <strong>Mister Roberto</strong> pour des clarifications.</p>
+      </div>
+
+      <div class="update-notice-footer">
+        <span class="update-notice-hint">Ce message s'affiche une seule fois.</span>
+        <button type="button" class="update-notice-submit-btn" onclick="window.UpdateNotice.close()">J'ai compris (Fermer)</button>
+      </div>
+
+    </div>
+  </div>
+
   <!-- ÉLÉMENTS AUDIO PRÉ-CHARGÉS POUR NOTIFICATIONS TABLETTE -->
   <audio id="audio-happy-song" src="/audio/happy-song.wav" preload="auto" playsinline style="display: none;"></audio>
   <audio id="audio-silence-keepalive" src="/audio/silence.wav" preload="auto" loop playsinline style="display: none;"></audio>
 
   <!-- SCRIPTS -->
   <script src="/socket.io/socket.io.js"></script>
-  <script src="js/audio.js?v=95"></script>
-  <script src="js/socket.js?v=95"></script>
-  <script src="js/chat.js?v=95"></script>
-  <script src="js/orders.js?v=95"></script>
-  <script src="js/deadlines.js?v=95"></script>
-  <script src="js/shopping.js?v=95"></script>
-  <script src="js/expenses.js?v=95"></script>
-  <script src="js/leave.js?v=95"></script>
-  <script src="js/presence.js?v=95"></script>
-  <script src="js/gallery.js?v=95"></script>
-  <script src="js/halloween-popup.js?v=95"></script>
-  <script src="js/app.js?v=95"></script>
+  <script src="js/audio.js?v=96"></script>
+  <script src="js/socket.js?v=96"></script>
+  <script src="js/chat.js?v=96"></script>
+  <script src="js/orders.js?v=96"></script>
+  <script src="js/deadlines.js?v=96"></script>
+  <script src="js/shopping.js?v=96"></script>
+  <script src="js/expenses.js?v=96"></script>
+  <script src="js/leave.js?v=96"></script>
+  <script src="js/presence.js?v=96"></script>
+  <script src="js/gallery.js?v=96"></script>
+  <script src="js/halloween-popup.js?v=96"></script>
+  <script src="js/update-notice.js?v=96"></script>
+  <script src="js/app.js?v=96"></script>
 </body>
 </html>
