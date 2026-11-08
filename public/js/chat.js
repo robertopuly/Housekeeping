@@ -646,7 +646,7 @@ function renderMessages() {
     }
   });
 
-  container.innerHTML = html + '<div id="chat-bottom-anchor" style="height: 1px; width: 100%; pointer-events: none; clear: both;"></div>';
+  container.innerHTML = html + '<div id="chat-bottom-anchor" style="height: 20px; min-height: 20px; width: 100%; pointer-events: none; clear: both; flex-shrink: 0;"></div>';
   attachMessageClickEvents();
   attachPhotoClickEvents();
   renderTypingIndicator();
@@ -884,17 +884,18 @@ function scrollToBottom(smooth = false) {
     // 1. Si l'indicateur de frappe / brouillon en direct est affiché, c'est lui qu'on amène en bas
     const indicator = document.getElementById('chat-typing-indicator');
     if (indicator && typeof indicator.scrollIntoView === 'function') {
-      indicator.scrollIntoView({ block: 'end', behavior: smooth ? 'smooth' : 'auto' });
-      container.scrollTop = container.scrollHeight;
-      return;
+      try {
+        indicator.scrollIntoView({ block: 'end', inline: 'nearest', behavior: smooth ? 'smooth' : 'auto' });
+      } catch (e) {}
+    } else {
+      const anchor = document.getElementById('chat-bottom-anchor');
+      if (anchor && typeof anchor.scrollIntoView === 'function') {
+        try {
+          anchor.scrollIntoView({ block: 'end', inline: 'nearest', behavior: smooth ? 'smooth' : 'auto' });
+        } catch (e) {}
+      }
     }
-
-    // 2. Sinon, on descend tout en bas sur l'ancre finale
-    const anchor = document.getElementById('chat-bottom-anchor');
-    if (anchor && typeof anchor.scrollIntoView === 'function') {
-      anchor.scrollIntoView({ block: 'end', behavior: smooth ? 'smooth' : 'auto' });
-    }
-    container.scrollTop = container.scrollHeight;
+    container.scrollTop = container.scrollHeight + 1000;
   };
 
   performScroll();
