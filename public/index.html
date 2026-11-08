@@ -8,9 +8,9 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <title>Gouvernante Hôtel - Gestion & Communication</title>
-  <link rel="stylesheet" href="css/styles.css?v=98">
+  <link rel="stylesheet" href="css/styles.css?v=99">
   <script>
-    window.APP_VERSION = 98;
+    window.APP_VERSION = 99;
     function getTodayIsoStr() {
       var d = new Date();
       var y = d.getFullYear();
@@ -449,19 +449,28 @@
           </div>
         </div>
 
-        <!-- Sound Toggle -->
-        <button type="button" id="btn-sound-toggle" class="btn-header-action" aria-label="Activer ou désactiver l'audio">
-          🔔 <span class="hide-mobile">Audio</span>
+        <!-- Sound Toggle (Layout 2 lignes pour lisibilité parfaite sur tablette) -->
+        <button type="button" id="btn-sound-toggle" class="btn-header-action btn-sound-action" aria-label="Activer ou désactiver l'audio">
+          <span class="header-action-icon">🔔</span>
+          <span class="btn-sound-text">
+            <span class="btn-sound-label">Audio</span>
+            <span class="btn-sound-val val-active">Actif</span>
+          </span>
         </button>
 
         <!-- Anti-Veille Écran (Tablet) -->
         <button type="button" id="btn-wakelock-toggle" class="btn-header-action wakelock-btn" style="display: none;" title="Anti-veille : Maintient l'écran allumé pour ne jamais rater une alerte sonore">
-          💡 <span class="hide-mobile" id="wakelock-text">Anti-veille : Actif</span>
+          <span class="header-action-icon">💡</span>
+          <span class="btn-sound-text">
+            <span class="btn-sound-label">Anti-veille</span>
+            <span class="btn-sound-val val-active">Actif</span>
+          </span>
         </button>
 
-        <!-- Déconnexion -->
+        <!-- Déconnexion (Poussé vers la droite sur tablette pour aérer la barre) -->
         <button type="button" id="btn-header-logout" class="btn-header-action btn-header-logout" onclick="window.App.handleLogout()" title="Se déconnecter de Housekeeping">
-          🚪 <span class="hide-mobile">Déconnexion</span>
+          <span class="header-action-icon">🚪</span>
+          <span class="logout-text">Déconnexion</span>
         </button>
       </div>
     </header>
@@ -1897,18 +1906,18 @@
 
   <!-- SCRIPTS -->
   <script src="/socket.io/socket.io.js"></script>
-  <script src="js/audio.js?v=98"></script>
-  <script src="js/socket.js?v=98"></script>
-  <script src="js/chat.js?v=98"></script>
-  <script src="js/orders.js?v=98"></script>
-  <script src="js/deadlines.js?v=98"></script>
-  <script src="js/shopping.js?v=98"></script>
-  <script src="js/expenses.js?v=98"></script>
-  <script src="js/leave.js?v=98"></script>
-  <script src="js/presence.js?v=98"></script>
-  <script src="js/gallery.js?v=98"></script>
-  <script src="js/halloween-popup.js?v=98"></script>
-  <script src="js/update-notice.js?v=98"></script>
-  <script src="js/app.js?v=98"></script>
+  <script src="js/audio.js?v=99"></script>
+  <script src="js/socket.js?v=99"></script>
+  <script src="js/chat.js?v=99"></script>
+  <script src="js/orders.js?v=99"></script>
+  <script src="js/deadlines.js?v=99"></script>
+  <script src="js/shopping.js?v=99"></script>
+  <script src="js/expenses.js?v=99"></script>
+  <script src="js/leave.js?v=99"></script>
+  <script src="js/presence.js?v=99"></script>
+  <script src="js/gallery.js?v=99"></script>
+  <script src="js/halloween-popup.js?v=99"></script>
+  <script src="js/update-notice.js?v=99"></script>
+  <script src="js/app.js?v=99"></script>
 </body>
 </html>

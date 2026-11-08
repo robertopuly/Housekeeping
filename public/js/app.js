@@ -756,13 +756,16 @@ function releaseScreenWakeLock() {
 
 function updateWakeLockUI(isActive) {
   const btn = document.getElementById('btn-wakelock-toggle');
-  const textEl = document.getElementById('wakelock-text');
   if (btn) {
     btn.classList.toggle('active', isActive);
     btn.classList.toggle('inactive', !isActive);
-    if (textEl) {
-      textEl.textContent = isActive ? 'Anti-veille : Actif' : 'Anti-veille : Inactif';
-    }
+    btn.innerHTML = `
+      <span class="header-action-icon">💡</span>
+      <span class="btn-sound-text">
+        <span class="btn-sound-label">Anti-veille</span>
+        <span class="btn-sound-val ${isActive ? 'val-active' : 'val-muted'}">${isActive ? 'Actif' : 'Inactif'}</span>
+      </span>
+    `;
     btn.title = isActive 
       ? "L'écran reste allumé pour ne jamais rater une sonnerie" 
       : "Cliquer pour activer le maintien de l'écran allumé";

@@ -159,7 +159,10 @@ body {
 .header-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  flex: 1;
+  justify-content: flex-end;
+  min-width: 0;
 }
 
 .btn-header-action {
@@ -167,19 +170,61 @@ body {
   color: var(--text-light);
   border: 1px solid #334155;
   border-radius: 20px;
-  padding: 6px 12px;
+  padding: 5px 12px;
   font-size: 13px;
   font-weight: 600;
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 6px;
-  min-height: 36px;
+  gap: 8px;
+  min-height: 42px;
   transition: all 0.2s;
+  white-space: nowrap;
 }
 
 .btn-header-action:hover {
   background: #334155;
+}
+
+/* Layout 2 lignes compact et infaillible pour Audio & Anti-veille */
+.btn-sound-text {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  line-height: 1.15;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.btn-sound-label {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.btn-sound-val {
+  font-size: 12px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.btn-sound-val.val-active {
+  color: #4ade80;
+}
+
+.btn-sound-val.val-muted {
+  color: #f87171;
+}
+
+.header-action-icon {
+  font-size: 18px;
+  line-height: 1;
+  display: inline-block;
+  flex-shrink: 0;
 }
 
 .wakelock-btn {
@@ -8434,18 +8479,38 @@ body.is-pc section.tab-panel.pc-only:not(.active) {
   transform: none;
 }
 
-/* Bouton Déconnexion dans le Header */
+/* Bouton Déconnexion dans le Header (Poussé vers l'extrémité droite pour aérer les boutons) */
 .btn-header-logout {
+  margin-left: auto !important;
   color: #fda4af !important;
   background: rgba(225, 29, 72, 0.15) !important;
   border-color: rgba(225, 29, 72, 0.3) !important;
   cursor: pointer;
+  white-space: nowrap;
+  padding: 6px 14px;
+  border-radius: 20px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  transition: all 0.2s ease;
 }
 
 .btn-header-logout:hover {
   background: rgba(225, 29, 72, 0.3) !important;
   color: #ffffff !important;
   border-color: #f43f5e !important;
+}
+
+/* Optimisation tablette pour préserver l'espace et la clarté */
+@media (max-width: 950px) {
+  .header-brand h1 { font-size: 14px; }
+  .header-subtitle { font-size: 11px; }
+  .header-actions { gap: 6px; }
+  .user-chip-badge { padding: 3px 8px 3px 4px; min-height: 40px; }
+  .user-avatar-badge { width: 32px; height: 32px; font-size: 14px; }
+  .user-chip-sub { display: none; }
+  .btn-header-action { padding: 4px 10px; min-height: 38px; }
 }
 
 /* Modal Pop-up Information Mise à Jour (Mardi 10 Novembre 2026) */

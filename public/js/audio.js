@@ -144,8 +144,11 @@ function updateSoundButtonUI() {
   const btn = document.getElementById('btn-sound-toggle');
   if (btn) {
     const muted = isMuted();
-    btn.innerHTML = muted ? '🔇 <span class="hide-mobile">Audio : Coupé</span>' : '🔔 <span class="hide-mobile">Audio : Actif</span>';
+    btn.innerHTML = muted 
+      ? '<span class="header-action-icon">🔇</span><span class="btn-sound-text"><span class="btn-sound-label">Audio</span><span class="btn-sound-val val-muted">Coupé</span></span>' 
+      : '<span class="header-action-icon">🔔</span><span class="btn-sound-text"><span class="btn-sound-label">Audio</span><span class="btn-sound-val val-active">Actif</span></span>';
     btn.setAttribute('aria-label', muted ? 'Activer le son' : 'Couper le son');
+    btn.classList.toggle('is-muted', muted);
   }
 }
 
