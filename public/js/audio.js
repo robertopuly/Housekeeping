@@ -27,7 +27,7 @@ function ensureAudioContextRunning() {
   if (ctx.state === 'suspended') {
     ctx.resume().catch(() => {});
   }
-  if (!silentOscillator && ctx.state === 'running') {
+  if (!silentOscillator) {
     try {
       silentOscillator = ctx.createOscillator();
       const silentGain = ctx.createGain();
@@ -42,52 +42,45 @@ function ensureAudioContextRunning() {
 
 // Décode happy-song.wav une seule fois en mémoire AudioBuffer pour lecture instantanée (0ms, 0 blocage)
 async function loadHappySongBuffer() {
-  if (happySongAudioBuffer || isLoadingHappySong) return;
+  if (happySongAudioBuffer) return happySongAudioBuffer;
+  if (isLoadingHappySong) return null;
   isLoadingHappySong = true;
   try {
     const ctx = getAudioContext();
     if (!ctx) {
       isLoadingHappySong = false;
-      return;
+      return null;
     }
     const res = await fetch('/audio/happy-song.wav');
     if (res.ok) {
       const arrayBuffer = await res.arrayBuffer();
-      ctx.decodeAudioData(arrayBuffer, (buffer) => {
-        happySongAudioBuffer = buffer;
-        isLoadingHappySong = false;
-      }, (err) => {
-        console.warn('Decode happy song error:', err);
-        isLoadingHappySong = false;
-      });
-    } else {
-      isLoadingHappySong = false;
+      try {
+        happySongAudioBuffer = await ctx.decodeAudioData(arrayBuffer);
+      } catch (err) {
+        await new Promise((resolve) => {
+          ctx.decodeAudioData(arrayBuffer, (buf) => {
+            happySongAudioBuffer = buf;
+            resolve(buf);
+          }, () => resolve(null));
+        });
+      }
     }
   } catch (e) {
+    console.warn('Erreur chargement happy-song.wav:', e);
+  } finally {
     isLoadingHappySong = false;
   }
+  return happySongAudioBuffer;
 }
 
 // Déverrouille les éléments audio du DOM dès la première interaction utilisateur
 function unlockDomAudioElements() {
   const keepAliveEl = document.getElementById('audio-silence-keepalive');
   if (keepAliveEl && keepAliveEl.paused) {
-    keepAliveEl.volume = 0.001;
+    keepAliveEl.volume = 0.0001;
     const p = keepAliveEl.play();
     if (p !== undefined) {
-      p.catch(() => {});
-    }
-  }
-
-  const happyEl = document.getElementById('audio-happy-song');
-  if (happyEl && !isDomAudioUnlocked) {
-    happyEl.volume = 0.001;
-    const p = happyEl.play();
-    if (p !== undefined) {
       p.then(() => {
-        happyEl.pause();
-        happyEl.currentTime = 0;
-        happyEl.volume = 1.0;
         isDomAudioUnlocked = true;
       }).catch(() => {});
     }
@@ -138,6 +131,7 @@ function setMuted(muted) {
 }
 
 function toggleMute() {
+  handleUserInteraction();
   const current = isMuted();
   setMuted(!current);
   if (!isMuted()) {
@@ -358,85 +352,108 @@ function startAudioKeepAlive() {
 
 // Synthétiseur Web Audio de secours pour la chansonnette
 function playHappySongSynth() {
-  const ctx = ensureAudioContextRunning();
+  const ctx = getAudioContext();
   if (!ctx) return;
 
-  try {
-    const now = ctx.currentTime;
+  const runSynth = () => {
+    try {
+      const now = ctx.currentTime;
 
-    function playNote(freq, startTime, duration, type = 'triangle', gainVal = 0.22) {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = type;
-      osc.frequency.setValueAtTime(freq, startTime);
+      function playNote(freq, startTime, duration, type = 'triangle', gainVal = 0.22) {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = type;
+        osc.frequency.setValueAtTime(freq, startTime);
 
-      const attack = 0.012;
-      gain.gain.setValueAtTime(0.0001, startTime);
-      gain.gain.linearRampToValueAtTime(gainVal, startTime + attack);
-      gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
+        const attack = 0.012;
+        gain.gain.setValueAtTime(0.0001, startTime);
+        gain.gain.linearRampToValueAtTime(gainVal, startTime + attack);
+        gain.gain.exponentialRampToValueAtTime(0.0001, startTime + duration);
 
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(startTime);
-      osc.stop(startTime + duration);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(startTime);
+        osc.stop(startTime + duration);
+      }
+
+      // Mélodie joyeuse et rythmée (~3 secondes)
+      const melody = [
+        { f: 523.25, t: 0.00, d: 0.14 }, // Do5
+        { f: 659.25, t: 0.14, d: 0.14 }, // Mi5
+        { f: 783.99, t: 0.28, d: 0.14 }, // Sol5
+        { f: 1046.50, t: 0.44, d: 0.22 }, // Do6
+        { f: 987.77, t: 0.70, d: 0.14 }, // Si5
+        { f: 783.99, t: 0.84, d: 0.14 }, // Sol5
+        { f: 880.00, t: 0.98, d: 0.14 }, // La5
+        { f: 987.77, t: 1.12, d: 0.14 }, // Si5
+        { f: 1046.50, t: 1.26, d: 0.18 }, // Do6
+        { f: 1174.66, t: 1.46, d: 0.14 }, // Re6
+        { f: 1046.50, t: 1.60, d: 0.14 }, // Do6
+        { f: 1174.66, t: 1.74, d: 0.14 }, // Re6
+        { f: 1318.51, t: 1.88, d: 0.22 }, // Mi6
+        { f: 1567.98, t: 2.12, d: 0.18 }, // Sol6
+        { f: 1318.51, t: 2.30, d: 0.18 }, // Mi6
+        { f: 1174.66, t: 2.48, d: 0.16 }, // Re6
+        { f: 1046.50, t: 2.64, d: 0.46 }  // Do6
+      ];
+      melody.forEach(n => playNote(n.f, now + n.t, n.d, 'triangle', 0.20));
+
+      const chords = [
+        { f: 261.63, t: 0.00, d: 0.65 },
+        { f: 329.63, t: 0.00, d: 0.65 },
+        { f: 196.00, t: 0.70, d: 0.65 },
+        { f: 293.66, t: 0.70, d: 0.65 },
+        { f: 349.23, t: 1.46, d: 0.60 },
+        { f: 440.00, t: 1.46, d: 0.60 },
+        { f: 392.00, t: 2.12, d: 0.50 },
+        { f: 493.88, t: 2.12, d: 0.50 },
+        { f: 261.63, t: 2.64, d: 0.50 },
+        { f: 392.00, t: 2.64, d: 0.50 },
+        { f: 659.25, t: 2.64, d: 0.50 }
+      ];
+      chords.forEach(c => playNote(c.f, now + c.t, c.d, 'sine', 0.14));
+
+      const sparkles = [
+        { f: 1567.98, t: 2.70, d: 0.20 },
+        { f: 2093.00, t: 2.84, d: 0.22 },
+        { f: 2637.02, t: 2.98, d: 0.25 }
+      ];
+      sparkles.forEach(s => playNote(s.f, now + s.t, s.d, 'sine', 0.12));
+    } catch (e) {
+      console.warn('Audio happy song synth error:', e);
     }
+  };
 
-    // Mélodie joyeuse et rythmée (~3 secondes)
-    const melody = [
-      { f: 523.25, t: 0.00, d: 0.14 }, // Do5
-      { f: 659.25, t: 0.14, d: 0.14 }, // Mi5
-      { f: 783.99, t: 0.28, d: 0.14 }, // Sol5
-      { f: 1046.50, t: 0.44, d: 0.22 }, // Do6
-      { f: 987.77, t: 0.70, d: 0.14 }, // Si5
-      { f: 783.99, t: 0.84, d: 0.14 }, // Sol5
-      { f: 880.00, t: 0.98, d: 0.14 }, // La5
-      { f: 987.77, t: 1.12, d: 0.14 }, // Si5
-      { f: 1046.50, t: 1.26, d: 0.18 }, // Do6
-      { f: 1174.66, t: 1.46, d: 0.14 }, // Re6
-      { f: 1046.50, t: 1.60, d: 0.14 }, // Do6
-      { f: 1174.66, t: 1.74, d: 0.14 }, // Re6
-      { f: 1318.51, t: 1.88, d: 0.22 }, // Mi6
-      { f: 1567.98, t: 2.12, d: 0.18 }, // Sol6
-      { f: 1318.51, t: 2.30, d: 0.18 }, // Mi6
-      { f: 1174.66, t: 2.48, d: 0.16 }, // Re6
-      { f: 1046.50, t: 2.64, d: 0.46 }  // Do6
-    ];
-    melody.forEach(n => playNote(n.f, now + n.t, n.d, 'triangle', 0.20));
-
-    const chords = [
-      { f: 261.63, t: 0.00, d: 0.65 },
-      { f: 329.63, t: 0.00, d: 0.65 },
-      { f: 196.00, t: 0.70, d: 0.65 },
-      { f: 293.66, t: 0.70, d: 0.65 },
-      { f: 349.23, t: 1.46, d: 0.60 },
-      { f: 440.00, t: 1.46, d: 0.60 },
-      { f: 392.00, t: 2.12, d: 0.50 },
-      { f: 493.88, t: 2.12, d: 0.50 },
-      { f: 261.63, t: 2.64, d: 0.50 },
-      { f: 392.00, t: 2.64, d: 0.50 },
-      { f: 659.25, t: 2.64, d: 0.50 }
-    ];
-    chords.forEach(c => playNote(c.f, now + c.t, c.d, 'sine', 0.14));
-
-    const sparkles = [
-      { f: 1567.98, t: 2.70, d: 0.20 },
-      { f: 2093.00, t: 2.84, d: 0.22 },
-      { f: 2637.02, t: 2.98, d: 0.25 }
-    ];
-    sparkles.forEach(s => playNote(s.f, now + s.t, s.d, 'sine', 0.12));
-  } catch (e) {
-    console.warn('Audio happy song synth error:', e);
+  if (ctx.state === 'suspended') {
+    ctx.resume().then(runSynth).catch(() => {});
+  } else {
+    runSynth();
   }
 }
 
 // Son joyeux d'actualisation de chambre (canzone allegra di ~3 secondi per il tablet)
-function playHappySongSound() {
+async function playHappySongSound() {
   if (isMuted()) return;
 
-  const ctx = ensureAudioContextRunning();
+  const ctx = getAudioContext();
+  if (ctx && ctx.state === 'suspended') {
+    try {
+      await ctx.resume();
+    } catch (e) {
+      console.warn('AudioContext resume error:', e);
+    }
+  }
+  ensureAudioContextRunning();
 
-  // 1. Priorité 1 : Buffer mémoire décodé Web Audio (infaillible, instantané, sans restriction autoplay)
-  if (ctx && happySongAudioBuffer && ctx.state === 'running') {
+  // Si le buffer n'était pas encore en mémoire, le charger
+  if (!happySongAudioBuffer) {
+    await loadHappySongBuffer();
+  }
+
+  let played = false;
+
+  // 1. Priorité 1 : Buffer mémoire décodé Web Audio (infaillible, haute fidélité)
+  if (ctx && happySongAudioBuffer) {
     try {
       const source = ctx.createBufferSource();
       source.buffer = happySongAudioBuffer;
@@ -445,33 +462,38 @@ function playHappySongSound() {
       source.connect(gain);
       gain.connect(ctx.destination);
       source.start(0);
-      return;
+      played = true;
     } catch (e) {
-      console.warn('Web Audio buffer playback error, fallback to element:', e);
+      console.warn('Web Audio buffer source error:', e);
     }
   }
 
-  // 2. Priorité 2 : Élément DOM pré-déverrouillé
-  try {
-    const domAudio = document.getElementById('audio-happy-song');
-    if (domAudio) {
+  // 2. Priorité 2 : Élément DOM HTML5 Audio
+  const domAudio = document.getElementById('audio-happy-song');
+  if (domAudio && !played) {
+    try {
       domAudio.currentTime = 0;
       domAudio.volume = 1.0;
       const playPromise = domAudio.play();
       if (playPromise !== undefined) {
-        playPromise.catch((err) => {
+        playPromise.then(() => {
+          played = true;
+        }).catch((err) => {
           console.warn('DOM audio blocked, fallback to synth:', err);
-          playHappySongSynth();
+          if (!played) {
+            playHappySongSynth();
+          }
         });
-        return;
       }
+    } catch (err) {
+      console.warn('HTML5 audio exception:', err);
     }
-  } catch (err) {
-    console.warn('HTML5 audio exception:', err);
   }
 
-  // 3. Fallback de secours : Synthétiseur Web Audio en temps réel
-  playHappySongSynth();
+  // 3. Synthétiseur de secours si ni le buffer ni le DOM n'ont joué
+  if (!played && (!happySongAudioBuffer || !domAudio)) {
+    playHappySongSynth();
+  }
 }
 
 // Son percutant de coup de tampon officiel d'approbation ("Thud" mécanique + carillon triomphant)
