@@ -17,7 +17,7 @@ const io = new Server(server, {
 });
 
 const PORT = process.env.PORT || 8765;
-const CURRENT_APP_VERSION = 93;
+const CURRENT_APP_VERSION = 94;
 
 const uploadsDir = path.join(__dirname, 'public', 'uploads');
 if (!fs.existsSync(uploadsDir)) {
@@ -40,6 +40,142 @@ app.use(express.static(path.join(__dirname, 'public'), {
     res.setHeader('Expires', '0');
   }
 }));
+
+// GESTION COOKIES & AUTHENTIFICATION (Tailscale & Local)
+function parseCookies(req) {
+  const list = {};
+  const cookieHeader = req.headers?.cookie;
+  if (!cookieHeader) return list;
+  cookieHeader.split(';').forEach((cookie) => {
+    const parts = cookie.split('=');
+    const key = parts.shift().trim();
+    if (key) {
+      const value = decodeURIComponent(parts.join('='));
+      list[key] = value;
+    }
+  });
+  return list;
+}
+
+function getAuthUser(req) {
+  const cookies = parseCookies(req);
+  const token = cookies['hk_sid'];
+  if (!token) return null;
+  return db.getUserBySessionToken(token);
+}
+
+// Middleware d'authentification utilisateur
+app.use((req, res, next) => {
+  req.user = getAuthUser(req);
+  next();
+});
+
+// Protection des points de terminaison API (sauf endpoints publics)
+app.use('/api', (req, res, next) => {
+  if (
+    req.path === '/status' ||
+    req.path === '/auth/login' ||
+    req.path === '/auth/me' ||
+    req.path === '/auth/logout'
+  ) {
+    return next();
+  }
+  if (!req.user) {
+    return res.status(401).json({ error: 'Non authentifié. Veuillez vous connecter.' });
+  }
+  next();
+});
+
+// POINTS DE TERMINAISON D'AUTHENTIFICATION
+app.post('/api/auth/login', (req, res) => {
+  try {
+    const { username, password } = req.body;
+    if (!username || !password) {
+      return res.status(400).json({ error: 'Nom d’utilisateur et mot de passe requis.' });
+    }
+    const user = db.getUserByUsername(username);
+    if (!user) {
+      return res.status(401).json({ error: 'Identifiants incorrects.' });
+    }
+    const valid = db.verifyPassword(password, user.password_hash);
+    if (!valid) {
+      return res.status(401).json({ error: 'Mot de passe incorrect.' });
+    }
+
+    const { token, expiresAt } = db.createSession(user.id, 60);
+    const isHttps = req.secure || req.headers['x-forwarded-proto'] === 'https';
+    const cookieHeader = `hk_sid=${token}; HttpOnly; Path=/; SameSite=Lax; Max-Age=5184000${isHttps ? '; Secure' : ''}`;
+    res.setHeader('Set-Cookie', cookieHeader);
+
+    const avatar = db.getUserAvatar(user.username);
+    res.json({
+      success: true,
+      user: {
+        id: user.id,
+        username: user.username,
+        display_name: user.display_name,
+        role: user.role,
+        avatar_url: avatar
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/auth/logout', (req, res) => {
+  try {
+    const cookies = parseCookies(req);
+    const token = cookies['hk_sid'];
+    if (token) {
+      db.deleteSession(token);
+    }
+    res.setHeader('Set-Cookie', 'hk_sid=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0');
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.get('/api/auth/me', (req, res) => {
+  if (!req.user) {
+    return res.status(401).json({ authenticated: false, error: 'Non authentifié' });
+  }
+  const avatar = db.getUserAvatar(req.user.username);
+  res.json({
+    authenticated: true,
+    user: {
+      id: req.user.id,
+      username: req.user.username,
+      display_name: req.user.display_name,
+      role: req.user.role,
+      avatar_url: avatar
+    }
+  });
+});
+
+app.post('/api/auth/change-password', (req, res) => {
+  try {
+    if (!req.user) {
+      return res.status(401).json({ error: 'Non authentifié' });
+    }
+    const { currentPassword, newPassword } = req.body;
+    if (!currentPassword || !newPassword) {
+      return res.status(400).json({ error: 'Ancien et nouveau mot de passe requis.' });
+    }
+    if (newPassword.length < 4) {
+      return res.status(400).json({ error: 'Le nouveau mot de passe doit comporter au moins 4 caractères.' });
+    }
+    const userWithHash = db.getUserByUsername(req.user.username);
+    if (!db.verifyPassword(currentPassword, userWithHash.password_hash)) {
+      return res.status(400).json({ error: 'Mot de passe actuel incorrect.' });
+    }
+    db.changeUserPassword(req.user.id, newPassword);
+    res.json({ success: true, message: 'Mot de passe modifié avec succès.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 function getLocalIPs() {
   const interfaces = os.networkInterfaces();
@@ -1134,6 +1270,25 @@ app.post('/api/user/avatar', (req, res) => {
     console.error('Erreur enregistrement avatar:', err);
     res.status(500).json({ error: err.message });
   }
+});
+
+io.use((socket, next) => {
+  try {
+    const cookieHeader = socket.handshake.headers.cookie;
+    if (cookieHeader) {
+      const list = {};
+      cookieHeader.split(';').forEach((cookie) => {
+        const parts = cookie.split('=');
+        const key = parts.shift().trim();
+        if (key) list[key] = decodeURIComponent(parts.join('='));
+      });
+      const token = list['hk_sid'];
+      if (token) {
+        socket.authUser = db.getUserBySessionToken(token);
+      }
+    }
+  } catch (e) {}
+  next();
 });
 
 io.on('connection', (socket) => {

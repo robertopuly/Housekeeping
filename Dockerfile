@@ -1,26 +1,24 @@
+# Dockerfile per Housekeeping (Gestion & Communication Hôtel)
+# Usa Node.js 22 Alpine (include il modulo nativo node:sqlite)
 FROM node:22-alpine
 
 WORKDIR /app
 
-# Copia delle dipendenze
-COPY package*.json ./
+ENV NODE_ENV=production
+ENV PORT=8765
+ENV DB_PATH=/app/data/data.db
+ENV TZ=Europe/Zurich
 
-# Installazione dipendenze di produzione
+# Copia file dipendenze e installa dipendenze di produzione
+COPY package*.json ./
 RUN npm install --omit=dev
 
-# Copia del codice dell'applicazione
+# Copia codice sorgente
 COPY . .
 
-# Creazione cartelle per persistenza dati e foto
+# Cartelle persistenti per database e upload
 RUN mkdir -p /app/data /app/public/uploads
 
-# Porta standard
 EXPOSE 8765
 
-# Variabili d'ambiente predefinite
-ENV PORT=8765
-ENV NODE_ENV=production
-ENV DB_PATH=/app/data/data.db
-
-# Avvio del server Node.js
 CMD ["node", "server.js"]

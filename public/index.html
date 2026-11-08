@@ -8,9 +8,9 @@
   <link rel="manifest" href="manifest.json">
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
   <title>Gouvernante Hôtel - Gestion & Communication</title>
-  <link rel="stylesheet" href="css/styles.css?v=93">
+  <link rel="stylesheet" href="css/styles.css?v=94">
   <script>
-    window.APP_VERSION = 93;
+    window.APP_VERSION = 94;
     function getTodayIsoStr() {
       var d = new Date();
       var y = d.getFullYear();
@@ -356,6 +356,69 @@
   </script>
 </head>
 <body>
+  <!-- ECRAN DE CONNEXION (AUTH OVERLAY) -->
+  <div id="auth-overlay" class="auth-overlay" style="display: none;">
+    <div class="auth-card">
+      <div class="auth-brand">
+        <div class="auth-logo-box">
+          <img src="icons/icon.svg" alt="Housekeeping" />
+        </div>
+        <h2 class="auth-title">HOUSEKEEPING</h2>
+        <p class="auth-subtitle">Gestion & Communication Hôtel</p>
+      </div>
+
+      <div class="auth-user-selector" id="auth-user-selector">
+        <button type="button" class="auth-user-btn active" data-username="Roberto" id="auth-btn-roberto" onclick="window.App.selectAuthUser('Roberto')">
+          <div class="auth-avatar-circle">
+            <img src="/img/avatar_roberto.jpg" id="auth-avatar-roberto" onerror="this.style.display='none'; document.getElementById('auth-initial-roberto').style.display='flex';" />
+            <span class="auth-avatar-initial" id="auth-initial-roberto" style="display: none;">R</span>
+          </div>
+          <span class="auth-user-label">Roberto</span>
+        </button>
+        <button type="button" class="auth-user-btn" data-username="Adélcia" id="auth-btn-adelcia" onclick="window.App.selectAuthUser('Adélcia')">
+          <div class="auth-avatar-circle">
+            <img src="/uploads/avatar_adlcia_1791049697364.png" id="auth-avatar-adelcia" onerror="this.style.display='none'; document.getElementById('auth-initial-adelcia').style.display='flex';" />
+            <span class="auth-avatar-initial" id="auth-initial-adelcia" style="display: none;">A</span>
+          </div>
+          <span class="auth-user-label">Adélcia</span>
+        </button>
+      </div>
+
+      <form id="auth-login-form" class="auth-form" onsubmit="window.App.handleAuthLogin(event); return false;">
+        <input type="hidden" id="auth-username-input" value="Roberto" />
+        
+        <div class="auth-field-group">
+          <label for="auth-password-input" class="auth-field-label">Mot de passe</label>
+          <div class="auth-password-wrapper">
+            <input 
+              type="password" 
+              id="auth-password-input" 
+              class="auth-input" 
+              placeholder="Entrez votre mot de passe" 
+              required 
+              autocomplete="current-password"
+            />
+            <button type="button" class="btn-toggle-password" id="btn-toggle-password" onclick="window.App.togglePasswordVisibility('auth-password-input', this)" aria-label="Afficher ou masquer le mot de passe" title="Afficher le mot de passe">
+              👁️
+            </button>
+          </div>
+        </div>
+
+        <div class="auth-row-options">
+          <label class="auth-checkbox-label">
+            <input type="checkbox" id="auth-remember-me" checked />
+            <span>Rester connecté sur cet appareil</span>
+          </label>
+        </div>
+
+        <div id="auth-error-box" class="auth-error-box" style="display: none;"></div>
+
+        <button type="submit" id="btn-auth-submit" class="btn-auth-submit">
+          <span>Se connecter</span> ➔
+        </button>
+      </form>
+    </div>
+  </div>
   <!-- TOP BAR (HEADER & NAVIGATION FIXES EN HAUT) -->
   <div class="app-top-bar" id="app-top-bar">
     <!-- HEADER -->
@@ -394,6 +457,11 @@
         <!-- Anti-Veille Écran (Tablet) -->
         <button type="button" id="btn-wakelock-toggle" class="btn-header-action wakelock-btn" style="display: none;" title="Anti-veille : Maintient l'écran allumé pour ne jamais rater une alerte sonore">
           💡 <span class="hide-mobile" id="wakelock-text">Anti-veille : Actif</span>
+        </button>
+
+        <!-- Déconnexion -->
+        <button type="button" id="btn-header-logout" class="btn-header-action btn-header-logout" onclick="window.App.handleLogout()" title="Se déconnecter de Housekeeping">
+          🚪 <span class="hide-mobile">Déconnexion</span>
         </button>
       </div>
     </header>
@@ -1522,11 +1590,61 @@
             <span class="btn-icon">🔄</span>
             <span>Utiliser l'initiale par défaut</span>
           </button>
+
+          <button type="button" class="btn btn-secondary btn-profile-action" onclick="window.App.openChangePasswordModal();" style="margin-top: 6px;">
+            <span class="btn-icon">🔒</span>
+            <span>Changer mon mot de passe</span>
+          </button>
+
+          <button type="button" class="btn btn-profile-action" onclick="window.App.handleLogout();" style="margin-top: 6px; background: rgba(225, 29, 72, 0.15); border: 1px solid rgba(225, 29, 72, 0.35); color: #fda4af;">
+            <span class="btn-icon">🚪</span>
+            <span>Se déconnecter de Housekeeping</span>
+          </button>
         </div>
       </div>
       <div class="modal-footer">
         <button type="button" class="btn btn-secondary" style="width: 100%;" onclick="window.App.closeProfilePhotoModal()">Fermer</button>
       </div>
+    </div>
+  </div>
+
+  <!-- MODAL CHANGER LE MOT DE PASSE -->
+  <div id="modal-change-password" class="modal-backdrop" style="display: none;" onclick="if(event.target===this)window.App.closeChangePasswordModal()">
+    <div class="modal-box" style="max-width: 420px;">
+      <div class="modal-header">
+        <h2>🔒 Modifier mon mot de passe</h2>
+        <button type="button" class="btn-close-modal" onclick="window.App.closeChangePasswordModal()">&times;</button>
+      </div>
+      <form id="form-change-password" onsubmit="window.App.submitChangePassword(event); return false;">
+        <div class="modal-body" style="padding: 16px 20px;">
+          <div class="auth-field-group" style="margin-bottom: 14px;">
+            <label for="change-pwd-current" class="auth-field-label">Mot de passe actuel</label>
+            <div class="auth-password-wrapper">
+              <input type="password" id="change-pwd-current" class="auth-input" required autocomplete="current-password" placeholder="Votre mot de passe actuel" />
+              <button type="button" class="btn-toggle-password" onclick="window.App.togglePasswordVisibility('change-pwd-current', this)" aria-label="Afficher le mot de passe">👁️</button>
+            </div>
+          </div>
+          <div class="auth-field-group" style="margin-bottom: 14px;">
+            <label for="change-pwd-new" class="auth-field-label">Nouveau mot de passe</label>
+            <div class="auth-password-wrapper">
+              <input type="password" id="change-pwd-new" class="auth-input" required autocomplete="new-password" placeholder="Minimum 4 caractères" minlength="4" />
+              <button type="button" class="btn-toggle-password" onclick="window.App.togglePasswordVisibility('change-pwd-new', this)" aria-label="Afficher le mot de passe">👁️</button>
+            </div>
+          </div>
+          <div class="auth-field-group" style="margin-bottom: 14px;">
+            <label for="change-pwd-confirm" class="auth-field-label">Confirmer le nouveau mot de passe</label>
+            <div class="auth-password-wrapper">
+              <input type="password" id="change-pwd-confirm" class="auth-input" required autocomplete="new-password" placeholder="Retapez le nouveau mot de passe" minlength="4" />
+              <button type="button" class="btn-toggle-password" onclick="window.App.togglePasswordVisibility('change-pwd-confirm', this)" aria-label="Afficher le mot de passe">👁️</button>
+            </div>
+          </div>
+          <div id="change-pwd-error-box" class="auth-error-box" style="display: none;"></div>
+        </div>
+        <div class="modal-footer" style="display: flex; gap: 10px; justify-content: flex-end;">
+          <button type="button" class="btn btn-secondary" onclick="window.App.closeChangePasswordModal()">Annuler</button>
+          <button type="submit" class="btn btn-primary" id="btn-save-new-password">Enregistrer</button>
+        </div>
+      </form>
     </div>
   </div>
 
@@ -1744,17 +1862,17 @@
 
   <!-- SCRIPTS -->
   <script src="/socket.io/socket.io.js"></script>
-  <script src="js/audio.js?v=93"></script>
-  <script src="js/socket.js?v=93"></script>
-  <script src="js/chat.js?v=93"></script>
-  <script src="js/orders.js?v=93"></script>
-  <script src="js/deadlines.js?v=93"></script>
-  <script src="js/shopping.js?v=93"></script>
-  <script src="js/expenses.js?v=93"></script>
-  <script src="js/leave.js?v=93"></script>
-  <script src="js/presence.js?v=93"></script>
-  <script src="js/gallery.js?v=93"></script>
-  <script src="js/halloween-popup.js?v=93"></script>
-  <script src="js/app.js?v=93"></script>
+  <script src="js/audio.js?v=94"></script>
+  <script src="js/socket.js?v=94"></script>
+  <script src="js/chat.js?v=94"></script>
+  <script src="js/orders.js?v=94"></script>
+  <script src="js/deadlines.js?v=94"></script>
+  <script src="js/shopping.js?v=94"></script>
+  <script src="js/expenses.js?v=94"></script>
+  <script src="js/leave.js?v=94"></script>
+  <script src="js/presence.js?v=94"></script>
+  <script src="js/gallery.js?v=94"></script>
+  <script src="js/halloween-popup.js?v=94"></script>
+  <script src="js/app.js?v=94"></script>
 </body>
 </html>

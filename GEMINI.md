@@ -22,3 +22,10 @@
 ## 5. Connectivité & IP Dynamique du Serveur
 - En cas de problème de connexion, d'absence de synchronisation ou de messages semblant non reçus/lus par les tablettes d'Adélcia, **vérifier systématiquement l'adresse IP locale active du serveur PC** (`ipconfig` / `192.168.20.X`).
 - L'IP étant attribuée dynamiquement par le routeur, les favoris ou raccourcis sur les tablettes peuvent pointer vers une ancienne IP et afficher une page hors ligne. Il est primordial de rappeler cette cause potentielle et de vérifier la cohérence des liens/raccourcis des tablettes.
+
+## 6. Déploiement Synology NAS (DS1522+) & Tailscale
+- Le dossier cible sur le NAS est `/Webapp/Housekeeping`.
+- Le container utilise `network_mode: host` pour être accessible directement via le réseau local et via l'IP Tailscale (`100.78.184.124:8765` ou `http://ds1522:8765`).
+- Le volume persisté pour la base de données est `./data:/app/data` et `./uploads:/app/public/uploads`.
+- Avant toute copie initiale de `data.db`, s'assurer que le journal WAL a été consolidé via `PRAGMA wal_checkpoint(TRUNCATE);`.
+- Authentification par mot de passe robuste (`scrypt`) et cookies de session longue durée (`hk_sid`).

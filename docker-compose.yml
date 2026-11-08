@@ -1,18 +1,23 @@
-version: '3.8'
-
 services:
   housekeeping:
     build: .
-    image: housekeeping-app:latest
     container_name: housekeeping-manager
-    restart: always
-    ports:
-      - "8765:8765"
+    restart: unless-stopped
+    # network_mode: host permette al container sul Synology DS1522+ di rispondere
+    # direttamente sia sulla rete locale sia sull'IP 100.x.y.z di Tailscale (porta 8765)
+    network_mode: host
+    environment:
+      - NODE_ENV=production
+      - PORT=8765
+      - DB_PATH=/app/data/data.db
+      - TZ=Europe/Zurich
     volumes:
-      # Cartelle montate sul NAS per non perdere database e foto salvate
+      # 1. Database SQLite persistente e Uploads
       - ./data:/app/data
       - ./uploads:/app/public/uploads
-    environment:
-      - PORT=8765
-      - NODE_ENV=production
-      - DB_PATH=/app/data/data.db
+      # 2. Collegamento diretto ai file dell'app per aggiornamenti istantanei senza dover rifare "Build"
+      - ./public:/app/public
+      - ./server.js:/app/server.js
+      - ./database.js:/app/database.js
+      - ./package.json:/app/package.json
+      - ./package-lock.json:/app/package-lock.json

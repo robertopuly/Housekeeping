@@ -1,5 +1,6 @@
 const path = require('path');
 const fs = require('fs');
+const crypto = require('crypto');
 
 let DatabaseSync;
 try {
@@ -176,6 +177,25 @@ function initSchema() {
       avatar_url TEXT DEFAULT '',
       updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
+
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT UNIQUE NOT NULL,
+      display_name TEXT NOT NULL,
+      password_hash TEXT NOT NULL,
+      role TEXT DEFAULT 'user',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+
+    CREATE TABLE IF NOT EXISTS user_sessions (
+      token TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      expires_at DATETIME,
+      FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+    );
+
+    CREATE INDEX IF NOT EXISTS idx_user_sessions_user_id ON user_sessions(user_id);
 
     CREATE INDEX IF NOT EXISTS idx_messages_timestamp ON messages(timestamp);
     CREATE INDEX IF NOT EXISTS idx_orders_status ON orders(status, is_archived);
@@ -384,6 +404,7 @@ function initSchema() {
   }
 
   // Zero seed preimpostato per le scadenze: gestione solo manuale
+  seedInitialUsers();
 }
 
 initSchema();
@@ -1152,6 +1173,120 @@ function getAllUserAvatars() {
   return map;
 }
 
+
+// AUTHENTIFICATION & UTILISATEURS (Tailscale & Web)
+function hashPassword(password) {
+  const salt = crypto.randomBytes(16).toString('hex');
+  const hash = crypto.scryptSync(password, salt, 64).toString('hex');
+  return 'scrypt$' + salt + '$' + hash;
+}
+
+function verifyPassword(password, stored) {
+  if (!stored) return false;
+  if (stored.startsWith('scrypt$')) {
+    const parts = stored.split('$');
+    if (parts.length !== 3) return false;
+    const salt = parts[1];
+    const originalHash = parts[2];
+    const hash = crypto.scryptSync(password, salt, 64).toString('hex');
+    return crypto.timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(originalHash, 'hex'));
+  }
+  return false;
+}
+
+function normalizeUsername(username) {
+  if (!username) return '';
+  const u = String(username).trim();
+  if (u.toLowerCase() === 'adelcia' || u.toLowerCase() === 'adélcia') {
+    return 'Adélcia';
+  }
+  if (u.toLowerCase() === 'roberto') {
+    return 'Roberto';
+  }
+  return u;
+}
+
+function seedInitialUsers() {
+  const robertoHash = hashPassword('tuliastio');
+  const adelciaHash = hashPassword('Ecu2026');
+
+  // Roberto
+  const existingRoberto = db.prepare('SELECT id, password_hash FROM users WHERE LOWER(username) = ?').get('roberto');
+  if (!existingRoberto) {
+    db.prepare(
+      'INSERT INTO users (username, display_name, password_hash, role) VALUES (?, ?, ?, ?)'
+    ).run('Roberto', 'Roberto', robertoHash, 'admin');
+  } else {
+    db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(robertoHash, existingRoberto.id);
+  }
+
+  // Adélcia
+  const existingAdelcia = db.prepare('SELECT id, password_hash FROM users WHERE LOWER(username) IN (?, ?)').get('adelcia', 'adélcia');
+  if (!existingAdelcia) {
+    db.prepare(
+      'INSERT INTO users (username, display_name, password_hash, role) VALUES (?, ?, ?, ?)'
+    ).run('Adélcia', 'Adélcia', adelciaHash, 'staff');
+  } else {
+    db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(adelciaHash, existingAdelcia.id);
+  }
+}
+
+function getUserByUsername(username) {
+  if (!username) return null;
+  const norm = normalizeUsername(username);
+  return db.prepare('SELECT * FROM users WHERE LOWER(username) = LOWER(?)').get(norm) || null;
+}
+
+function getUserById(id) {
+  if (!id) return null;
+  return db.prepare('SELECT id, username, display_name, role, created_at FROM users WHERE id = ?').get(id) || null;
+}
+
+function createSession(userId, days = 60) {
+  const token = crypto.randomBytes(32).toString('hex');
+  const expiresAt = new Date(Date.now() + days * 24 * 60 * 60 * 1000).toISOString();
+  db.prepare(
+    'INSERT INTO user_sessions (token, user_id, expires_at) VALUES (?, ?, ?)'
+  ).run(token, userId, expiresAt);
+  return { token, expiresAt };
+}
+
+function getUserBySessionToken(token) {
+  if (!token) return null;
+  const row = db.prepare(
+    'SELECT u.id, u.username, u.display_name, u.role, s.expires_at ' +
+    'FROM user_sessions s ' +
+    'JOIN users u ON u.id = s.user_id ' +
+    'WHERE s.token = ?'
+  ).get(token);
+  if (!row) return null;
+  if (row.expires_at && new Date(row.expires_at).getTime() < Date.now()) {
+    deleteSession(token);
+    return null;
+  }
+  return row;
+}
+
+function deleteSession(token) {
+  if (!token) return;
+  db.prepare('DELETE FROM user_sessions WHERE token = ?').run(token);
+}
+
+function deleteUserSessions(userId) {
+  if (!userId) return;
+  db.prepare('DELETE FROM user_sessions WHERE user_id = ?').run(userId);
+}
+
+function changeUserPassword(userId, newPassword) {
+  const newHash = hashPassword(newPassword);
+  db.prepare('UPDATE users SET password_hash = ? WHERE id = ?').run(newHash, userId);
+  return true;
+}
+
+function getAllUsers() {
+  return db.prepare('SELECT id, username, display_name, role, created_at FROM users ORDER BY id ASC').all();
+}
+
 module.exports = {
   db,
   getMessages,
@@ -1208,6 +1343,18 @@ module.exports = {
   deleteGalleryPhoto,
   getUserAvatar,
   setUserAvatar,
-  getAllUserAvatars
+  getAllUserAvatars,
+  hashPassword,
+  verifyPassword,
+  normalizeUsername,
+  seedInitialUsers,
+  getUserByUsername,
+  getUserById,
+  createSession,
+  getUserBySessionToken,
+  deleteSession,
+  deleteUserSessions,
+  changeUserPassword,
+  getAllUsers
 };
 

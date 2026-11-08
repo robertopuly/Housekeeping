@@ -38,9 +38,270 @@ function initVisualViewportHandler() {
   updateViewport();
 }
 
-function initApp() {
+let isAppInitialized = false;
+
+// INTERCEPTEUR GLOBAL POUR LES SESSIONS EXPIRÉES (401)
+const originalFetch = window.fetch;
+window.fetch = async function(...args) {
+  const response = await originalFetch.apply(this, args);
+  if (response.status === 401) {
+    const url = typeof args[0] === 'string' ? args[0] : (args[0] && args[0].url ? args[0].url : '');
+    if (!url.includes('/api/auth/me') && !url.includes('/api/auth/login')) {
+      showAuthOverlay();
+    }
+  }
+  return response;
+};
+
+function normalizeUsername(name) {
+  if (!name) return 'Roberto';
+  const trimmed = String(name).trim();
+  if (trimmed.toLowerCase() === 'adelcia' || trimmed.toLowerCase() === 'adélcia') {
+    return 'Adélcia';
+  }
+  if (trimmed.toLowerCase() === 'roberto') {
+    return 'Roberto';
+  }
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
+}
+
+async function checkAuthAndInit() {
   initVisualViewportHandler();
-  initUser();
+
+  try {
+    const res = await fetch('/api/auth/me');
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.authenticated && data.user) {
+        currentUser = normalizeUsername(data.user.username);
+        localStorage.setItem('hk_user', currentUser);
+        hideAuthOverlay();
+        startApp();
+        return;
+      }
+    }
+  } catch (err) {
+    console.warn('Vérification session échouée:', err);
+  }
+
+  // Utilisateur non connecté : afficher l'écran de connexion
+  showAuthOverlay();
+}
+
+function showAuthOverlay() {
+  const overlay = document.getElementById('auth-overlay');
+  if (overlay) {
+    overlay.style.display = 'flex';
+  }
+  const stored = localStorage.getItem('hk_user') || 'Roberto';
+  selectAuthUser(stored);
+}
+
+function hideAuthOverlay() {
+  const overlay = document.getElementById('auth-overlay');
+  if (overlay) {
+    overlay.style.display = 'none';
+  }
+}
+
+function selectAuthUser(username) {
+  const norm = normalizeUsername(username);
+  const input = document.getElementById('auth-username-input');
+  if (input) input.value = norm;
+
+  const btnRob = document.getElementById('auth-btn-roberto');
+  const btnAde = document.getElementById('auth-btn-adelcia');
+  if (btnRob) btnRob.classList.toggle('active', norm === 'Roberto');
+  if (btnAde) btnAde.classList.toggle('active', norm === 'Adélcia');
+
+  const pwdInput = document.getElementById('auth-password-input');
+  if (pwdInput) {
+    pwdInput.value = '';
+    setTimeout(() => pwdInput.focus(), 80);
+  }
+  const errBox = document.getElementById('auth-error-box');
+  if (errBox) errBox.style.display = 'none';
+}
+
+function togglePasswordVisibility(inputId, btn) {
+  const input = document.getElementById(inputId);
+  if (!input) return;
+  if (input.type === 'password') {
+    input.type = 'text';
+    if (btn) btn.textContent = '🔒';
+  } else {
+    input.type = 'password';
+    if (btn) btn.textContent = '👁️';
+  }
+}
+
+async function handleAuthLogin(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  const inputUser = document.getElementById('auth-username-input');
+  const inputPwd = document.getElementById('auth-password-input');
+  const btnSubmit = document.getElementById('btn-auth-submit');
+  const errBox = document.getElementById('auth-error-box');
+
+  const username = inputUser ? inputUser.value : 'Roberto';
+  const password = inputPwd ? inputPwd.value : '';
+
+  if (!password) {
+    if (errBox) {
+      errBox.textContent = 'Veuillez saisir votre mot de passe.';
+      errBox.style.display = 'block';
+    }
+    return;
+  }
+
+  if (btnSubmit) {
+    btnSubmit.disabled = true;
+    btnSubmit.innerHTML = '<span>Connexion en cours...</span>';
+  }
+  if (errBox) errBox.style.display = 'none';
+
+  try {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password })
+    });
+
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || 'Mot de passe incorrect.');
+    }
+
+    currentUser = normalizeUsername(data.user.username);
+    localStorage.setItem('hk_user', currentUser);
+    hideAuthOverlay();
+    startApp();
+  } catch (err) {
+    if (errBox) {
+      errBox.textContent = err.message || 'Erreur de connexion. Vérifiez le mot de passe.';
+      errBox.style.display = 'block';
+    }
+    if (inputPwd) {
+      inputPwd.select();
+      inputPwd.focus();
+    }
+  } finally {
+    if (btnSubmit) {
+      btnSubmit.disabled = false;
+      btnSubmit.innerHTML = '<span>Se connecter</span> ➔';
+    }
+  }
+}
+
+async function handleLogout() {
+  if (!confirm('Voulez-vous vraiment vous déconnecter de Housekeeping ?')) return;
+  try {
+    await fetch('/api/auth/logout', { method: 'POST' });
+  } catch (e) {}
+  localStorage.removeItem('hk_user');
+  window.location.reload();
+}
+
+function openChangePasswordModal() {
+  closeProfilePhotoModal();
+  const modal = document.getElementById('modal-change-password');
+  const errBox = document.getElementById('change-pwd-error-box');
+  if (errBox) errBox.style.display = 'none';
+  const fCurrent = document.getElementById('change-pwd-current');
+  const fNew = document.getElementById('change-pwd-new');
+  const fConfirm = document.getElementById('change-pwd-confirm');
+  if (fCurrent) fCurrent.value = '';
+  if (fNew) fNew.value = '';
+  if (fConfirm) fConfirm.value = '';
+
+  if (modal) {
+    modal.style.setProperty('display', 'flex', 'important');
+    modal.classList.add('modal-active');
+  }
+  if (fCurrent) setTimeout(() => fCurrent.focus(), 150);
+}
+
+function closeChangePasswordModal() {
+  const modal = document.getElementById('modal-change-password');
+  if (modal) {
+    modal.style.display = 'none';
+    modal.classList.remove('modal-active');
+  }
+}
+
+async function submitChangePassword(e) {
+  if (e && e.preventDefault) e.preventDefault();
+  const fCurrent = document.getElementById('change-pwd-current');
+  const fNew = document.getElementById('change-pwd-new');
+  const fConfirm = document.getElementById('change-pwd-confirm');
+  const errBox = document.getElementById('change-pwd-error-box');
+  const btnSave = document.getElementById('btn-save-new-password');
+
+  const currentPassword = fCurrent ? fCurrent.value : '';
+  const newPassword = fNew ? fNew.value : '';
+  const confirmPassword = fConfirm ? fConfirm.value : '';
+
+  if (!currentPassword || !newPassword) {
+    if (errBox) {
+      errBox.textContent = 'Veuillez remplir tous les champs.';
+      errBox.style.display = 'block';
+    }
+    return;
+  }
+  if (newPassword.length < 4) {
+    if (errBox) {
+      errBox.textContent = 'Le nouveau mot de passe doit comporter au moins 4 caractères.';
+      errBox.style.display = 'block';
+    }
+    return;
+  }
+  if (newPassword !== confirmPassword) {
+    if (errBox) {
+      errBox.textContent = 'Les deux nouveaux mots de passe ne correspondent pas.';
+      errBox.style.display = 'block';
+    }
+    return;
+  }
+
+  if (btnSave) btnSave.disabled = true;
+  if (errBox) errBox.style.display = 'none';
+
+  try {
+    const res = await fetch('/api/auth/change-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ currentPassword, newPassword })
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.success) {
+      throw new Error(data.error || 'Erreur lors du changement de mot de passe.');
+    }
+    closeChangePasswordModal();
+    showAppToast('✅ Mot de passe modifié avec succès !');
+  } catch (err) {
+    if (errBox) {
+      errBox.textContent = err.message;
+      errBox.style.display = 'block';
+    }
+  } finally {
+    if (btnSave) btnSave.disabled = false;
+  }
+}
+
+function startApp() {
+  if (isAppInitialized) {
+    updateUserUI();
+    return;
+  }
+  isAppInitialized = true;
+
+  if (getPlatform() === 'PC') {
+    document.body.classList.add('is-pc');
+  } else {
+    document.body.classList.remove('is-pc');
+  }
+
+  updateUserUI();
+  initUserChipClick();
   initNavigation();
   initSoundButton();
   initWakeLock();
@@ -67,46 +328,6 @@ function initApp() {
   else if (hash === 'gallery' || hash === 'photos') switchTab('tab-gallery');
   else if (hash === 'expenses' && getPlatform() === 'PC') switchTab('tab-expenses');
   else switchTab('tab-chat');
-}
-
-function normalizeUsername(name) {
-  if (!name) return 'Roberto';
-  const trimmed = name.trim();
-  if (trimmed.toLowerCase() === 'adelcia' || trimmed.toLowerCase() === 'adélcia') {
-    return 'Adélcia';
-  }
-  if (trimmed.toLowerCase() === 'roberto') {
-    return 'Roberto';
-  }
-  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
-}
-
-function initUser() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const userParam = urlParams.get('user');
-
-  if (userParam) {
-    currentUser = normalizeUsername(userParam);
-    localStorage.setItem('hk_user', currentUser);
-  } else {
-    const stored = localStorage.getItem('hk_user');
-    if (stored) {
-      currentUser = normalizeUsername(stored);
-    } else {
-      const isMobileOrTablet = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-      currentUser = isMobileOrTablet ? 'Adélcia' : 'Roberto';
-      localStorage.setItem('hk_user', currentUser);
-    }
-  }
-
-  if (getPlatform() === 'PC') {
-    document.body.classList.add('is-pc');
-  } else {
-    document.body.classList.remove('is-pc');
-  }
-
-  updateUserUI();
-  initUserChipClick();
 }
 
 function initUserChipClick() {
@@ -638,7 +859,14 @@ window.App = {
   openProfilePhotoModal,
   closeProfilePhotoModal,
   resetProfilePhoto,
-  onAvatarUpdated
+  onAvatarUpdated,
+  selectAuthUser,
+  togglePasswordVisibility,
+  handleAuthLogin,
+  handleLogout,
+  openChangePasswordModal,
+  closeChangePasswordModal,
+  submitChangePassword
 };
 
-document.addEventListener('DOMContentLoaded', initApp);
+document.addEventListener('DOMContentLoaded', checkAuthAndInit);
