@@ -1,0 +1,270 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080" width="100%" height="100%" preserveAspectRatio="xMidYMid slice">
+  <defs>
+    <!-- Ciel d'hiver alpin nocturne et feutré -->
+    <linearGradient id="skyGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#060b18"/>
+      <stop offset="35%" stop-color="#0f172a"/>
+      <stop offset="70%" stop-color="#182338"/>
+      <stop offset="100%" stop-color="#24344d"/>
+    </linearGradient>
+
+    <!-- Halo lunaire / lueur bleutée féerique sur les sommets -->
+    <radialGradient id="moonGlow" cx="65%" cy="22%" r="50%">
+      <stop offset="0%" stop-color="#e0f2fe" stop-opacity="0.28"/>
+      <stop offset="35%" stop-color="#38bdf8" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Ambiance chaleureuse chalet / orbes dorés -->
+    <radialGradient id="chaletGlow" cx="22%" cy="78%" r="45%">
+      <stop offset="0%" stop-color="#fef08a" stop-opacity="0.18"/>
+      <stop offset="50%" stop-color="#f59e0b" stop-opacity="0.06"/>
+      <stop offset="100%" stop-color="#0f172a" stop-opacity="0"/>
+    </radialGradient>
+
+    <!-- Dégradés montagnes lointaines -->
+    <linearGradient id="mountFar" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#384a68"/>
+      <stop offset="100%" stop-color="#182338"/>
+    </linearGradient>
+
+    <linearGradient id="mountMid" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#2a3b54"/>
+      <stop offset="100%" stop-color="#131c2e"/>
+    </linearGradient>
+
+    <linearGradient id="mountNear" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1b283d"/>
+      <stop offset="100%" stop-color="#0a101d"/>
+    </linearGradient>
+
+    <!-- Neige pure et reflets lunaires -->
+    <linearGradient id="snowPeak" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95"/>
+      <stop offset="60%" stop-color="#e2e8f0" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#94a3b8" stop-opacity="0.6"/>
+    </linearGradient>
+
+    <linearGradient id="snowShadow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#93c5fd" stop-opacity="0.8"/>
+      <stop offset="60%" stop-color="#3b82f6" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#1e3a8a" stop-opacity="0.1"/>
+    </linearGradient>
+
+    <!-- Sapins sombres et neige sur branchages -->
+    <linearGradient id="treeGrad" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#1e293b"/>
+      <stop offset="100%" stop-color="#090d16"/>
+    </linearGradient>
+
+    <linearGradient id="treeSnow" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.95"/>
+      <stop offset="80%" stop-color="#cbd5e1" stop-opacity="0.85"/>
+      <stop offset="100%" stop-color="#64748b" stop-opacity="0.4"/>
+    </linearGradient>
+
+    <!-- Filtre flou neige douce -->
+    <filter id="snowBlur" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3"/>
+    </filter>
+  </defs>
+
+  <!-- CIEL ALPIN -->
+  <rect width="1920" height="1080" fill="url(#skyGrad)"/>
+  <rect width="1920" height="1080" fill="url(#moonGlow)"/>
+  <rect width="1920" height="1080" fill="url(#chaletGlow)"/>
+
+  <!-- ÉTOILES HIVERNALES SCINTILLANTES -->
+  <g fill="#ffffff" opacity="0.75">
+    <circle cx="150" cy="80" r="1.5"/>
+    <circle cx="280" cy="140" r="1.2"/>
+    <circle cx="420" cy="60" r="2.0"/>
+    <circle cx="560" cy="110" r="1.0"/>
+    <circle cx="720" cy="50" r="1.8"/>
+    <circle cx="890" cy="120" r="1.3"/>
+    <circle cx="1050" cy="70" r="2.2"/>
+    <circle cx="1210" cy="100" r="1.1"/>
+    <circle cx="1380" cy="45" r="1.7"/>
+    <circle cx="1520" cy="130" r="1.4"/>
+    <circle cx="1680" cy="85" r="2.0"/>
+    <circle cx="1820" cy="150" r="1.2"/>
+    <!-- Étoiles polaires avec reflets -->
+    <path d="M1050,60 Q1050,70 1040,70 Q1050,70 1050,80 Q1050,70 1060,70 Q1050,70 1050,60 Z" fill="#e0f2fe" opacity="0.9"/>
+    <path d="M420,50 Q420,60 410,60 Q420,60 420,70 Q420,60 430,60 Q420,60 420,50 Z" fill="#e0f2fe" opacity="0.85"/>
+  </g>
+
+  <!-- LIGNE 1 : MONTAGNES LOINTAINES ET SOMMETS ENNEIGÉS -->
+  <g opacity="0.85">
+    <!-- Grand pic central-droit (Cervin / Matterhorn style) -->
+    <polygon points="1100,560 1280,240 1460,560" fill="url(#mountFar)"/>
+    <!-- Crête enneigée du pic -->
+    <polygon points="1280,240 1250,340 1280,310 1320,380 1280,240" fill="url(#snowPeak)"/>
+    <polygon points="1280,240 1320,380 1380,450 1460,560 1360,520 1280,310" fill="url(#snowShadow)"/>
+
+    <!-- Deuxième grand pic à gauche -->
+    <polygon points="380,580 580,280 780,580" fill="url(#mountFar)"/>
+    <polygon points="580,280 550,380 590,350 630,430 580,280" fill="url(#snowPeak)"/>
+    <polygon points="580,280 630,430 690,490 780,580 670,530 590,350" fill="url(#snowShadow)"/>
+
+    <!-- Crêtes secondaires à l'horizon -->
+    <polygon points="0,580 180,360 400,580" fill="url(#mountFar)"/>
+    <polygon points="180,360 160,420 190,400 230,470 180,360" fill="url(#snowPeak)"/>
+
+    <polygon points="740,580 920,340 1140,580" fill="url(#mountFar)"/>
+    <polygon points="920,340 890,420 930,390 980,480 920,340" fill="url(#snowPeak)"/>
+
+    <polygon points="1420,580 1620,330 1920,580" fill="url(#mountFar)"/>
+    <polygon points="1620,330 1590,410 1630,390 1690,470 1620,330" fill="url(#snowPeak)"/>
+  </g>
+
+  <!-- LIGNE 2 : CHAÎNE DE MONTAGNES MOYENNES (Plus sombres avec manteaux de neige) -->
+  <g opacity="0.95">
+    <path d="M-50,680 L140,460 L360,680 L620,440 L880,680 L1180,430 L1480,680 L1740,450 L1980,680 L1980,1080 L-50,1080 Z" fill="url(#mountMid)"/>
+    
+    <!-- Neige sur versants des montagnes moyennes -->
+    <polygon points="140,460 110,540 160,510 200,600 140,460" fill="url(#snowPeak)"/>
+    <polygon points="620,440 580,530 630,500 700,610 620,440" fill="url(#snowPeak)"/>
+    <polygon points="1180,430 1140,530 1200,500 1270,610 1180,430" fill="url(#snowPeak)"/>
+    <polygon points="1740,450 1700,540 1760,510 1830,620 1740,450" fill="url(#snowPeak)"/>
+  </g>
+
+  <!-- COLLINES BOISÉES ET VERSANTS ENNEIGÉS DU PREMIER PLAN -->
+  <path d="M0,740 Q400,640 850,710 T1920,690 L1920,1080 L0,1080 Z" fill="url(#mountNear)"/>
+  <path d="M0,820 Q550,720 1100,790 T1920,770 L1920,1080 L0,1080 Z" fill="#0c1422"/>
+
+  <!-- FORÊT DE SAPINS EN ARRIÈRE-PLAN (Silhouettes répétées avec pointes blanches) -->
+  <g opacity="0.65">
+    <!-- Série de sapins distants -->
+    <polygon points="200,680 220,620 240,680" fill="#0f172a"/>
+    <polygon points="215,625 220,620 225,625" fill="#ffffff"/>
+    <polygon points="250,690 275,610 300,690" fill="#0f172a"/>
+    <polygon points="270,615 275,610 280,615" fill="#ffffff"/>
+    <polygon points="720,700 745,630 770,700" fill="#0f172a"/>
+    <polygon points="740,635 745,630 750,635" fill="#ffffff"/>
+    <polygon points="1200,690 1230,610 1260,690" fill="#0f172a"/>
+    <polygon points="1225,615 1230,610 1235,615" fill="#ffffff"/>
+    <polygon points="1650,680 1675,615 1700,680" fill="#0f172a"/>
+    <polygon points="1670,620 1675,615 1680,620" fill="#ffffff"/>
+  </g>
+
+  <!-- GRANDS SAPINS ENNEIGÉS SUR LES FLANCS (Cadrent magnifiquement les côtés sans gêner le texte au centre) -->
+
+  <!-- FLANC GAUCHE : Grands sapins alpins lourdement chargés de neige fraîche -->
+  <g transform="translate(40, 480)">
+    <!-- Grand Sapin 1 (Principal à gauche) -->
+    <!-- Troncs / ombres intérieures -->
+    <rect x="110" y="440" width="20" height="90" fill="#070b12"/>
+    
+    <!-- Étage inférieur -->
+    <polygon points="20,460 120,360 220,460" fill="url(#treeGrad)"/>
+    <path d="M30,455 Q70,430 120,440 Q170,430 210,455 Q170,442 120,448 Q70,442 30,455 Z" fill="url(#treeSnow)"/>
+    
+    <!-- Étage 2 -->
+    <polygon points="40,390 120,300 200,390" fill="url(#treeGrad)"/>
+    <path d="M50,385 Q85,365 120,372 Q155,365 190,385 Q155,374 120,378 Q85,374 50,385 Z" fill="url(#treeSnow)"/>
+
+    <!-- Étage 3 -->
+    <polygon points="60,320 120,240 180,320" fill="url(#treeGrad)"/>
+    <path d="M70,316 Q95,298 120,304 Q145,298 170,316 Q145,306 120,310 Q95,306 70,316 Z" fill="url(#treeSnow)"/>
+
+    <!-- Étage 4 -->
+    <polygon points="80,255 120,185 160,255" fill="url(#treeGrad)"/>
+    <path d="M88,252 Q105,236 120,240 Q135,236 152,252 Q135,243 120,245 Q105,243 88,252 Z" fill="url(#treeSnow)"/>
+
+    <!-- Cime enneigée -->
+    <polygon points="98,195 120,135 142,195" fill="url(#treeGrad)"/>
+    <polygon points="105,190 120,135 135,190" fill="url(#treeSnow)"/>
+  </g>
+
+  <!-- Sapin 2 gauche (Plus petit, en avant-plan) -->
+  <g transform="translate(180, 620)">
+    <rect x="70" y="320" width="16" height="70" fill="#070b12"/>
+    <polygon points="10,330 78,250 146,330" fill="url(#treeGrad)"/>
+    <path d="M18,326 Q48,305 78,312 Q108,305 138,326 Q108,314 78,318 Q48,314 18,326 Z" fill="url(#treeSnow)"/>
+    <polygon points="26,270 78,200 130,270" fill="url(#treeGrad)"/>
+    <path d="M34,266 Q56,248 78,254 Q100,248 122,266 Q100,256 78,259 Q56,256 34,266 Z" fill="url(#treeSnow)"/>
+    <polygon points="44,215 78,155 112,215" fill="url(#treeGrad)"/>
+    <polygon points="50,210 78,155 106,210" fill="url(#treeSnow)"/>
+  </g>
+
+  <!-- FLANC DROIT : Magnifiques sapins enneigés -->
+  <g transform="translate(1620, 460)">
+    <rect x="110" y="460" width="20" height="90" fill="#070b12"/>
+    
+    <polygon points="20,480 120,370 220,480" fill="url(#treeGrad)"/>
+    <path d="M30,475 Q70,448 120,458 Q170,448 210,475 Q170,460 120,466 Q70,460 30,475 Z" fill="url(#treeSnow)"/>
+
+    <polygon points="40,405 120,310 200,405" fill="url(#treeGrad)"/>
+    <path d="M50,400 Q85,378 120,386 Q155,378 190,400 Q155,388 120,392 Q85,388 50,400 Z" fill="url(#treeSnow)"/>
+
+    <polygon points="60,330 120,245 180,330" fill="url(#treeGrad)"/>
+    <path d="M70,326 Q95,306 120,312 Q145,306 170,326 Q145,314 120,318 Q95,314 70,326 Z" fill="url(#treeSnow)"/>
+
+    <polygon points="80,260 120,190 160,260" fill="url(#treeGrad)"/>
+    <path d="M88,256 Q105,240 120,244 Q135,240 152,256 Q135,246 120,248 Q105,246 88,256 Z" fill="url(#treeSnow)"/>
+
+    <polygon points="98,198 120,140 142,198" fill="url(#treeGrad)"/>
+    <polygon points="105,193 120,140 135,193" fill="url(#treeSnow)"/>
+  </g>
+
+  <!-- Sapin 2 droit (En retrait) -->
+  <g transform="translate(1500, 580)">
+    <rect x="70" y="340" width="16" height="60" fill="#070b12"/>
+    <polygon points="10,350 78,270 146,350" fill="url(#treeGrad)"/>
+    <path d="M18,346 Q48,324 78,332 Q108,324 138,346 Q108,334 78,338 Q48,334 18,346 Z" fill="url(#treeSnow)"/>
+    <polygon points="26,290 78,220 130,290" fill="url(#treeGrad)"/>
+    <path d="M34,286 Q56,268 78,274 Q100,268 122,286 Q100,276 78,279 Q56,276 34,286 Z" fill="url(#treeSnow)"/>
+    <polygon points="44,235 78,175 112,235" fill="url(#treeGrad)"/>
+    <polygon points="50,230 78,175 106,230" fill="url(#treeSnow)"/>
+  </g>
+
+  <!-- DOUCE CHUTE DE FLOCONS DE NEIGE CRISTALLINS DANS L'AIR -->
+  <g fill="#ffffff" opacity="0.85">
+    <!-- Flocons nets au premier plan -->
+    <circle cx="180" cy="280" r="3.2"/>
+    <circle cx="340" cy="480" r="2.8"/>
+    <circle cx="520" cy="220" r="3.5"/>
+    <circle cx="680" cy="540" r="2.4"/>
+    <circle cx="840" cy="320" r="3.0"/>
+    <circle cx="1020" cy="480" r="2.6"/>
+    <circle cx="1240" cy="260" r="3.4"/>
+    <circle cx="1390" cy="620" r="2.8"/>
+    <circle cx="1580" cy="340" r="3.2"/>
+    <circle cx="1720" cy="520" r="2.5"/>
+
+    <!-- Flocons moyens et légers -->
+    <circle cx="240" cy="180" r="1.8" opacity="0.6"/>
+    <circle cx="460" cy="380" r="1.6" opacity="0.6"/>
+    <circle cx="610" cy="160" r="2.0" opacity="0.6"/>
+    <circle cx="790" cy="420" r="1.5" opacity="0.6"/>
+    <circle cx="950" cy="210" r="1.8" opacity="0.6"/>
+    <circle cx="1140" cy="390" r="1.6" opacity="0.6"/>
+    <circle cx="1310" cy="180" r="2.0" opacity="0.6"/>
+    <circle cx="1480" cy="450" r="1.7" opacity="0.6"/>
+    <circle cx="1660" cy="240" r="1.9" opacity="0.6"/>
+    <circle cx="1840" cy="410" r="1.5" opacity="0.6"/>
+
+    <!-- Étoiles de neige stylisées (cristaux de glace) -->
+    <g transform="translate(380, 260) scale(0.6)" opacity="0.75">
+      <line x1="-12" y1="0" x2="12" y2="0" stroke="#ffffff" stroke-width="2"/>
+      <line x1="0" y1="-12" x2="0" y2="12" stroke="#ffffff" stroke-width="2"/>
+      <line x1="-8" y1="-8" x2="8" y2="8" stroke="#ffffff" stroke-width="1.5"/>
+      <line x1="-8" y1="8" x2="8" y2="-8" stroke="#ffffff" stroke-width="1.5"/>
+    </g>
+    <g transform="translate(1420, 290) scale(0.7)" opacity="0.75">
+      <line x1="-12" y1="0" x2="12" y2="0" stroke="#ffffff" stroke-width="2"/>
+      <line x1="0" y1="-12" x2="0" y2="12" stroke="#ffffff" stroke-width="2"/>
+      <line x1="-8" y1="-8" x2="8" y2="8" stroke="#ffffff" stroke-width="1.5"/>
+      <line x1="-8" y1="8" x2="8" y2="-8" stroke="#ffffff" stroke-width="1.5"/>
+    </g>
+    <g transform="translate(860, 160) scale(0.55)" opacity="0.65">
+      <line x1="-12" y1="0" x2="12" y2="0" stroke="#ffffff" stroke-width="2"/>
+      <line x1="0" y1="-12" x2="0" y2="12" stroke="#ffffff" stroke-width="2"/>
+      <line x1="-8" y1="-8" x2="8" y2="8" stroke="#ffffff" stroke-width="1.5"/>
+      <line x1="-8" y1="8" x2="8" y2="-8" stroke="#ffffff" stroke-width="1.5"/>
+    </g>
+  </g>
+
+  <!-- VOILE DE PROFONDEUR CENTRAL POUR ASSURER UNE LISIBILITÉ PARFAITE DES MESSAGES -->
+  <rect x="0" y="0" width="1920" height="1080" fill="#090e1a" opacity="0.25"/>
+</svg>
